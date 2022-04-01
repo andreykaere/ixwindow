@@ -1,0 +1,231 @@
+#!/bin/bash
+
+
+# Folder for icons
+CACHE="$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
+
+# Path to your ixwindow folder
+DIR="$HOME/.config/polybar/scripts/ixwindow/"
+
+PREV_ICON="/tmp/polybar-icon-prev"
+
+
+reset_prev_icon() {
+    echo "" > "$PREV_ICON"
+}
+
+
+
+print_info() {
+    
+    if [ "$1" = "Empty" ]; then
+        echo "         Empty"
+        exit 0
+    fi
+
+    local wid="$1"
+    local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
+    
+
+    case "$WM_CLASS" in
+        'Brave-browser')
+            echo "         Brave";;
+        'TelegramDesktop')
+            echo "         Telegram";;
+        *)
+            # https://stackoverflow.com/questions/1538676/uppercasing-first-letter-of-words-using-sed
+            echo "         $WM_CLASS" | sed -e "s/\b\(.\)/\u\1/g";;
+    esac
+}
+
+
+# Delete previous windows, becase otherwise it 
+# may cause slow down of your window manager
+cleanup() {
+    local icons_id=($(xdo id -n "polybar-xwindow-icon" 2> /dev/null))
+
+    for icon in "${icons_id[@]}";
+    do
+        xdo kill "$icon" &> /dev/null 
+    done
+}
+
+
+display_icon() {
+    cleanup
+    "$DIR/polybar-xwindow-icon" "$CACHE/$1.jpg" &> /dev/null &
+}
+
+
+generate_icon() {
+    "$DIR/generate-icons" "$CACHE"
+}
+
+process_window() {
+    
+    local wid="$1";
+    local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
+
+    generate_icon
+    
+    local WM_CLASS_PREV="$(cat "$PREV_ICON")"
+
+    if [ "$WM_CLASS" = "$WM_CLASS_PREV" ]; then
+        continue;
+    else
+        echo "$WM_CLASS" > "$PREV_ICON"
+    fi
+   
+
+    display_icon "$WM_CLASS"
+
+    print_info "$wid"
+}
+
+is_desktop_empty() {
+    local desk="$1"
+    local ids=($(bspc query -N -n .window  -d "$desk"))
+    local flag=1
+
+    for i in "${ids[@]}"; 
+    do
+        if [ "$(bspc query -T -n "$i" | jq -r '.hidden')" = "false" ]; then
+            local flag=0;
+            break;
+        fi
+    done
+
+    echo "$flag"
+}
+
+process_desktop() {
+    local desk="$1"
+    local is_empty="$(is_desktop_empty "$Desktop")"
+
+    if [ "$is_empty" = "1" ]; then
+        local WM_CLASS="Empty"
+        local WM_CLASS_PREV="$(cat "$PREV_ICON")"
+
+        if [ "$WM_CLASS" = "$WM_CLASS_PREV" ]; then
+            continue;
+        else
+            echo "$WM_CLASS" > "$PREV_ICON"
+        fi
+       
+
+        display_icon "$WM_CLASS"
+
+        print_info "Empty"
+    fi
+
+}
+
+
+trap cleanup SIGKILL SIGTERM SIGINT INT
+
+
+
+reset_prev_icon
+
+
+
+bspc subscribe node_focus | while read -r Event Monitor Desktop Node
+do
+    # Doesn't always work, so xprop is more realiable here 
+    # WM_CLASS="$(bspc query -T -n "$Node" | jq -r '.client.className')"  
+
+
+    fullscreen_node="$(bspc query -N -n .fullscreen -d "$Desktop")"
+
+    # if there is a fullscreen node, don't do anything, 
+    # since we shouldn't see it
+    if [ -n "$fullscreen_node" ]; then
+        continue;
+    fi
+
+
+
+    # if [ "$WM_CLASS" != "Polybar-xwindow-icon" ]; then
+    process_window "$Node"
+        
+    # fi
+
+done &
+
+bspc subscribe node_state | while read -r Event Monitor Desktop Node State Active 
+do
+
+    if [ "$State" != "fullscreen" ]; then
+        continue;
+    fi
+
+    if [ "$Active" = "on" ]; then
+        cleanup
+    else
+        # icon prev
+        reset_prev_icon
+        process_window "$Node"
+    fi
+
+done &
+
+
+bspc subscribe node_add | while read -r Event Monitor Desktop Ip Node 
+do
+    State="$(bspc query -T -n "$Node" | jq -r '.client.state')"
+
+    if [ "$State" = "fullscreen" ]; then
+        cleanup
+    fi
+
+done &
+
+
+bspc subscribe node_flag | while read -r Event Monitor Desktop Node Flag Active 
+do
+    if [ "$Flag" = "hidden" ] && [ "$Desktop" = "$(bspc query -D -d .focused)" ]; then
+        process_desktop "$Desktop"
+    fi
+
+done &
+
+
+
+
+bspc subscribe node_remove | while read -r Event Monitor Desktop Node 
+do
+    # Get name of removed Node
+    Name="$(xdotool getwindowname "$Node" 2> /dev/null)"
+
+    # Workaround for Telegram Media viewer
+    # One may need to add something here
+    if [ "$Name" = "Media viewer" ]; then
+        # prev
+        reset_prev_icon
+        process_window "$(xdotool getwindowfocus)"
+    fi
+
+   
+    process_desktop "$Desktop"
+
+done &
+
+
+bspc subscribe desktop_focus | while read -r Event Monitor Desktop 
+do
+    Node="$(bspc query -N -n .focused -d "$Desktop")"
+  
+    fullscreen_node="$(bspc query -N -n .fullscreen -d "$Desktop")"
+
+    if [ -n "$fullscreen_node" ]; then
+         cleanup 
+         continue;
+    else
+        process_window "$Node"
+    fi
+    
+    process_desktop "$Desktop"
+
+done 
+
+
