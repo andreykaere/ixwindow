@@ -4,12 +4,27 @@
 ## About
 
 `ixwindow` is an enhanced version of standard `xwindow` polybar module. The main feature is icon for active window, but it also allows you more customization of printing window info. `ixwindow` in work:
-![](example.gif)
 
-## Instalation
+<p align="center">
+  <img src="example.gif" alt="animated" />
+</p>
 
+## Installation
 
-## Usage
+Just modify `install.sh` script for your case and run it. Things to specify:
+- background color of polybar bar
+- size of icon
+- coordinates for icon
+- path to `ixwindow` folder (default: `$HOME/.config/polybar/scripts/ixwindow`)
+
+You will also need to add this to your polybar `config` file:
+
+```
+[module/ixwindow]
+type = custom/script
+exec = /path/to/ixwindow
+tail = true
+```
 
 
 
