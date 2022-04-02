@@ -51,8 +51,8 @@ int main(int argc, char** argv)
 
       // Create the window
 
-      Window w = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 270, 6, 
-                     24, 24, 0, whiteColor, blackColor);
+      Window w = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), $X, $Y, 
+                     $SIZE, $SIZE, 0, whiteColor, blackColor);
 
       // We want to get MapNotify events
 

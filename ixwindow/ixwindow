@@ -3,14 +3,14 @@
 
 
 # Folder for icons
-CACHE="$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
+CACHE=$$CACHE 
 
 # Path to your ixwindow folder
-DIR="$HOME/.config/polybar/scripts/ixwindow/"
+DIR=$$DIR
 
 PREV_ICON="/tmp/polybar-icon-prev"
 
-GAP="        "
+GAP="         "
 
 
 # Delete previous icons, becase if there will be many
@@ -69,7 +69,7 @@ display_icon() {
 
 
 generate_icon() {
-    "$DIR/generate-icons" "$CACHE" "$1"
+    "$DIR/generate-icon" "$CACHE" "$1"
 }
 
 process_window() {

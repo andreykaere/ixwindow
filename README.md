@@ -18,7 +18,7 @@ as polybar's `tail = true`.
 
 ## Installation
 
-Just modify `install.sh` script for your case and run it. Things to specify:
+Just modify `install.sh` script for your case and run it. Things to modify:
 - background color of polybar bar
 - size of icon
 - coordinates for icon
@@ -41,7 +41,7 @@ tail = true
 
 Sometimes it's not possible to get icon using `xprop`, for example, it's the case with Spotify, 
 so you might want to add them manually to your `polybar-icons` folder. To do that, you need to 
-have `.png` version of icon and run, for example, the following commands:
+have `.png` version of icon and run, for example, the following commands (requires `imagemagick`):
 ```bash
 convert Spotify.png -resize 24x24 -background "#252737" -flatten -alpha off Spotify.jpg
 ```

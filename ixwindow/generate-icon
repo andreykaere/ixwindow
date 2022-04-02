@@ -5,8 +5,8 @@
 # https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program
 
 
-SIZE=24
-COLOR="#252737"
+SIZE=$$SIZE
+COLOR=$$COLOR
 
 wid="$2"
 # wid="$(xdotool selectwindow)"
