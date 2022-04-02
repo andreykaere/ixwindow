@@ -1,6 +1,7 @@
 #!/bin/bash
 
 
+
 # Folder for icons
 CACHE="$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
 
@@ -8,6 +9,20 @@ CACHE="$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
 DIR="$HOME/.config/polybar/scripts/ixwindow/"
 
 PREV_ICON="/tmp/polybar-icon-prev"
+
+
+
+
+# Delete previous icons, becase if there will be many
+# overlaping icons it may cause a slow down of your window manager
+cleanup_icons() {
+    local icons_id=($(xdo id -n "polybar-xwindow-icon" 2> /dev/null))
+
+    for icon in "${icons_id[@]}";
+    do
+        xdo kill "$icon" &> /dev/null 
+    done
+}
 
 
 reset_prev_icon() {
@@ -20,54 +35,51 @@ print_info() {
     
     if [ "$1" = "Empty" ]; then
         echo "         Empty"
-        exit 0
+    else
+        local wid="$1"
+        
+        # Doesn't always work, so xprop is more realiable here 
+        # WM_CLASS="$(bspc query -T -n "$Node" | jq -r '.client.className')"  
+        local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
+        
+
+        case "$WM_CLASS" in
+            'Brave-browser')
+                echo "         Brave";;
+            'TelegramDesktop')
+                echo "         Telegram";;
+            *)
+                # https://stackoverflow.com/questions/1538676/uppercasing-first-letter-of-words-using-sed
+                echo "         $WM_CLASS" | sed -e "s/\b\(.\)/\u\1/g";;
+        esac
     fi
-
-    local wid="$1"
-    local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
-    
-
-    case "$WM_CLASS" in
-        'Brave-browser')
-            echo "         Brave";;
-        'TelegramDesktop')
-            echo "         Telegram";;
-        *)
-            # https://stackoverflow.com/questions/1538676/uppercasing-first-letter-of-words-using-sed
-            echo "         $WM_CLASS" | sed -e "s/\b\(.\)/\u\1/g";;
-    esac
 }
 
 
-# Delete previous windows, becase otherwise it 
-# may cause slow down of your window manager
-cleanup() {
-    local icons_id=($(xdo id -n "polybar-xwindow-icon" 2> /dev/null))
-
-    for icon in "${icons_id[@]}";
-    do
-        xdo kill "$icon" &> /dev/null 
-    done
-}
 
 
 display_icon() {
-    cleanup
-    "$DIR/polybar-xwindow-icon" "$CACHE/$1.jpg" &> /dev/null &
+    cleanup_icons
+    icon="$CACHE/$1.jpg"
+    if [ -f "$icon" ]; then
+        "$DIR/polybar-xwindow-icon" "$icon" &> /dev/null &
+    fi
 }
 
 
 generate_icon() {
-    "$DIR/generate-icons" "$CACHE"
+    "$DIR/generate-icons" "$CACHE" "$1"
 }
 
 process_window() {
     
-    local wid="$1";
+    local wid="$1"
     local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
 
-    generate_icon
-    
+    generate_icon "$wid"
+   
+    # use icon-prev thing just so icon won't blink 
+    # when you switch between the same type of windows
     local WM_CLASS_PREV="$(cat "$PREV_ICON")"
 
     if [ "$WM_CLASS" = "$WM_CLASS_PREV" ]; then
@@ -82,6 +94,7 @@ process_window() {
     print_info "$wid"
 }
 
+
 is_desktop_empty() {
     local desk="$1"
     local ids=($(bspc query -N -n .window  -d "$desk"))
@@ -90,7 +103,7 @@ is_desktop_empty() {
     for i in "${ids[@]}"; 
     do
         if [ "$(bspc query -T -n "$i" | jq -r '.hidden')" = "false" ]; then
-            local flag=0;
+            local flag=0
             break;
         fi
     done
@@ -100,69 +113,67 @@ is_desktop_empty() {
 
 process_desktop() {
     local desk="$1"
-    local is_empty="$(is_desktop_empty "$Desktop")"
+    local is_empty="$(is_desktop_empty "$desk")"
 
     if [ "$is_empty" = "1" ]; then
-        local WM_CLASS="Empty"
-        local WM_CLASS_PREV="$(cat "$PREV_ICON")"
-
-        if [ "$WM_CLASS" = "$WM_CLASS_PREV" ]; then
-            continue;
-        else
-            echo "$WM_CLASS" > "$PREV_ICON"
-        fi
-       
-
-        display_icon "$WM_CLASS"
+        reset_prev_icon
+        cleanup_icons 
 
         print_info "Empty"
     fi
 
 }
 
+exists_fullscreen_node() {
+    local flag=0
+    local fullscreen_nodes=($(bspc query -N -n .fullscreen -d "$1"))
 
-trap cleanup SIGKILL SIGTERM SIGINT INT
+    for node in "${fullscreen_nodes[@]}";
+    do
+        if [ "$(bspc query -T -n "$node" | jq -r '.hidden')" = "false" ]; then
+            local flag=1
+            break;
+        fi
+    done
 
+    echo "$flag"
+}
 
 
 reset_prev_icon
 
 
-
 bspc subscribe node_focus | while read -r Event Monitor Desktop Node
 do
-    # Doesn't always work, so xprop is more realiable here 
-    # WM_CLASS="$(bspc query -T -n "$Node" | jq -r '.client.className')"  
-
-
-    fullscreen_node="$(bspc query -N -n .fullscreen -d "$Desktop")"
+    # For some reason "$Node" is not always working 
+    # properly with sticky windows
+    Node="$(xdotool getwindowfocus)"
+    
+    is_fullscreen_node="$(exists_fullscreen_node "$Desktop")"
 
     # if there is a fullscreen node, don't do anything, 
     # since we shouldn't see it
-    if [ -n "$fullscreen_node" ]; then
+    if [ "$is_fullscreen_node" = "1" ]; then
         continue;
     fi
 
 
-
-    # if [ "$WM_CLASS" != "Polybar-xwindow-icon" ]; then
     process_window "$Node"
-        
-    # fi
 
 done &
 
+
 bspc subscribe node_state | while read -r Event Monitor Desktop Node State Active 
 do
+    Node="$(xdotool getwindowfocus)"
 
     if [ "$State" != "fullscreen" ]; then
         continue;
     fi
 
     if [ "$Active" = "on" ]; then
-        cleanup
+        cleanup_icons
     else
-        # icon prev
         reset_prev_icon
         process_window "$Node"
     fi
@@ -175,7 +186,7 @@ do
     State="$(bspc query -T -n "$Node" | jq -r '.client.state')"
 
     if [ "$State" = "fullscreen" ]; then
-        cleanup
+        cleanup_icons
     fi
 
 done &
@@ -196,13 +207,17 @@ bspc subscribe node_remove | while read -r Event Monitor Desktop Node
 do
     # Get name of removed Node
     Name="$(xdotool getwindowname "$Node" 2> /dev/null)"
+    is_fullscreen_node="$(exists_fullscreen_node "$Desktop")"
+    Node="$(xdotool getwindowfocus)"
 
     # Workaround for Telegram Media viewer
     # One may need to add something here
     if [ "$Name" = "Media viewer" ]; then
-        # prev
         reset_prev_icon
-        process_window "$(xdotool getwindowfocus)"
+
+        if [ "$is_fullscreen_node" = "0" ]; then
+            process_window "$Node"
+        fi
     fi
 
    
@@ -213,18 +228,14 @@ done &
 
 bspc subscribe desktop_focus | while read -r Event Monitor Desktop 
 do
-    Node="$(bspc query -N -n .focused -d "$Desktop")"
-  
-    fullscreen_node="$(bspc query -N -n .fullscreen -d "$Desktop")"
+    is_fullscreen_node="$(exists_fullscreen_node "$Desktop")"
 
-    if [ -n "$fullscreen_node" ]; then
-         cleanup 
+    if [ "$is_fullscreen_node" = "1" ]; then
+         cleanup_icons 
          continue;
     else
-        process_window "$Node"
+        process_desktop "$Desktop"
     fi
-    
-    process_desktop "$Desktop"
 
 done 
 

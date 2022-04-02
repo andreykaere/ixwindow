@@ -5,12 +5,16 @@
 # https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program
 
 
-wid="$(xdotool getwindowfocus)"
+SIZE=24
+COLOR="#252737"
+
+wid="$2"
 # wid="$(xdotool selectwindow)"
 # class="$(bspc query -T -n "$wid" | jq -r '.client.className')"
 WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
 
 name="$(echo "$WM_CLASS" )"
+
 
 CACHE="$1/$name"
 
@@ -25,7 +29,10 @@ if [ -z "$(xprop -id "$wid" | grep "Icon")" ]; then
     exit 0
 fi
 
-cmd=(convert -resize 24x24  -set 'filename:w' '%w' - "${name}.png")
+
+# Resize it in advance, so icons will look better, but it's not necessary, so
+# you can remove "-resize" flag if you prefer it the other way
+cmd=(convert -resize "$SIZE"x"$SIZE" -set 'filename:w' '%w' - "${name}.png")
 
 split_icons() {
     xprop -id "$wid" -notype 32c _NET_WM_ICON |
@@ -49,7 +56,7 @@ to_pam() {
 
 while read -r data; do to_pam <<< "$data" | "${cmd[@]}"; done < <(split_icons)
 
-convert "$name.png" -background "#222222" -flatten -alpha off "$name.jpg"
+convert "$name.png" -background $COLOR -flatten -alpha off "$name.jpg"
 mv "$name.jpg" "$CACHE.jpg" && rm "$name.png"
 
 
