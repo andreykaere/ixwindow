@@ -21,8 +21,9 @@ as polybar's `tail = true`.
 - `bash`
 - `bspc`
 - `xdotool`
-- `xdo` (can be replaced with xdotool)
+- `xdo` (can be replaced with `xdotool`)
 - `imagemagick` (for converting `.png` icons to `.jpg`)
+- `g++`
 
 ## Installation
 
@@ -44,17 +45,31 @@ exec = /path/to/ixwindow
 tail = true
 ```
 
-and put it somewhere on bar, for example, add it right next to `bspwm`: `modules-left = bspwm ixwindow`.
+and put it somewhere on bar, for example, add it right next to `bspwm`: 
+`modules-left = bspwm ixwindow`.
 
+**Note:** If you want to reinstall `ixwindow`, like if you need to change the 
+configuration of the module, you just need to run `install.sh` with the updated 
+parameters. But old icons won't remove, so if you need to delete them, you will 
+have to that manually.
 
-## Adding custom icons
+## Generating icons
+
+`ixwindow` uses the output of `xprop` for generating icons automatically. 
+Most of the times it works, but for some applicacatoins, for example, Spotify,
+it doesn't work. Then, if you want to have an icon for these applications, you 
+have to add them yourself. 
+
+### Adding custom icons
 
 Sometimes it's not possible to get icon using `xprop`, for example, it's the case with Spotify, 
 so you might want to add them manually to your `polybar-icons` folder. To do that, you need to 
-have `.png` version of icon and run, for example, the following command (requires `imagemagick`):
+have `.png` version of icon, named as `WM_CLASS` (you can find it by running `xprop WM_CLASS` 
+and selecting your app). Then run, the following command (requires `imagemagick`):
 ```bash
 convert Spotify.png -resize 24x24 -background "#252737" -flatten -alpha off Spotify.jpg
 ```
+**Note:** This metod can be used for replacing default icons, generated with `xprop`.
 
 ## Known issues & limitations
 
@@ -71,5 +86,6 @@ https://github.com/MateoNitro550/xxxwindowPolybarModule
 
 ### With great help of
 
-https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11
+- https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11
+- https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program
 
