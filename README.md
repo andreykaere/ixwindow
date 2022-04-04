@@ -12,18 +12,18 @@ customization of printing window info. This is what `ixwindow` looks like in wor
 </p>
 
 
-**Note:** basically, it doesn't depent on polybar one bit, it can be used 
+**Note:** basically, it doesn't depend on polybar one bit, it can be used 
 with any other bar as well, you just need to implement the same behavior,
 as polybar's `tail = true`.
 
 
-## Dependicies
+## Dependencies
 - `bash`
 - `bspc`
 - `xdotool`
 - `xdo` (can be replaced with `xdotool`)
 - `imagemagick` (for converting `.png` icons to `.jpg`)
-- `g++`
+- `g++` (for compiling `polybar-xwindow-icon`)
 
 ## Installation
 
@@ -51,12 +51,12 @@ and put it somewhere on bar, for example, add it right next to `bspwm`:
 **Note:** If you want to reinstall `ixwindow`, like if you need to change the 
 configuration of the module, you just need to run `install.sh` with the updated 
 parameters. But old icons won't remove, so if you need to delete them, you will 
-have to that manually.
+have to do that manually.
 
 ## Generating icons
 
 `ixwindow` uses the output of `xprop` for generating icons automatically. 
-Most of the times it works, but for some applicacatoins, for example, Spotify,
+Most of the times it works, but for some applications, for example, Spotify,
 it doesn't work. Then, if you want to have an icon for these applications, you 
 have to add them yourself. 
 
@@ -69,7 +69,7 @@ and selecting your app). Then run, the following command (requires `imagemagick`
 ```bash
 convert Spotify.png -resize 24x24 -background "#252737" -flatten -alpha off Spotify.jpg
 ```
-**Note:** This metod can be used for replacing default icons, generated with `xprop`.
+**Note:** This method can be used for replacing default icons, generated with `xprop`.
 
 ## Known issues & limitations
 
