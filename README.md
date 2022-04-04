@@ -5,7 +5,7 @@
 
 `ixwindow` is an enhanced version of standard `xwindow` polybar module. 
 The main feature is icon for active window, but it also allows you more 
-customization of printing window info. This is how `ixwindow` looks in work:
+customization of printing window info. This is what `ixwindow` looks like in work:
 
 <p align="center">
   <img src="example.gif" alt="animated" />
@@ -15,6 +15,14 @@ customization of printing window info. This is how `ixwindow` looks in work:
 **Note:** basically, it doesn't depent on polybar one bit, it can be used 
 with any other bar as well, you just need to implement the same behavior,
 as polybar's `tail = true`.
+
+
+## Dependicies
+- `bash`
+- `bspc`
+- `xdotool`
+- `xdo` (can be replaced with xdotool)
+- `imagemagick` (for converting `.png` icons to `.jpg`)
 
 ## Installation
 
@@ -43,7 +51,7 @@ and put it somewhere on bar, for example, add it right next to `bspwm`: `modules
 
 Sometimes it's not possible to get icon using `xprop`, for example, it's the case with Spotify, 
 so you might want to add them manually to your `polybar-icons` folder. To do that, you need to 
-have `.png` version of icon and run, for example, the following commands (requires `imagemagick`):
+have `.png` version of icon and run, for example, the following command (requires `imagemagick`):
 ```bash
 convert Spotify.png -resize 24x24 -background "#252737" -flatten -alpha off Spotify.jpg
 ```

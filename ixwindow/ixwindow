@@ -1,12 +1,12 @@
 #!/bin/bash
 
 
-
 # Folder for icons
 CACHE=$$CACHE 
 
 # Path to your ixwindow folder
 DIR=$$DIR
+
 
 PREV_ICON="/tmp/polybar-icon-prev"
 
@@ -57,6 +57,15 @@ print_info() {
 }
 
 
+exists_fullscreen_node() {
+    local fullscreen_nodes="$(bspc query -N -n .fullscreen.\!hidden -d "$1")"
+
+    if [ -n "$fullscreen_nodes" ]; then 
+        echo '1'
+    else
+        echo '0'
+    fi
+}
 
 
 display_icon() {
@@ -72,21 +81,32 @@ generate_icon() {
     "$DIR/generate-icon" "$CACHE" "$1"
 }
 
+update_prev_icon() {
+   echo "$1" > "$PREV_ICON" 
+}
+
 process_window() {
-    
+    local desk="$2"    
     local wid="$1"
     local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
+    
+    # If there is a fullscreen node, don't do anything, 
+    # since we shouldn't see it
+    if [ "$(exists_fullscreen_node "$desk")" = "1" ]; then
+        update_prev_icon "$WM_CLASS"
+        return 0;
+    fi
 
     generate_icon "$wid"
    
-    # use icon-prev thing just so icon won't blink 
+    # Use icon-prev thing just so icon won't blink 
     # when you switch between the same type of windows
     local WM_CLASS_PREV="$(cat "$PREV_ICON")"
 
     if [ "$WM_CLASS" = "$WM_CLASS_PREV" ]; then
-        continue;
+        return 0;
     else
-        echo "$WM_CLASS" > "$PREV_ICON"
+        update_prev_icon "$WM_CLASS"
     fi
    
 
@@ -98,18 +118,14 @@ process_window() {
 
 is_desktop_empty() {
     local desk="$1"
-    local ids=($(bspc query -N -n .window  -d "$desk"))
-    local flag=1
+    local nodes="$(bspc query -N -n .window.\!hidden  -d "$desk")"
 
-    for i in "${ids[@]}"; 
-    do
-        if [ "$(bspc query -T -n "$i" | jq -r '.hidden')" = "false" ]; then
-            local flag=0
-            break;
-        fi
-    done
 
-    echo "$flag"
+    if [ -n "$nodes" ]; then 
+        echo '0'
+    else
+        echo '1'
+    fi
 }
 
 process_desktop() {
@@ -125,21 +141,6 @@ process_desktop() {
 
 }
 
-exists_fullscreen_node() {
-    local flag=0
-    local fullscreen_nodes=($(bspc query -N -n .fullscreen -d "$1"))
-
-    for node in "${fullscreen_nodes[@]}";
-    do
-        if [ "$(bspc query -T -n "$node" | jq -r '.hidden')" = "false" ]; then
-            local flag=1
-            break;
-        fi
-    done
-
-    echo "$flag"
-}
-
 
 reset_prev_icon
 
@@ -150,16 +151,8 @@ do
     # properly with sticky windows
     Node="$(xdotool getwindowfocus)"
     
-    is_fullscreen_node="$(exists_fullscreen_node "$Desktop")"
 
-    # if there is a fullscreen node, don't do anything, 
-    # since we shouldn't see it
-    if [ "$is_fullscreen_node" = "1" ]; then
-        continue;
-    fi
-
-
-    process_window "$Node"
+    process_window "$Node" "$Desktop"
 
 done &
 
@@ -176,7 +169,7 @@ do
         cleanup_icons
     else
         reset_prev_icon
-        process_window "$Node"
+        process_window "$Node"  "$Desktop"
     fi
 
 done &
@@ -206,37 +199,31 @@ done &
 
 bspc subscribe node_remove | while read -r Event Monitor Desktop Node 
 do
-    # Get name of removed Node
+    focused_node="$(bspc query -N -n focused)"
     Name="$(xdotool getwindowname "$Node" 2> /dev/null)"
-    is_fullscreen_node="$(exists_fullscreen_node "$Desktop")"
-    Node="$(xdotool getwindowfocus)"
-
-    # Workaround for Telegram Media viewer
-    # One may need to add something here
-    if [ "$Name" = "Media viewer" ]; then
-        reset_prev_icon
-
-        if [ "$is_fullscreen_node" = "0" ]; then
-            process_window "$Node"
+    
+    if [ -n "$focused_node" ]; then 
+        
+        # Workaround for Telegram Media viewer
+        # One may need to add something here, if his application 
+        # runs something in the fullscreen with the same classname
+        # P.S. It's not for all 'node_remove', so the icon won't 
+        # blink every time you delete windows
+        if [ "$Name" = "Media viewer" ]; then
+            reset_prev_icon
         fi
-    fi
 
-   
-    process_desktop "$Desktop"
+        process_window "$focused_node" "$Desktop"
+    else
+        process_desktop "$Desktop"
+    fi
 
 done &
 
 
 bspc subscribe desktop_focus | while read -r Event Monitor Desktop 
 do
-    is_fullscreen_node="$(exists_fullscreen_node "$Desktop")"
-
-    if [ "$is_fullscreen_node" = "1" ]; then
-         cleanup_icons 
-         continue;
-    else
-        process_desktop "$Desktop"
-    fi
+    process_desktop "$Desktop"
 
 done 
 
