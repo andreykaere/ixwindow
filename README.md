@@ -44,7 +44,7 @@ exec = /path/to/ixwindow
 tail = true
 ```
 
-and put it somewhere on bar, for example, add it right next to `bspwm`: `modules-left = bspwm ixwindow`
+and put it somewhere on bar, for example, add it right next to `bspwm`: `modules-left = bspwm ixwindow`.
 
 
 ## Adding custom icons

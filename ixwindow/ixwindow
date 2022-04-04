@@ -150,7 +150,6 @@ do
     # For some reason "$Node" is not always working 
     # properly with sticky windows
     Node="$(xdotool getwindowfocus)"
-    
 
     process_window "$Node" "$Desktop"
 
@@ -199,30 +198,19 @@ done &
 
 bspc subscribe node_remove | while read -r Event Monitor Desktop Node 
 do
-    focused_node="$(bspc query -N -n focused)"
-    Name="$(xdotool getwindowname "$Node" 2> /dev/null)"
-    
-    if [ -n "$focused_node" ]; then 
-        
-        # Workaround for Telegram Media viewer
-        # One may need to add something here, if his application 
-        # runs something in the fullscreen with the same classname
-        # P.S. It's not for all 'node_remove', so the icon won't 
-        # blink every time you delete windows
-        if [ "$Name" = "Media viewer" ]; then
-            reset_prev_icon
-        fi
-
-        process_window "$focused_node" "$Desktop"
-    else
-        process_desktop "$Desktop"
-    fi
+    process_desktop "$Desktop"
 
 done &
 
 
 bspc subscribe desktop_focus | while read -r Event Monitor Desktop 
 do
+
+    if [ "$(exists_fullscreen_node "$Desktop")" = "1" ]; then
+        cleanup_icons
+        continue;
+    fi
+
     process_desktop "$Desktop"
 
 done 

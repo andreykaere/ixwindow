@@ -14,6 +14,13 @@ DIR='$HOME/.config/polybar/scripts/ixwindow'
 
 cp -R ixwindow ixwindow_compiled
 
+# If no "$CACHE", create directory for icons
+if ! [ -d "$CACHE" ]; then
+    mkdir -p ixwindow_compiled/polybar-icons
+fi
+
+
+
 sed -i "s/\$X/$X/g" ixwindow_compiled/polybar-xwindow-icon.cpp
 sed -i "s/\$Y/$Y/g" ixwindow_compiled/polybar-xwindow-icon.cpp
 sed -i "s/\$SIZE/$SIZE/g" ixwindow_compiled/polybar-xwindow-icon.cpp
