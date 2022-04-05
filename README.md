@@ -53,6 +53,11 @@ configuration of the module, you just need to run `install.sh` with the updated
 parameters. But old icons won't remove, so if you need to delete them, you will 
 have to do that manually.
 
+**Note:** For relaunching polybar, you will need to use `killall polybar && 
+launchpolybar &`, so the previous instance of `ixwindow` will be killed (I am 
+currently trying to find a workaround for it)
+
+
 ## Generating icons
 
 `ixwindow` uses the output of `xprop` for generating icons automatically. 
@@ -75,8 +80,10 @@ convert Spotify.png -resize 24x24 -background "#252737" -flatten -alpha off Spot
 
 - Lack of png support, but it will require compositor as well
 - Untested on multimonitors system
-- Manual specification, but seems to be unfixable at this point
+- Manual specification, but seems to be unfixable at this point, since polybar doesn't 
+support inserting images into bar for now
 - Works only with bspwm 
+- Working with relaunched polybar without `killall polybar`
 
 ## Thanks
 
