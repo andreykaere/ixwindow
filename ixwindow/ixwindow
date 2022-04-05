@@ -2,7 +2,7 @@
 
 
 # Folder for icons
-CACHE=$$CACHE 
+CACHE=$$CACHE
 
 # Path to your ixwindow folder
 DIR=$$DIR
@@ -93,7 +93,7 @@ process_window() {
     # If there is a fullscreen node, don't do anything, 
     # since we shouldn't see it
     if [ "$(exists_fullscreen_node "$desk")" = "1" ]; then
-        update_prev_icon "$WM_CLASS"
+        reset_prev_icon
         return 0;
     fi
 
@@ -163,11 +163,15 @@ do
     if [ "$State" != "fullscreen" ]; then
         continue;
     fi
+    
+    # So, if you will focus on the other windows of the same app,
+    # which are not fullscreen, you will see icon
+
+    reset_prev_icon
 
     if [ "$Active" = "on" ]; then
         cleanup_icons
     else
-        reset_prev_icon
         process_window "$Node"  "$Desktop"
     fi
 
@@ -179,6 +183,7 @@ do
     State="$(bspc query -T -n "$Node" | jq -r '.client.state')"
 
     if [ "$State" = "fullscreen" ]; then
+        reset_prev_icon
         cleanup_icons
     fi
 
@@ -207,6 +212,7 @@ bspc subscribe desktop_focus | while read -r Event Monitor Desktop
 do
 
     if [ "$(exists_fullscreen_node "$Desktop")" = "1" ]; then
+        reset_prev_icon
         cleanup_icons
         continue;
     fi
@@ -214,5 +220,4 @@ do
     process_desktop "$Desktop"
 
 done 
-
 
