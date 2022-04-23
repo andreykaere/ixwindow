@@ -93,6 +93,7 @@ process_window() {
     # If there is a fullscreen node, don't do anything, 
     # since we shouldn't see it
     if [ "$(exists_fullscreen_node "$desk")" = "1" ]; then
+        cleanup_icons
         reset_prev_icon
         return 0;
     fi
