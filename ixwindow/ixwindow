@@ -148,9 +148,10 @@ reset_prev_icon
 
 bspc subscribe node_focus | while read -r Event Monitor Desktop Node
 do
-    # For some reason "$Node" is not always working 
+    # For some reason "$Node" and "$Desktop" are not always working 
     # properly with sticky windows
-    Node="$(xdotool getwindowfocus)"
+    Node="$(xdotool getactivewindow)"
+    Desktop="$(bspc query -D -d focused)"
 
     process_window "$Node" "$Desktop"
 
@@ -160,6 +161,7 @@ done &
 bspc subscribe node_state | while read -r Event Monitor Desktop Node State Active 
 do
     Node="$(xdotool getwindowfocus)"
+    Desktop="$(bspc query -D -d focused)"
 
     if [ "$State" != "fullscreen" ]; then
         continue;
