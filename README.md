@@ -5,7 +5,8 @@
 
 `ixwindow` is an enhanced version of standard `xwindow` polybar module. 
 The main feature is icon for active window, but it also allows you more 
-customization of printing window info. This is what `ixwindow` looks like in work:
+customization of printing window info. This is what `ixwindow` looks
+like in action:
 
 <p align="center">
   <img src="example.gif" alt="animated" />
@@ -50,7 +51,7 @@ and put it somewhere on bar, for example, add it right next to `bspwm`:
 
 **Note:** If you want to reinstall `ixwindow`, like if you need to change the 
 configuration of the module, you just need to run `install.sh` with the updated 
-parameters. But old icons won't remove, so if you need to delete them, you will 
+parameters. But old icons won't remove, so if you need to delete them, you 
 have to do that manually.
 
 **Note:** For relaunching polybar, you will need to use something like 
@@ -83,7 +84,7 @@ convert Spotify.png -resize 24x24 -background "#252737" -flatten -alpha off Spot
 - Manual specification, but seems to be unfixable at this point, since polybar doesn't 
 support inserting images into bar for now
 - Works only with bspwm 
-- Working with relaunched polybar without `killall polybar`
+- Not working with relaunched polybar without `killall polybar`
 
 ## Thanks
 
@@ -91,7 +92,7 @@ support inserting images into bar for now
 
 https://github.com/MateoNitro550/xxxwindowPolybarModule
 
-### With great help of
+### With a great help of
 
 - https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11
 - https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program
