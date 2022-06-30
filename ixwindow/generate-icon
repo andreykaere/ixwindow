@@ -13,7 +13,7 @@ wid="$2"
 # class="$(bspc query -T -n "$wid" | jq -r '.client.className')"
 WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
 
-name="$(echo "$WM_CLASS" )"
+name="$WM_CLASS"
 
 
 CACHE="$1/$name"

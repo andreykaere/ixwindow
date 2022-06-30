@@ -1,5 +1,5 @@
 // compilation:
-// g++ -o polybar-xwindow-icon polybar-xwindow-icon.cpp `pkg-config --cflags --libs opencv` -lX11
+// g++ -o polybar-xwindow-icon polybar-xwindow-icon.cpp `pkg-config --cflags --libs opencv4` -lX11
 
 // Code is mostly copied from 
 // https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11
@@ -101,7 +101,7 @@ int main(int argc, char** argv)
 
     Mat img(ht1, wd1, CV_8UC3);     // OpenCV Mat object is initilaized
     Mat scrap = imread(argv[1]);//(wid, ht, CV_8UC3);      
-    resize(scrap, img, img.size(), CV_INTER_AREA);
+    resize(scrap, img, img.size(), cv::INTER_AREA);
 
     for (int x = 0; x < wd1; x++)
         for (int y = 0; y < ht1 ; y++)

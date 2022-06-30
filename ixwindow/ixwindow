@@ -90,7 +90,7 @@ process_window() {
     local wid="$1"
     local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
     
-    # If there is a fullscreen node, don't do anything, 
+    # If there is a fullscreen node, don't show anything, 
     # since we shouldn't see it
     if [ "$(exists_fullscreen_node "$desk")" = "1" ]; then
         cleanup_icons
@@ -100,8 +100,8 @@ process_window() {
 
     generate_icon "$wid"
    
-    # Use icon-prev thing just so icon won't blink 
-    # when you switch between the same type of windows
+    # We use icon-prev thing just so icon won't blink 
+    # when one is switching between the same types of windows
     local WM_CLASS_PREV="$(cat "$PREV_ICON")"
 
     if [ "$WM_CLASS" = "$WM_CLASS_PREV" ]; then
@@ -160,7 +160,7 @@ done &
 
 bspc subscribe node_state | while read -r Event Monitor Desktop Node State Active 
 do
-    Node="$(xdotool getwindowfocus)"
+    Node="$(xdotool getactivewindow)"
     Desktop="$(bspc query -D -d focused)"
 
     if [ "$State" != "fullscreen" ]; then
