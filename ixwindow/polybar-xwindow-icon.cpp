@@ -1,5 +1,5 @@
 // compilation:
-// g++ polybar-xwindow-icon.cpp -o polybar-xwindow-icon "$(pkg-config --cflags opencv)" -lX11
+// g++ polybar-xwindow-icon.cpp -o polybar-xwindow-icon -I/usr/include/opencv4/ -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lX11
 //
 // Code is mostly copied from 
 // https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11

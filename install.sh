@@ -41,7 +41,7 @@ sed -i "s/\$\$CACHE/\"$CACHE\"/g" ixwindow_compiled/ixwindow
 sed -i "s/\$\$DIR/\"$DIR\"/g" ixwindow_compiled/ixwindow
 
 
-g++ ixwindow_compiled/polybar-xwindow-icon.cpp -o ixwindow_compiled/polybar-xwindow-icon "$(pkg-config --cflags opencv)" -lX11
+g++ ixwindow_compiled/polybar-xwindow-icon.cpp -o ixwindow_compiled/polybar-xwindow-icon -I/usr/include/opencv4/ -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lX11
 
 
 mv ixwindow_compiled/* "$PREFIX"
