@@ -1,6 +1,6 @@
 // compilation:
-// g++ -o polybar-xwindow-icon polybar-xwindow-icon.cpp `pkg-config --cflags --libs opencv4` -lX11
-
+// g++ polybar-xwindow-icon.cpp -o polybar-xwindow-icon "$(pkg-config --cflags opencv)" -lX11
+//
 // Code is mostly copied from 
 // https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11
 
@@ -9,8 +9,7 @@
 
 
 
-#include <opencv2/opencv.hpp>
-#include "opencv2/opencv.hpp"   // FOR OpenCV
+#include <opencv2/opencv.hpp>   // FOR OpenCV
 #include <opencv2/core/core.hpp>     // Basic OpenCV structures (cv::Mat)
 #include <opencv2/video/video.hpp>  
 #include <opencv2/imgproc/imgproc.hpp>
@@ -23,7 +22,6 @@
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <X11/Xlib.h> // Every Xlib program must include this
-#include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/extensions/Xcomposite.h>
 #include <X11/extensions/Xfixes.h>

@@ -3,6 +3,9 @@
 # Destination folder
 PREFIX="$HOME/.config/polybar/scripts/ixwindow"
 
+# Folder for cached icons
+CACHE="$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
+
 # Size of the icon
 SIZE=24
 
@@ -14,7 +17,6 @@ COLOR="#252737"
 X=270
 Y=6
 
-CACHE="$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
 
 
 cp -R ixwindow ixwindow_compiled
