@@ -26,7 +26,7 @@ as polybar's `tail = true`.
 - `imagemagick` (for converting `.png` icons to `.jpg`)
 - `g++` (for compiling `polybar-xwindow-icon`)
 - `openvc` (for debian-based systems you can install it by running `sudo apt install
-  libopencv-dev")
+  libopencv-dev`)
 
 ## Installation
 
