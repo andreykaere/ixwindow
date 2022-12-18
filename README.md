@@ -20,13 +20,25 @@ as polybar's `tail = true`.
 
 ## Dependencies
 - `bash`
+- `bspwm`
 - `bspc`
 - `xdotool`
 - `xdo` (can be replaced with `xdotool`)
 - `imagemagick` (for converting `.png` icons to `.jpg`)
 - `g++` (for compiling `polybar-xwindow-icon`)
-- `openvc` (for debian-based systems you can install it by running `sudo apt install
-  libopencv-dev`)
+- `openvc` 
+
+For debian-based systems you can install it by running 
+```bash
+sudo apt install bspwm xdotool xdo imagemagick g++ libopencv-dev 
+```
+
+**Note:** depending on your system, you might get different version of the
+packages, comparing to the ones, used in this project. If you can't install it
+via built-in package manager (e.g. `apt`), then you will have to either build
+the newer version from source, or modify source code of this project to your
+versions. (if it's even possible)
+
 
 ## Installation
 
