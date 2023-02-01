@@ -98,8 +98,9 @@ convert Spotify.png -resize "$size"x"$size" -background "$color" -flatten -alpha
 - Untested on multimonitors system
 - Manual specification, but seems to be unfixable at this point, since polybar doesn't 
 support inserting images into bar for now
-- Works only with bspwm 
-- Not working with relaunched polybar without `killall polybar`
+- Works only with bspwm (work in progress to support `i3`)
+- Not being able to stop `./ixwindow` with `Ctrl-C`, due to background
+  processes
 
 ## Thanks
 
