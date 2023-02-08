@@ -82,22 +82,26 @@ have to add them yourself.
 
 ### Adding custom icons
 
-Sometimes it's not possible to get icon using `xprop`, (for example, it's the case with Spotify), 
-then you have to add them manually to your `polybar-icons` folder. To do that, you need to 
-have `.png` version of the icon, named as `WM_CLASS` (you can find it by running `xprop WM_CLASS` 
-and selecting your app). Then you run the following command (requires `imagemagick`), 
-(where you replace "$size" and "$color" with the ones from your `install.sh` script):
+Sometimes it's not possible to get icon using `xprop`, (for example, it's the 
+case with Spotify and Discord), then you have to add them manually to your 
+`polybar-icons` folder. To do that, you need to have `.png` version of the 
+icon, named as `WM_CLASS` (you can find it by running `xprop WM_CLASS` and 
+selecting your app). Then you run the following command (requires `imagemagick`): 
 ```bash
-convert Spotify.png -resize "$size"x"$size" -background "$color" -flatten -alpha off Spotify.jpg
+ixwindow-convert <icon-name>.png
 ```
-**Note:** This method can be used for replacing default icons, generated with `xprop`.
+where `<icon-name>` is the right name as described above.
+
+**Note:** This method can be also used for replacing automatically generated
+icons.
 
 ## Known issues & limitations
 
-- Lack of png support, but replacing `jpg` with `png` would require compositor as the dependency as well
+- Lack of png support, but replacing `jpg` with `png` would require compositor 
+as the dependency as well
 - Untested on multimonitors system
-- Manual specification, but seems to be unfixable at this point, since polybar doesn't 
-support inserting images into bar for now
+- Manual specification, but seems to be unfixable at this point, since polybar 
+doesn't support inserting images into bar for now
 - Not being able to stop `./ixwindow` with `Ctrl-C`, due to background
   processes
 
