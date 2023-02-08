@@ -23,10 +23,10 @@ as polybar's `tail = true`.
 - `bspwm`
 - `bspc`
 - `xdotool`
-- `xdo` (can be replaced with `xdotool`)
+- `xdo`
 - `imagemagick` (for converting `.png` icons to `.jpg`)
 - `g++` (for compiling `polybar-xwindow-icon`)
-- `openvc` 
+- `opencv` (for rendering icons)
 
 For debian-based systems you can install it by running 
 ```bash
