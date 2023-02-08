@@ -1,0 +1,117 @@
+#!/bin/bash
+
+usage () {
+    printf "%s" "\
+USAGE: 
+    ixwindow-convert [OPTIONS] [FILES]
+
+ARGS:
+    <FILES>
+        The PNG files (with transparent background) to convert 
+        to JPG files format with appropriate size and background color.
+
+
+OPTOINS:
+    -c, --config
+        Path to the configuration file for ixwindow.
+
+    -h, --help
+        Show this help information.
+
+    --size
+        Specify size directly. Overwrites config size if both specified.
+
+    --color
+        Specify background color directly. Overwrites config size if both specified.
+"
+
+exit 1
+}
+
+trim () {
+    # Use `xargs` for trimming trailing or leading spaces
+    echo "$1" | xargs
+}
+
+get_size () {
+    local config="$1"
+    
+    while read -r line 
+    do
+        local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
+
+        if [ "$var" == "size" ]; then
+            trim "$(echo "$line" | awk -F "=" '{print $2}')"
+        fi
+        
+    done < "$config"
+}
+
+get_color () {
+    local config="$1"
+    
+    while read -r line 
+    do
+        local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
+
+        if [ "$var" == "color" ]; then
+            trim "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')"
+        fi
+        
+    done < "$config"
+}
+
+init_config () {
+    local config="$1" 
+
+    # Check if variables size and color were set before
+    # and if they were set, we should not overwrite them
+    if [ -z "${size+x}" ]; then
+        size="$(get_size "$config")"
+    fi
+
+    if [ -z "${color+x}" ]; then
+        color="$(get_color "$config")"
+    fi 
+}
+
+
+config=$$CONFIG
+
+while [ $# -gt 0 ];
+do
+    case "$1" in
+        "--help" | "-h")
+            usage
+            exit 0
+            ;;
+
+        "--config" | "-c")
+            config="$2"
+            shift 2
+            ;;
+
+        "--size")
+            size="$2"
+            shift 2
+            ;;
+
+        "--color")
+            color="$2"
+            shift 2
+            ;;
+
+        *)
+            init_config "$config"
+
+            while [ $# -gt 0 ]; 
+            do
+                name="${1%.*}"
+
+                convert "$1" -resize "$size"x"$size" -background "$color" -flatten -alpha off "$name.jpg"
+                shift 
+            done
+            ;;
+    esac
+done
+
