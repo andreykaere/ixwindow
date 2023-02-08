@@ -54,7 +54,7 @@ CONFIG_FILE="$(echo "$CONFIG_FILE" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/
 
 
 sed -i "s/\$\$CACHE/\"$CACHE\"/g" ixwindow_compiled/ixwindow
-sed -i "s/\$\$PREFIX/\"$DIR\"/g" ixwindow_compiled/ixwindow
+sed -i "s/\$\$DIR/\"$DIR\"/g" ixwindow_compiled/ixwindow
 sed -i "s/\$\$CONFIG/\"$CONFIG_FILE\"/g" ixwindow_compiled/ixwindow-convert
 
 
