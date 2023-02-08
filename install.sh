@@ -6,8 +6,8 @@ PREFIX="$HOME/.config/polybar/scripts/ixwindow"
 # Folder for cached icons
 CACHE="$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
 
-# Folder for config icons
-CONFIG_DIR="$HOME/.config/ixwindow"
+# Config folder and files for ixwindow
+CONFIG_DIR="$HOME/.config/polybar/scripts/ixwindow"
 CONFIG_FILE="$CONFIG_DIR/config.toml"
 
 # Size of the icon
