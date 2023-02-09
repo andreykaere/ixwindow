@@ -28,37 +28,38 @@ OPTOINS:
 exit 1
 }
 
+get_wm () {
+    wmctrl -m | awk '{if ($1 == "Name:") print $2}'
+}
+
 trim () {
     # Use `xargs` for trimming trailing or leading spaces
     echo "$1" | xargs
 }
 
-get_size () {
+# parse_toml takes path to config and then the name of the variable in the
+# config and returns the value of that variable
+parse_toml () {
     local config="$1"
+    local var_name="$2"
     
     while read -r line 
     do
         local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
 
-        if [ "$var" == "size" ]; then
-            trim "$(echo "$line" | awk -F "=" '{print $2}')"
+        if [ "$var" == "$var_name" ]; then
+            trim "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')"
         fi
         
     done < "$config"
 }
 
-get_color () {
-    local config="$1"
-    
-    while read -r line 
-    do
-        local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
+get_size () {
+    parse_toml "$1" "size"
+}
 
-        if [ "$var" == "color" ]; then
-            trim "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')"
-        fi
-        
-    done < "$config"
+get_color () {
+    parse_toml "$1" "color"
 }
 
 init_config () {
@@ -76,7 +77,9 @@ init_config () {
 }
 
 
-config=$$CONFIG
+config_dir=$$CONFIG_DIR
+wm="$(get_wm)"
+config_file="$config_dir/$wm/config.toml"
 
 while [ $# -gt 0 ];
 do

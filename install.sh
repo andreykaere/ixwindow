@@ -7,8 +7,7 @@ PREFIX="$HOME/.config/polybar/scripts/ixwindow"
 CACHE="$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
 
 # Folder for config icons
-CONFIG_DIR="$HOME/.config/ixwindow"
-CONFIG_FILE="$CONFIG_DIR/config.toml"
+CONFIG_PREFIX="$HOME/.config/ixwindow"
 
 # Size of the icon
 SIZE=24
@@ -23,11 +22,13 @@ Y=6
 
 
 generate_config () {
+    local wm="$1"
+    local config_file="$CONFIG_PREFIX/$wm/config.toml"
     local content="\
 size = $SIZE
 color = \"$COLOR\"\
 "
-    echo "$content" > "$CONFIG_FILE"
+    echo "$content" > "$config_file"
 }
 
 
@@ -35,9 +36,9 @@ cp -R ixwindow ixwindow_compiled
 
 mkdir -p "$CACHE"
 mkdir -p "$PREFIX"
-mkdir -p "$CONFIG_DIR"
+mkdir -p "$CONFIG_PREFIX/bspwm"
 
-generate_config
+generate_config "bspwm"
 
 
 sed -i "s/\$X/$X/g" ixwindow_compiled/polybar-xwindow-icon.cpp
@@ -50,12 +51,12 @@ sed -i "s/\$\$COLOR/\"$COLOR\"/g" ixwindow_compiled/generate-icon
 
 CACHE="$(echo "$CACHE" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')"
 DIR="$(echo "$PREFIX" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')"
-CONFIG_FILE="$(echo "$CONFIG_FILE" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')"
+CONFIG_DIR="$(echo "$CONFIG_PREFIX" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')"
 
 
 sed -i "s/\$\$CACHE/\"$CACHE\"/g" ixwindow_compiled/ixwindow
 sed -i "s/\$\$DIR/\"$DIR\"/g" ixwindow_compiled/ixwindow
-sed -i "s/\$\$CONFIG/\"$CONFIG_FILE\"/g" ixwindow_compiled/ixwindow-convert
+sed -i "s/\$\$CONFIG_DIR/\"$CONFIG_DIR\"/g" ixwindow_compiled/ixwindow-convert
 
 
 g++ ixwindow_compiled/polybar-xwindow-icon.cpp -o ixwindow_compiled/polybar-xwindow-icon -I/usr/include/opencv4/ -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lX11
