@@ -4,9 +4,28 @@
 CONFIG=$$CONFIG
 
 
-parse_config () {
-    # ...
+trim () {
+    # Use `xargs` for trimming trailing or leading spaces
+    echo "$1" | xargs
 }
+
+# parse_config takes the name of the variable in the
+# config and returns the value of that variable
+parse_config () {
+    local var_name="$2"
+    
+    while read -r line 
+    do
+        local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
+
+        if [ "$var" == "$var_name" ]; then
+            trim "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')"
+        fi
+        
+    done < "$CONFIG"
+}
+
+
 
 # Folder for icons
 CACHE="$(parse_config "cache")"

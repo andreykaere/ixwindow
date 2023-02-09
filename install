@@ -1,39 +1,121 @@
 #!/bin/bash
 
-source parse_toml
+usage () {
+    printf "%s" "\
+USAGE: 
+    install [OPTIONS] [ARGS]
+
+ARGS:
+    <WM>
+        Window managers, for which you want to install files.
+
+OPTIONS:
+    -h, --help
+        Show this message.
+"
+
+exit 1
+}
+
+trim () {
+    # Use `xargs` for trimming trailing or leading spaces
+    echo "$1" | xargs
+}
 
 
-PROFILE="$(cat "$1")"
+# parse_toml takes path to config and then the name of the variable in the
+# config and returns the value of that variable
+parse_toml () {
+    local file="$1"
+    local var_name="$2"
+    
+    while read -r line 
+    do
+        local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
 
-
-cp -R ixwindow ixwindow_compiled
-
-mkdir -p "$CACHE"
-mkdir -p "$PREFIX"
-mkdir -p "$CONFIG_DIR"
-
-generate_config
-
-
-CONFIG_FILE="$(echo "$CONFIG_FILE" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')"
-
-
-sed -i "s/\$\$CONFIG/\"$CONFIG_FILE\"/g" ixwindow_compiled/ixwindow-convert
-
-case "$WM"
-    "bspwm")
-
-        rm -r "ixwindow_compiled/i3"
-        ;;
-    "i3")
+        if [ "$var" == "$var_name" ]; then
+            trim "$(echo "$line" | awk -F "=" '{print $2}')"
+        fi
         
-        rm -r "ixwindow_compiled/bspwm"
-        ;;
-esac
+    done < "$file"
+}
+
+install_wm () {
+    local wm="$1"
+    local profile="profiles/$wm.toml"
+    # local cache="$(parse_toml "$profile" "cache")"
+    local cache="$(eval "echo "$(parse_toml "$profile" "cache")"")"
+    # local prefix="$(parse_toml "$profile" "prefix")"
+    local prefix="$(eval "echo "$(parse_toml "$profile" "prefix")"")"
+    local config_dir="$(eval "echo "$(parse_toml "$profile" "config_dir")"")"
+    # local config_file="$(parse_toml "$profile" "config_file")"
+    local config_file="$(eval "echo "$(parse_toml "$profile" "config_file")"")"
+    
+    rm -r "$prefix"
+
+    mkdir -p "$cache"
+    mkdir -p "$prefix"
+    mkdir -p "$config_dir"
+
+
+    case "$wm" in 
+        "bspwm")
+            local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
+            sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/bspwm/ixwindow
+            ;;
+
+        "i3")
+            ;;
+    esac
+    
+    cp "$profile" "$config_dir/$config_file"
+    mv ixwindow_compiled/* "$prefix"
+}
+
+WINDOW_MANAGES=()
+
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+while [ $# -gt 0 ];
+do
+    case "$1" in 
+        "--help" | "-h")
+            usage 
+            ;;
+        *)
+            while [ $# -gt 0 ]; 
+            do
+                WINDOW_MANAGES+=("$1")
+                shift
+            done
+
+            ;;
+    esac
+done
+
+cp -r ixwindow ixwindow_compiled
+rm -r ixwindow_compiled/wms
+
+
+for wm in "${WINDOW_MANAGES[@]}"
+do
+    case "$wm" in
+        "bspwm")
+            cp -r "ixwindow/wms/bspwm" "ixwindow_compiled/bspwm"
+            install_wm "bspwm"
+            ;;
+
+        "i3")
+            cp -r "ixwindow/wms/i3" "ixwindow_compiled/i3"
+            install_wm "i3"
+            ;;
+    esac
+done
+
 
 g++ ixwindow_compiled/polybar-xwindow-icon.cpp -o ixwindow_compiled/polybar-xwindow-icon -I/usr/include/opencv4/ -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lX11
 
-
-mv ixwindow_compiled/* "$PREFIX"
 
 rm -r ixwindow_compiled
