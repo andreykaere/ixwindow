@@ -9,11 +9,11 @@ customization of printing window info. This is what `ixwindow` looks
 like in action:
 
 <p align="center">
-  <img src="example.gif" alt="animated" />
+  <img src="examples/example.gif" alt="animated" />
 </p>
 
 
-**Note:** basically, it doesn't depend on polybar one bit, it can be used 
+**Note:** basically, it doesn't really depend on polybar itself, it can be used 
 with any other bar as well, you just need to implement the same behavior,
 as polybar's `tail = true`.
 
@@ -22,11 +22,11 @@ as polybar's `tail = true`.
 - `bash`
 - `bspwm`
 - `bspc`
-- `xdotool`
-- `xdo` (can be replaced with `xdotool`)
+- `xdotool` (version 3.20211022.1)
+- `xdo`
 - `imagemagick` (for converting `.png` icons to `.jpg`)
 - `g++` (for compiling `polybar-xwindow-icon`)
-- `openvc` 
+- `opencv` (for rendering icons)
 
 For debian-based systems you can install it by running 
 ```bash
@@ -34,22 +34,23 @@ sudo apt install bspwm xdotool xdo imagemagick g++ libopencv-dev
 ```
 
 **Note:** depending on your system, you might get different version of the
-packages, comparing to the ones, used in this project. If you can't install it
-via built-in package manager (e.g. `apt`), then you will have to either build
-the newer version from source, or modify source code of this project to your
-versions. (if it's even possible)
+packages, comparing to the ones, used in this project. If you can't install
+the right versions via built-in package manager (e.g. `apt`), then you will 
+have to either build the newer version from source, or modify source code of 
+this project to your versions. (if it's even possible)
 
 
 ## Installation
 
-Just modify `install.sh` script for your case and run it. Things to modify:
+Just modify `profile.toml` file for your case and then execute `./install`. 
+Things to modify:
 - background color of polybar bar
 - size of icon
 - coordinates for icon
 - path to `polybar-icons` folder (note: it makes sense to keep it 
 around `.config/polybar` folder, so you won't lose your custom icons, 
 if you have them)
-- change `GAP` constant in `ixwindow` script 
+- `gap` constant, which is used in `ixwindow` script 
 
 You will also need to add the following to your polybar `config` file:
 
@@ -63,15 +64,11 @@ tail = true
 and put it somewhere on bar, for example, add it right next to `bspwm`: 
 `modules-left = bspwm ixwindow`.
 
-**Note:** If you want to reinstall `ixwindow`, like if you need to change the 
-configuration of the module, you just need to run `install.sh` with the updated 
-parameters. But old icons won't remove, so if you need to delete them, you 
-have to do that manually.
+### Uninstallation
 
-**Note:** For relaunching polybar, you will need to use something like 
-`killall polybar && launchpolybar &`, so the previous instance of `ixwindow` 
-will be killed (I am currently trying to find a workaround for it)
-
+To uninstall, simply run `./uninstall`, but make sure that paths, specified in
+the script, match the ones you use. If you want additionally to remove cached
+icons, you should run it with `--cache` option.
 
 ## Generating icons
 
