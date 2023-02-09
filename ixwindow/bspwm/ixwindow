@@ -11,18 +11,14 @@ parse_config () {
 # Folder for icons
 CACHE="$(parse_config "cache")"
 
-# Path to your ixwindow folder
-DIR="$(parse_config "prefix")"
-
-
-PREV_ICON="/tmp/polybar-icon-prev"
-
+DIR="$(parse_config "prefix")"   # path to ixwindow folder
 GAP="$(parse_config "gap")"
-
 X="$(parse_config "x")"
 Y="$(parse_config "y")"
 SIZE="$(parse_config "size")"
+COLOR="$(parse_config "color")"
 
+PREV_ICON="/tmp/polybar-icon-prev"
 
 # Delete previous icons, becase if there will be many
 # overlaping icons it may cause a slow down of your window manager
@@ -89,7 +85,7 @@ display_icon() {
 
 
 generate_icon() {
-    "$DIR/generate-icon" "$CACHE" "$1"
+    "$DIR/generate-icon" "$CACHE" "$SIZE" "$COLOR" "$1"
 }
 
 update_prev_icon() {
