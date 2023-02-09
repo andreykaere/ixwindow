@@ -1,37 +1,9 @@
 #!/bin/bash
 
-# Destination folder
-PREFIX="$HOME/.config/polybar/scripts/ixwindow"
-
-# Folder for cached icons
-CACHE="$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
-
-# Folder for config icons
-CONFIG_DIR="$HOME/.config/ixwindow"
-CONFIG_FILE="$CONFIG_DIR/config.toml"
-
-# Size of the icon
-SIZE=24
-
-# Background color of your polybar
-COLOR="#252737"
-
-# Window manager (current supported are bspwm and i3)
-WM="bspwm"
-
-# Coordinates of icon, you might wanna play around with
-# GAP option in the ixwindow file as well
-X=270
-Y=6
+source parse_toml
 
 
-generate_config () {
-    local content="\
-size = $SIZE
-color = \"$COLOR\"\
-"
-    echo "$content" > "$CONFIG_FILE"
-}
+PROFILE="$(cat "$1")"
 
 
 cp -R ixwindow ixwindow_compiled
@@ -66,8 +38,8 @@ case "$WM"
         rm -r "ixwindow_compiled/i3"
         ;;
     "i3")
-        sed -i "s/\$\$CACHE/\"$CACHE\"/g" ixwindow_compiled/i3/ixwindow
-        sed -i "s/\$\$DIR/\"$DIR\"/g" ixwindow_compiled/i3/ixwindow
+        # sed -i "s/\$\$CACHE/\"$CACHE\"/g" ixwindow_compiled/i3/ixwindow
+        # sed -i "s/\$\$DIR/\"$DIR\"/g" ixwindow_compiled/i3/ixwindow
         
         rm -r "ixwindow_compiled/bspwm"
         ;;
