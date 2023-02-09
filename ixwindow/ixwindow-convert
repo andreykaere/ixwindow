@@ -23,6 +23,14 @@ OPTOINS:
 
     --color
         Specify background color directly. Overwrites config size if both specified.
+
+    --wm
+        Specify for which window manager you want to generate icon for. 
+        This will affect the default choice of config file.
+
+    --default
+        Makes specified window manager the default one, which will be assumed 
+        if option --wm was not used.
 "
 
 exit 1
@@ -76,10 +84,21 @@ init_config () {
     fi 
 }
 
+choose_config () {
+    case "$1" in
+        "i3")
+            config=""
+            ;;
 
-config_dir=$$CONFIG_DIR
-wm="$(get_wm)"
-config_file="$config_dir/$wm/config.toml"
+        "bspwm")
+            config=""
+            ;;
+    esac
+}
+
+set_default_wm () {
+    
+}
 
 while [ $# -gt 0 ];
 do
@@ -101,6 +120,13 @@ do
 
         "--color")
             color="$2"
+            shift 2
+            ;;
+
+        "--wm")
+            wm="$2"
+            choose_config "$wm"
+
             shift 2
             ;;
 
