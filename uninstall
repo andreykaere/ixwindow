@@ -1,0 +1,49 @@
+#!/bin/bash
+
+usage () {
+    printf "%s" "\
+USAGE: 
+    uninstall [OPTIONS] [ARGS]
+
+ARGS:
+    <WM>
+        Window manager, for which you want to uninstall files.
+
+OPTIONS:
+    -h, --help
+        Show this message.
+    --cache
+        Remove all cached icons.
+
+"
+
+exit 1
+}
+
+REMOVE_CACHE=0
+
+for opt in "$@"
+do
+    case "$opt" in 
+        "--help" | "-h")
+            usage 
+            ;;
+        "--cache")
+            REMOVE_CACHE=1
+            shift 
+            ;;
+    esac
+done
+
+WM="$1"
+
+CONFIG_DIR=""
+INSTALL_DIR=""
+CACHE_DIR=""
+
+rm -rf "$CONFIG_DIR"
+rm -rf "$INSTALL_DIR"
+
+if [ "$REMOVE_CACHE" -eq 1 ]; then
+    rm -rf "$CACHE_DIR"
+fi

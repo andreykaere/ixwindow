@@ -1,6 +1,6 @@
-# Adjust the following information in the window managers you're going to use 
-# ixwindow with 
-# (current supported are bspwm and i3)
+# Adjust the following information in the window managers you want ixwindow to
+# be installed for
+# (right now available are bspwm and i3)
 
 [bspwm]
 # Destination folder
