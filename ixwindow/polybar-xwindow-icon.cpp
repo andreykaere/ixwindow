@@ -33,29 +33,44 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
+    
+    if (argc < 4) {
+        cout << "Not enough arguments"
+        return -1;
+    }
+    
+    int x, y, size;
+    char * filename;
 
-      XGCValues gr_values;
-      //GC gc;
-      XColor    color, dummy;
+    sscanf(argv[1], "%s", &filename);
+    sscanf(argv[2], "%d", &x);
+    sscanf(argv[3], "%d", &y);
+    sscanf(argv[4], "%d", &size);
 
 
-      Display *dpy = XOpenDisplay(NIL);
-      //assert(dpy);
-      //int screen = DefaultScreen(dpy);
-      // Get some colors
+    XGCValues gr_values;
+    //GC gc;
+    XColor    color, dummy;
 
-      int blackColor = BlackPixel(dpy, DefaultScreen(dpy));
-      int whiteColor = WhitePixel(dpy, DefaultScreen(dpy));
 
-      // Create the window
+    Display *dpy = XOpenDisplay(NIL);
+    //assert(dpy);
+    //int screen = DefaultScreen(dpy);
+    // Get some colors
 
-      Window w = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), $X, $Y, 
-                     $SIZE, $SIZE, 0, whiteColor, blackColor);
+    int blackColor = BlackPixel(dpy, DefaultScreen(dpy));
+    int whiteColor = WhitePixel(dpy, DefaultScreen(dpy));
 
-      // We want to get MapNotify events
+    // Create the window
 
-      XSelectInput(dpy, w, StructureNotifyMask);
-          // XSelectInput(dpy, w, ExposureMask);
+    Window w = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), x, y, 
+                 size, size, 0, whiteColor, blackColor);
+
+    // We want to get MapNotify events
+
+    XSelectInput(dpy, w, StructureNotifyMask);
+    // XSelectInput(dpy, w, ExposureMask);
+
     long value = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
 
     XChangeProperty(dpy, w, XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False),
@@ -98,7 +113,7 @@ int main(int argc, char** argv)
     unsigned long bm = image->blue_mask;
 
     Mat img(ht1, wd1, CV_8UC3);     // OpenCV Mat object is initilaized
-    Mat scrap = imread(argv[1]);//(wid, ht, CV_8UC3);      
+    Mat scrap = imread(filename);//(wid, ht, CV_8UC3);      
     resize(scrap, img, img.size(), cv::INTER_AREA);
 
     for (int x = 0; x < wd1; x++)

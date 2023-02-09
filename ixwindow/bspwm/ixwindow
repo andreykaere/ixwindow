@@ -1,16 +1,27 @@
 #!/bin/bash
 
+# Config file
+CONFIG=$$CONFIG
+
+
+parse_config () {
+    # ...
+}
 
 # Folder for icons
-CACHE=$$CACHE
+CACHE="$(parse_config "cache")"
 
 # Path to your ixwindow folder
-DIR=$$DIR
+DIR="$(parse_config "prefix")"
 
 
 PREV_ICON="/tmp/polybar-icon-prev"
 
-GAP="         "
+GAP="$(parse_config "gap")"
+
+X="$(parse_config "x")"
+Y="$(parse_config "y")"
+SIZE="$(parse_config "size")"
 
 
 # Delete previous icons, becase if there will be many
@@ -72,7 +83,7 @@ display_icon() {
     cleanup_icons
     icon="$CACHE/$1.jpg"
     if [ -f "$icon" ]; then
-        "$DIR/polybar-xwindow-icon" "$icon" &> /dev/null &
+        "$DIR/polybar-xwindow-icon" "$icon" "$X" "$Y" "$SIZE" &> /dev/null &
     fi
 }
 
