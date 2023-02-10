@@ -11,12 +11,12 @@ ARGS:
         to JPG files format with appropriate size and background color.
 
 
-OPTOINS:
+OPTIONS:
     -c, --config
         Path to the configuration file for ixwindow.
 
     -h, --help
-        Show this help information.
+        Show this message.
 
     --size
         Specify size directly. Overwrites config size if both specified.
@@ -36,9 +36,6 @@ OPTOINS:
 exit 1
 }
 
-get_wm () {
-    wmctrl -m | awk '{if ($1 == "Name:") print $2}'
-}
 
 # Trim trailing spaces, which can occur because of spaces around `=` in config
 # file
@@ -76,6 +73,9 @@ get_color () {
     parse_toml "$1" "color"
 }
 
+get_wm () {
+    wmctrl -m | awk '{if ($1 == "Name:") print $2}'
+}
 
 init_config () {
     local config="$1" 
@@ -94,11 +94,11 @@ init_config () {
 choose_config () {
     case "$1" in
         "i3")
-            config=""
+            CONFIG=""
             ;;
 
         "bspwm")
-            config=""
+            CONFIG=""
             ;;
     esac
 }
@@ -116,7 +116,7 @@ do
             ;;
 
         "--config" | "-c")
-            config="$2"
+            CONFIG="$2"
             shift 2
             ;;
 
