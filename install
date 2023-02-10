@@ -19,16 +19,14 @@ OPTIONS:
 exit 1
 }
 
+# Trim trailing spaces, which can occur because of spaces around `=` in config
+# file
 trim () {
-    # Use `xargs` for trimming trailing or leading spaces
-    echo "$1" | xargs
+    echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
-
-# parse_toml takes path to config and then the name of the variable in the
-# config and returns the value of that variable
 parse_toml () {
-    local file="$1"
+    local config="$1"
     local var_name="$2"
     
     while read -r line 
@@ -36,12 +34,17 @@ parse_toml () {
         local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
 
         if [ "$var" == "$var_name" ]; then
-            local res="$(trim "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')")"
-            eval "echo \"$res\""
+            local res="$(echo "$(trim "$(echo "$line" | awk -F "=" '{print $2}')")" | tr -d '"')"
+
+            if [ "$var" == "gap" ]; then
+                echo "$res"
+            else
+                eval "echo \"$res\""
+            fi
         fi
-        
-    done < "$file"
+    done < "$config"
 }
+
 
 install_wm () {
     local wm="$1"
@@ -62,11 +65,22 @@ install_wm () {
 
     case "$wm" in 
         "bspwm")
+            cp -r "ixwindow/wms/bspwm" "ixwindow_compiled/bspwm"
             local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
             sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/bspwm/ixwindow
             ;;
 
         "i3")
+            cp -r "ixwindow/wms/i3" "ixwindow_compiled/i3"
+            # local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
+            # sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/bspwm/ixwindow
+
+            cd ixwindow_compiled/i3 && cargo build --release  
+            cd ../ && cp i3/target/release/ixwindow_i3 ./
+
+            rm -r i3/*
+            mv ixwindow_i3 i3/ixwindow
+            cd ../
             ;;
     esac
     
@@ -110,17 +124,7 @@ g++ ixwindow_compiled/polybar-xwindow-icon.cpp -o ixwindow_compiled/polybar-xwin
 
 for wm in "${WINDOW_MANAGES[@]}"
 do
-    case "$wm" in
-        "bspwm")
-            cp -r "ixwindow/wms/bspwm" "ixwindow_compiled/bspwm"
-            install_wm "bspwm"
-            ;;
-
-        "i3")
-            cp -r "ixwindow/wms/i3" "ixwindow_compiled/i3"
-            install_wm "i3"
-            ;;
-    esac
+    install_wm "$wm"
 done
 
 

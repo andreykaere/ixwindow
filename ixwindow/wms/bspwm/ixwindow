@@ -3,34 +3,34 @@
 # Config file
 CONFIG=$$CONFIG
 
-
+# Trim trailing spaces, which can occur because of spaces around `=` in config
+# file
 trim () {
-    # Use `xargs` for trimming trailing or leading spaces
-    echo "$1" | xargs
+    echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
-# parse_config takes the name of the variable in the
-# config and returns the value of that variable
-parse_config () {
-    local var_name="$1"
+parse_toml () {
+    local config="$1"
+    local var_name="$2"
     
     while read -r line 
     do
         local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
 
         if [ "$var" == "$var_name" ]; then
-            
-            if [ "$var_name" = "gap" ]; then
-                local res="$(echo "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')")"
+            local res="$(echo "$(trim "$(echo "$line" | awk -F "=" '{print $2}')")" | tr -d '"')"
+
+            if [ "$var" == "gap" ]; then
+                echo "$res"
             else
-                local res="$(trim "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')")"
+                eval "echo \"$res\""
             fi
-
-            eval "echo \"$res\""
         fi
+    done < "$config"
+}
 
-        
-    done < "$CONFIG"
+parse_config () {
+    parse_toml "$CONFIG" "$1"
 }
 
 

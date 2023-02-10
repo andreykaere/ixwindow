@@ -15,13 +15,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "i3"
-version = "0.1.0"
-dependencies = [
- "i3ipc",
-]
-
-[[package]]
 name = "i3ipc"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -38,6 +31,13 @@ name = "itoa"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
+
+[[package]]
+name = "ixwindow_i3"
+version = "0.1.0"
+dependencies = [
+ "i3ipc",
+]
 
 [[package]]
 name = "log"
