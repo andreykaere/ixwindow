@@ -40,9 +40,10 @@ get_wm () {
     wmctrl -m | awk '{if ($1 == "Name:") print $2}'
 }
 
+# Trim trailing spaces, which can occur because of spaces around `=` in config
+# file
 trim () {
-    # Use `xargs` for trimming trailing or leading spaces
-    echo "$1" | xargs
+    echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
 # parse_toml takes path to config and then the name of the variable in the
@@ -56,9 +57,14 @@ parse_toml () {
         local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
 
         if [ "$var" == "$var_name" ]; then
-            trim "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')"
+            local res="$(echo "$(trim "$(echo "$line" | awk -F "=" '{print $2}')")" | tr -d '"')"
+
+            if [ "$var" == "gap" ]; then
+                echo "$res"
+            else
+                eval "echo \"$res\""
+            fi
         fi
-        
     done < "$config"
 }
 
@@ -70,17 +76,18 @@ get_color () {
     parse_toml "$1" "color"
 }
 
+
 init_config () {
     local config="$1" 
 
     # Check if variables size and color were set before
     # and if they were set, we should not overwrite them
     if [ -z "${size+x}" ]; then
-        size="$(get_size "$config")"
+        size="$(parse_toml "$config" "size")"
     fi
 
     if [ -z "${color+x}" ]; then
-        color="$(get_color "$config")"
+        color="$(parse_toml "$config" "color")"
     fi 
 }
 
