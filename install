@@ -12,6 +12,8 @@ ARGS:
 OPTIONS:
     -h, --help
         Show this message.
+    --clean
+        Clean destinational files from previous installation.
 "
 
 exit 1
@@ -48,8 +50,10 @@ install_wm () {
     local prefix="$(parse_toml "$profile" "prefix")"
     local config_dir="$(parse_toml "$profile" "config_dir")"
     local config_file="$(parse_toml "$profile" "config_file")"
-    
-    rm -r "$prefix"
+   
+    if [ "$CLEAN" -eq 1 ]; then
+        rm -r "$prefix"
+    fi
 
     mkdir -p "$cache"
     mkdir -p "$prefix"
@@ -67,7 +71,7 @@ install_wm () {
     esac
     
     cp "$profile" "$config_dir/$config_file"
-    mv ixwindow_compiled/* "$prefix"
+    cp -r ixwindow_compiled/* "$prefix"
 }
 
 WINDOW_MANAGES=()
@@ -76,11 +80,17 @@ if [ $# -eq 0 ]; then
     usage
 fi
 
+CLEAN=0
+
 while [ $# -gt 0 ];
 do
     case "$1" in 
         "--help" | "-h")
             usage 
+            ;;
+        "--clean")
+            CLEAN=1
+            shift
             ;;
         *)
             while [ $# -gt 0 ]; 

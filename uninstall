@@ -13,14 +13,44 @@ OPTIONS:
     -h, --help
         Show this message.
     --cache
-        Remove all cached icons.
-
+        Remove cached icons.
+    --all
+        Remove all ixwindow files, not only for specific wm.
 "
 
 exit 1
 }
 
+trim () {
+    # Use `xargs` for trimming trailing or leading spaces
+    echo "$1" | xargs
+}
+
+
+# parse_toml takes path to config and then the name of the variable in the
+# config and returns the value of that variable
+parse_toml () {
+    local file="$1"
+    local var_name="$2"
+    
+    while read -r line 
+    do
+        local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
+
+        if [ "$var" == "$var_name" ]; then
+            local res="$(trim "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')")"
+            eval "echo \"$res\""
+        fi
+        
+    done < "$file"
+}
+
+if [ $# -eq 0 ]; then
+    usage
+fi
+
 REMOVE_CACHE=0
+REMOVE_ALL=0
 
 for opt in "$@"
 do
@@ -32,18 +62,28 @@ do
             REMOVE_CACHE=1
             shift 
             ;;
+        "--all")
+            REMOVE_ALL=1
+            shift
+            ;;
     esac
 done
 
 WM="$1"
 
-CONFIG_DIR=""
-INSTALL_DIR=""
-CACHE_DIR=""
+profile="profiles/$WM.toml"
+CACHE_DIR="$(parse_toml "$profile" "cache")"
+INSTALL_DIR="$(parse_toml "$profile" "prefix")"
+CONFIG_DIR="$(parse_toml "$profile" "config_dir")"
 
-rm -rf "$CONFIG_DIR"
-rm -rf "$INSTALL_DIR"
+
+rm -r "$CONFIG_DIR"
+rm -r "$INSTALL_DIR/$WM"
 
 if [ "$REMOVE_CACHE" -eq 1 ]; then
-    rm -rf "$CACHE_DIR"
+    rm -r "$CACHE_DIR"
+fi
+
+if [ "$REMOVE_ALL" -eq 1 ]; then
+    rm -r "$INSTALL_DIR"
 fi
