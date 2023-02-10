@@ -45,6 +45,25 @@ parse_toml () {
     done < "$file"
 }
 
+remove () {
+    local wm="$1"
+    
+    local profile="profiles/$wm.toml"
+    local cache_dir="$(parse_toml "$profile" "cache")"
+    local install_dir="$(parse_toml "$profile" "prefix")"
+    local config_dir="$(parse_toml "$profile" "config_dir")"
+
+
+    rm -r "$config_dir"
+    rm -r "$install_dir/$wm"
+
+    if [ "$REMOVE_CACHE" -eq 1 ]; then
+        rm -r "$cache_dir"
+    fi
+
+}
+
+
 if [ $# -eq 0 ]; then
     usage
 fi
@@ -52,9 +71,9 @@ fi
 REMOVE_CACHE=0
 REMOVE_ALL=0
 
-for opt in "$@"
+while [ $# -gt 0 ]; 
 do
-    case "$opt" in 
+    case "$1" in 
         "--help" | "-h")
             usage 
             ;;
@@ -66,24 +85,27 @@ do
             REMOVE_ALL=1
             shift
             ;;
+        *)
+            WM="$1"
+            ;;
     esac
 done
 
-WM="$1"
-
-profile="profiles/$WM.toml"
-CACHE_DIR="$(parse_toml "$profile" "cache")"
-INSTALL_DIR="$(parse_toml "$profile" "prefix")"
-CONFIG_DIR="$(parse_toml "$profile" "config_dir")"
-
-
-rm -r "$CONFIG_DIR"
-rm -r "$INSTALL_DIR/$WM"
-
-if [ "$REMOVE_CACHE" -eq 1 ]; then
-    rm -r "$CACHE_DIR"
-fi
-
 if [ "$REMOVE_ALL" -eq 1 ]; then
-    rm -r "$INSTALL_DIR"
+    prefix=""
+
+    for file in profiles/*
+    do
+        prefix=""
+        file="$(basename -- "$file")"
+        wm="${file%.*}"
+    
+        profile="profiles/$wm.toml"
+        prefix="$(parse_toml "$profile" "prefix")"
+
+        remove "$wm"
+    done
+
+    rm -r "$prefix"
 fi
+

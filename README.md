@@ -68,9 +68,17 @@ and put it somewhere on bar, for example, add it right next to `bspwm`:
 
 ### Uninstallation
 
-To uninstall, simply run `./uninstall`, but make sure that paths, specified in
-the script, match the ones you use. If you want additionally to remove cached
-icons, you should run it with `--cache` option.
+To uninstall, simply run `./uninstall <wm>`, where `<wm>` is the one you want
+to uninstall files from. Make sure that paths, specified in the `uninstall` 
+script, match the ones you actually use. If you want additionally to remove 
+cached icons, you should run it with `--cache` option. For removing files for
+all window managers run `./uninstall --all`.
+
+## Configuration
+
+To change your configuration, just edit your config file. For new settings to
+take affect, you have to restart polybar (for example with `polybar-msg cmd
+restart`).
 
 ## Generating icons
 
@@ -87,9 +95,11 @@ case with Spotify and Discord), then you have to add them manually to your
 icon, named as `WM_CLASS` (you can find it by running `xprop WM_CLASS` and 
 selecting your app). Then you run the following command (requires `imagemagick`): 
 ```bash
-ixwindow-convert <icon-name>.png
+ixwindow-convert --wm <wm> <icon-name>.png
 ```
-where `<icon-name>` is the right name as described above.
+where `<icon-name>` is the right name as described above and `<wm>` is the
+name of window manager you want it to be generated for (i.e. the program will
+use corresponding config file). For more info run `ixwindow-convert --help`.
 
 **Note:** This method can be also used for replacing automatically generated
 icons.
