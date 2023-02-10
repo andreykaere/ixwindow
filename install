@@ -34,7 +34,8 @@ parse_toml () {
         local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
 
         if [ "$var" == "$var_name" ]; then
-            trim "$(echo "$line" | awk -F "=" '{print $2}')"
+            local res="$(trim "$(echo "$line" | awk -F "=" '{print $2}' | tr -d '"')")"
+            eval "echo \"$res\""
         fi
         
     done < "$file"
@@ -43,13 +44,10 @@ parse_toml () {
 install_wm () {
     local wm="$1"
     local profile="profiles/$wm.toml"
-    # local cache="$(parse_toml "$profile" "cache")"
-    local cache="$(eval "echo "$(parse_toml "$profile" "cache")"")"
-    # local prefix="$(parse_toml "$profile" "prefix")"
-    local prefix="$(eval "echo "$(parse_toml "$profile" "prefix")"")"
-    local config_dir="$(eval "echo "$(parse_toml "$profile" "config_dir")"")"
-    # local config_file="$(parse_toml "$profile" "config_file")"
-    local config_file="$(eval "echo "$(parse_toml "$profile" "config_file")"")"
+    local cache="$(parse_toml "$profile" "cache")"
+    local prefix="$(parse_toml "$profile" "prefix")"
+    local config_dir="$(parse_toml "$profile" "config_dir")"
+    local config_file="$(parse_toml "$profile" "config_file")"
     
     rm -r "$prefix"
 
@@ -98,6 +96,7 @@ done
 cp -r ixwindow ixwindow_compiled
 rm -r ixwindow_compiled/wms
 
+g++ ixwindow_compiled/polybar-xwindow-icon.cpp -o ixwindow_compiled/polybar-xwindow-icon -I/usr/include/opencv4/ -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lX11
 
 for wm in "${WINDOW_MANAGES[@]}"
 do
@@ -115,7 +114,6 @@ do
 done
 
 
-g++ ixwindow_compiled/polybar-xwindow-icon.cpp -o ixwindow_compiled/polybar-xwindow-icon -I/usr/include/opencv4/ -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lX11
 
 
 rm -r ixwindow_compiled

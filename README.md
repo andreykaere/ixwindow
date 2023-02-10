@@ -42,7 +42,9 @@ this project to your versions. (if it's even possible)
 
 ## Installation
 
-Just modify `profile.toml` file for your case and then execute `./install`. 
+In directory `profiles` there are two templates for `bspwm` and `i3`. Modify
+them if you need and then execute `./install <names of wm>` (e.g. to install
+for both, you will have to run `./install "bspwm" "i3"`). 
 Things to modify:
 - background color of polybar bar
 - size of icon
