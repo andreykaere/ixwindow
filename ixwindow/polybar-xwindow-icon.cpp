@@ -31,57 +31,70 @@
 using namespace cv;
 using namespace std;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
+    
+    if (argc < 5) {
+        cout << "Not enough arguments";
+        return -1;
+    }
+    
+    int x, y, size;
+    char* filename;
 
-      XGCValues gr_values;
-      //GC gc;
-      XColor    color, dummy;
+    filename = argv[1];
+    sscanf(argv[2], "%d", &x);
+    sscanf(argv[3], "%d", &y);
+    sscanf(argv[4], "%d", &size);
+
+    XGCValues gr_values;
+    //GC gc;
+    XColor    color, dummy;
 
 
-      Display *dpy = XOpenDisplay(NIL);
-      //assert(dpy);
-      //int screen = DefaultScreen(dpy);
-      // Get some colors
+    Display *dpy = XOpenDisplay(NIL);
+    //assert(dpy);
+    //int screen = DefaultScreen(dpy);
+    // Get some colors
 
-      int blackColor = BlackPixel(dpy, DefaultScreen(dpy));
-      int whiteColor = WhitePixel(dpy, DefaultScreen(dpy));
+    int blackColor = BlackPixel(dpy, DefaultScreen(dpy));
+    int whiteColor = WhitePixel(dpy, DefaultScreen(dpy));
 
-      // Create the window
+    // Create the window
 
-      Window w = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), $X, $Y, 
-                     $SIZE, $SIZE, 0, whiteColor, blackColor);
+    Window w = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), x, y, 
+                 size, size, 0, whiteColor, blackColor);
 
-      // We want to get MapNotify events
+    // We want to get MapNotify events
 
-      XSelectInput(dpy, w, StructureNotifyMask);
-          // XSelectInput(dpy, w, ExposureMask);
+    XSelectInput(dpy, w, StructureNotifyMask);
+    // XSelectInput(dpy, w, ExposureMask);
+
     long value = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
 
     XChangeProperty(dpy, w, XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False),
                    XA_ATOM, 32, PropModeReplace, (unsigned char *) &value, 1);
 
-      XClassHint *polybar_xwindow_icon;
+    XClassHint *polybar_xwindow_icon;
     
-      //my_struct = malloc(sizeof(t_data));
-      polybar_xwindow_icon = XAllocClassHint();
-      polybar_xwindow_icon->res_name = "polybar-xwindow-icon";
-      polybar_xwindow_icon->res_class = "Polybar-xwindow-icon";
+    //my_struct = malloc(sizeof(t_data));
+    polybar_xwindow_icon = XAllocClassHint();
+    polybar_xwindow_icon->res_name = (char*) "polybar-xwindow-icon";
+    polybar_xwindow_icon->res_class = (char*) "Polybar-xwindow-icon";
 
-      XSetClassHint(dpy, w, polybar_xwindow_icon);
-      XFree(polybar_xwindow_icon);
+    XSetClassHint(dpy, w, polybar_xwindow_icon);
+    XFree(polybar_xwindow_icon);
 
 
-      XMapWindow(dpy, w);
+    XMapWindow(dpy, w);
 
-      // Wait for the MapNotify event
+    // Wait for the MapNotify event
 
-      for(;;) {
+    for(;;) {
         XEvent e;
         XNextEvent(dpy, &e);
         if (e.type == MapNotify)
-          break;
-      }
+            break;
+    }
 
     Window focal = w;
 
@@ -98,22 +111,22 @@ int main(int argc, char** argv)
     unsigned long bm = image->blue_mask;
 
     Mat img(ht1, wd1, CV_8UC3);     // OpenCV Mat object is initilaized
-    Mat scrap = imread(argv[1]);//(wid, ht, CV_8UC3);      
+    Mat scrap = imread(filename);//(wid, ht, CV_8UC3);      
     resize(scrap, img, img.size(), cv::INTER_AREA);
 
-    for (int x = 0; x < wd1; x++)
-        for (int y = 0; y < ht1 ; y++)
-        {
-            unsigned long pixel = XGetPixel(image,x,y);     
+    for(int x = 0; x < wd1; x++) {
+        for(int y = 0; y < ht1; y++) {
+            unsigned long pixel = XGetPixel(image, x, y);     
 
-            Vec3b color = img.at<Vec3b>(Point(x,y));
+            Vec3b color = img.at<Vec3b>(Point(x, y));
 
 
 
             pixel = 65536 * color[2] + 256 * color[1] + color[0];               
 
             XPutPixel(image, x, y, pixel);                  
-        }   
+        }
+    }
 
     // namedWindow("QR", CV_WINDOW_NORMAL);
     // imshow("QR", img);

@@ -5,20 +5,21 @@
 # https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program
 
 
-SIZE=$$SIZE
-COLOR=$$COLOR
+CACHE_DIR="$1"
+SIZE="$2"
+COLOR="$3"
+wid="$4"
 
-wid="$2"
 # wid="$(xdotool selectwindow)"
 # class="$(bspc query -T -n "$wid" | jq -r '.client.className')"
 WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
 
 name="$WM_CLASS"
 
+CACHE_FILE="$CACHE_DIR/$name"
 
-CACHE="$1/$name"
 
-if [ -f "$CACHE.jpg" ]; then
+if [ -f "$CACHE_FILE.jpg" ]; then
     exit 0
 fi
 
@@ -57,7 +58,7 @@ to_pam() {
 while read -r data; do to_pam <<< "$data" | "${cmd[@]}"; done < <(split_icons)
 
 convert "$name.png" -background $COLOR -flatten -alpha off "$name.jpg"
-mv "$name.jpg" "$CACHE.jpg" && rm "$name.png"
+mv "$name.jpg" "$CACHE_FILE.jpg" && rm "$name.png"
 
 
 

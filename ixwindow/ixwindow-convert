@@ -11,12 +11,12 @@ ARGS:
         to JPG files format with appropriate size and background color.
 
 
-OPTOINS:
+OPTIONS:
     -c, --config
         Path to the configuration file for ixwindow.
 
     -h, --help
-        Show this help information.
+        Show this message.
 
     --size
         Specify size directly. Overwrites config size if both specified.
