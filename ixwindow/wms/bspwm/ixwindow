@@ -45,20 +45,21 @@ COLOR="$(parse_config "color")"
 
 PREV_ICON="/tmp/polybar-icon-prev"
 
-# Delete previous icons, becase if there will be many
-# overlaping icons it may cause a slow down of your window manager
-cleanup_icons() {
-    local icons_id=($(xdo id -n "polybar-xwindow-icon" 2> /dev/null))
-
-    for icon in "${icons_id[@]}";
+# Ideally, this function is supposed to remove just previous icon. However, 
+# practice has shown, that it is not a very good solution in real life (see 
+# the note below). In any case, this function is needed, becase if there will 
+# be many (overlaping) icons, it may cause a slow down of your window manager.
+#
+# Note: if user switches windows fast enough, program might not remove some
+# icons, so it was chosen to search for all possibly not deleted icons every 
+# time we switch windows. This way, if some icons were missed, they will be 
+# removed next time, when user will not switch windows this fast.
+remove_all_prev_icons() {
+    local icons_ids=($(xdo id -n "polybar-xwindow-icon" 2> /dev/null))
+    for icon in "${icons_ids[@]}";
     do
         xdo kill "$icon" &> /dev/null 
     done
-}
-
-
-reset_prev_icon() {
-    echo "" > "$PREV_ICON"
 }
 
 
@@ -75,15 +76,17 @@ print_info() {
         # WM_CLASS="$(bspc query -T -n "$Node" | jq -r '.client.className')"  
         local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
         
-
         case "$WM_CLASS" in
             'Brave-browser')
-                echo "Brave";;
+                echo "Brave"
+                ;;
             'TelegramDesktop')
-                echo "Telegram";;
+                echo "Telegram"
+                ;;
             *)
                 # https://stackoverflow.com/questions/1538676/uppercasing-first-letter-of-words-using-sed
-                echo "$WM_CLASS" | sed -e "s/\b\(.\)/\u\1/g";;
+                echo "$WM_CLASS" | sed -e "s/\b\(.\)/\u\1/g"
+                ;;
         esac
     fi
 }
@@ -101,7 +104,7 @@ exists_fullscreen_node() {
 
 
 display_icon() {
-    cleanup_icons
+    remove_all_prev_icons
     icon="$CACHE/$1.jpg"
 
     if [ -f "$icon" ]; then
@@ -113,6 +116,12 @@ display_icon() {
 generate_icon() {
     "$DIR/generate-icon" "$CACHE" "$SIZE" "$COLOR" "$1"
 }
+
+
+reset_prev_icon() {
+    echo "" > "$PREV_ICON"
+}
+
 
 update_prev_icon() {
    echo "$1" > "$PREV_ICON" 
@@ -126,7 +135,7 @@ process_window() {
     # If there is a fullscreen node, don't show anything, 
     # since we shouldn't see it
     if [ "$(exists_fullscreen_node "$desk")" = "1" ]; then
-        cleanup_icons
+        remove_all_prev_icons
         reset_prev_icon
         return 0;
     fi
@@ -168,7 +177,7 @@ process_desktop() {
 
     if [ "$is_empty" = "1" ]; then
         reset_prev_icon
-        cleanup_icons 
+        remove_all_prev_icons 
 
         print_info "Empty"
     fi
@@ -206,7 +215,7 @@ do
     reset_prev_icon
 
     if [ "$Active" = "on" ]; then
-        cleanup_icons
+        remove_all_prev_icons
     else
         process_window "$Node"  "$Desktop"
     fi
@@ -220,7 +229,7 @@ do
 
     if [ "$State" = "fullscreen" ]; then
         reset_prev_icon
-        cleanup_icons
+        remove_all_prev_icons
     fi
 
 done &
@@ -249,7 +258,7 @@ do
 
     if [ "$(exists_fullscreen_node "$Desktop")" = "1" ]; then
         reset_prev_icon
-        cleanup_icons
+        remove_all_prev_icons
         continue;
     fi
 
