@@ -2,7 +2,7 @@
 prefix = "$HOME/.config/polybar/scripts/ixwindow"
 
 # Folder for cached icons
-cache = "$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
+cache_dir = "$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
 
 # Folder for config icons
 config_dir = "$HOME/.config/ixwindow/i3"
