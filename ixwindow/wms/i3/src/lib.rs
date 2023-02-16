@@ -8,9 +8,6 @@ use i3ipc::event::{
 
 use i3ipc::I3Connection;
 
-
-
-
 pub mod config;
 pub mod utils;
 
@@ -37,7 +34,7 @@ impl Core {
     }
 }
 
-pub fn handle_event(event: Event, core: &Core) {
+pub fn handle_event(event: Event, core: &mut Core) {
     match event {
         Event::WindowEvent(e) => handle_window_event(e, core),
         Event::WorkspaceEvent(e) => handle_workspace_event(e, core),
@@ -46,7 +43,7 @@ pub fn handle_event(event: Event, core: &Core) {
     }
 }
 
-fn handle_window_event(event: WindowEventInfo, core: &Core) {
+fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
     let node = event.container;
     let id = node.id;
 
@@ -61,6 +58,6 @@ fn handle_window_event(event: WindowEventInfo, core: &Core) {
     }
 }
 
-fn handle_workspace_event(event: WorkspaceEventInfo, core: &Core) {}
+fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {}
 
-fn handle_mode_event(event: ModeEventInfo, core: &Core) {}
+fn handle_mode_event(event: ModeEventInfo, core: &mut Core) {}

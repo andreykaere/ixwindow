@@ -6,7 +6,7 @@ fn main() {
     let mut listener =
         I3EventListener::connect().expect("Couldn't connect to event listener");
 
-    let core = Core::init();
+    let mut core = Core::init();
 
     let subscriptions = [
         Subscription::Workspace,
@@ -21,7 +21,7 @@ fn main() {
     for event in listener.listen() {
         match event {
             Ok(res) => {
-                handle_event(res, &core);
+                handle_event(res, &mut core);
             }
 
             Err(e) => {

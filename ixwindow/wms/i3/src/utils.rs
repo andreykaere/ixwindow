@@ -100,10 +100,16 @@ pub fn destroy_prev_icons(config: &Config) {
     }
 }
 
-pub fn process_window(core: &Core) {}
-pub fn process_desktop(core: &Core) {}
+pub fn process_window(core: &mut Core) {
+    todo!();
+}
+pub fn process_desktop(core: &mut Core) {
+    todo!();
+}
 
-pub fn exists_fullscreen_node() {}
+pub fn exists_fullscreen_node(core: &mut Core) {
+    todo!();
+}
 
 pub fn capitalize_first(s: &str) -> String {
     let mut c = s.chars();
@@ -135,6 +141,18 @@ pub fn get_wm_class(id: i32) -> String {
         .replace('"', "")
 }
 
-fn get_current_desktop(core: &Core) -> i32 {
-    todo!();
+pub fn get_current_desktop(core: &mut Core) -> i32 {
+    let connection = &mut core.connection;
+    let desktops = connection
+        .get_workspaces()
+        .expect("Couldn't read information about desktops")
+        .workspaces;
+
+    for desktop in desktops {
+        if desktop.focused {
+            return desktop.num;
+        }
+    }
+
+    panic!("Zero desktops!");
 }
