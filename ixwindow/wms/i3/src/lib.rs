@@ -57,7 +57,7 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
         // core.process_window(id);
         // }
         WindowChange::Focus => {
-            println!("Focus or close");
+            // println!("Focused");
             core.process_window(id);
         }
 

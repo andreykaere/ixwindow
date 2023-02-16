@@ -1,11 +1,10 @@
-use i3ipc::reply::Node;
+// use i3ipc::reply::Node;
 
 use std::io::{self, Write};
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::str;
 
-use super::Config;
 use super::Core;
 
 pub struct State {
@@ -46,7 +45,10 @@ impl Core {
             .arg(&config.cache_dir)
             .arg(format!("{}", config.size))
             .arg(&config.color)
-            .arg(icon_name);
+            .arg(icon_name)
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("Couldn't generate icon");
     }
 
     pub fn display_icon(&mut self, icon_name: &str) {
@@ -57,12 +59,12 @@ impl Core {
             format!("{}/{}.jpg", format_filename(&config.cache_dir), icon_name);
 
         if !Path::new(&icon_path).exists() {
-            println!("generate {icon_path}");
+            // println!("generate {icon_path}");
             self.generate_icon(icon_name);
         }
 
-        println!("{}/polybar-xwindow-icon", format_filename(&config.prefix));
-        println!("{icon_path}");
+        // println!("{}/polybar-xwindow-icon", format_filename(&config.prefix));
+        // println!("{icon_path}");
 
         Command::new(format!(
             "{}/polybar-xwindow-icon",
@@ -71,7 +73,10 @@ impl Core {
         .arg(&icon_path)
         .arg(format!("{}", config.x))
         .arg(format!("{}", config.y))
-        .arg(format!("{}", config.size));
+        .arg(format!("{}", config.size))
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("Couldn't spawn polybar-xwindow-icon process");
     }
 
     pub fn print_info(&mut self, window: Option<i32>) {
@@ -98,6 +103,7 @@ impl Core {
             .arg("id")
             .arg("-n")
             .arg("polybar-xwindow-icon")
+            .stderr(Stdio::null())
             .output()
             .expect("Couldn't detect any 'polybar-xwindow-icon' windows");
 
@@ -106,16 +112,22 @@ impl Core {
             Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
         };
 
-        let icons_ids = output.split(' ');
+        let icons_ids = output.trim().split('\n');
 
         for id in icons_ids {
-            Command::new("xdo").arg("kill").arg(id);
+            Command::new("xdo")
+                .arg("kill")
+                .arg(id)
+                .stderr(Stdio::null())
+                .spawn()
+                .expect("xdo couldn't kill icon window");
         }
     }
 
     pub fn process_window(&mut self, id: i32) {
         let icon_name = get_icon_name(id);
 
+        self.print_info(Some(id));
         self.state.update(&icon_name);
         self.display_icon(&icon_name);
     }
@@ -158,6 +170,7 @@ pub fn get_wm_class(id: i32) -> String {
         .arg("-id")
         .arg(id.to_string())
         .arg("WM_CLASS")
+        .stderr(Stdio::null())
         .output()
         .expect("Failed to get WM_CLASS of the window");
 
@@ -189,6 +202,7 @@ pub fn format_filename(filename: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::super::Config;
     use super::*;
 
     #[test]
