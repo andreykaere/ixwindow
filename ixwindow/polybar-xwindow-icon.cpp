@@ -59,10 +59,17 @@ int main(int argc, char** argv) {
     int blackColor = BlackPixel(dpy, DefaultScreen(dpy));
     int whiteColor = WhitePixel(dpy, DefaultScreen(dpy));
 
-    // Create the window
+    
 
+    // Create the window
     Window w = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), x, y, 
                  size, size, 0, whiteColor, blackColor);
+    
+    // We don't want window manager to handle icon window
+    XSetWindowAttributes attributes;
+    attributes.override_redirect = true;
+
+    XChangeWindowAttributes(dpy, w, CWOverrideRedirect, &attributes);
 
     // We want to get MapNotify events
 
