@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
 
-pub const CONFIG_FILE: &str = "~/.config/ixwindow/bspwm/config.toml";
+use super::utils::format_filename;
+
+pub const CONFIG_FILE: &str = "~/.config/ixwindow/i3/config.toml";
 // pub const CONFIG: Config = Config::load();
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -30,17 +32,9 @@ impl Config {
     }
 }
 
-pub fn format_filename(filename: &str) -> String {
-    let home = std::env::var("HOME").unwrap();
-    let filename = &shellexpand::env(filename).unwrap();
-    let filename = shellexpand::tilde(filename).to_string();
-
-    filename
-}
-
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
 
     #[test]
     fn parse_config_works() {

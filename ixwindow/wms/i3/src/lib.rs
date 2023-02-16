@@ -44,16 +44,32 @@ pub fn handle_event(event: Event, core: &mut Core) {
 }
 
 fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
+    let desktop = core.get_current_desktop();
     let node = event.container;
-    let id = node.id;
+    let id = match node.window {
+        Some(x) => x,
+        None => panic!("No focused window"),
+    };
 
     match event.change {
-        WindowChange::New => {}
-        WindowChange::Close => {}
+        // WindowChange::New => {
+        // println!("new");
+        // core.process_window(id);
+        // }
         WindowChange::Focus => {
-            print_info("   ", Some(&node));
+            println!("Focus or close");
+            core.process_window(id);
         }
-        WindowChange::FullscreenMode => {}
+
+        WindowChange::Close => {
+            let icon_name = get_icon_name(id);
+            core.state.update(&icon_name);
+        }
+
+        WindowChange::FullscreenMode => {
+            // println!("fullscreen");
+        }
+
         _ => {}
     }
 }
