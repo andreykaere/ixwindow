@@ -81,21 +81,20 @@ impl Core {
 
     pub fn print_info(&mut self, window: Option<i32>) {
         print!("{}", self.config.gap);
+        io::stdout().flush().unwrap();
 
         match window {
-            None => print!("Empty"),
+            None => println!("Empty"),
             Some(id) => {
                 let icon_name = &get_icon_name(id);
 
                 match icon_name.as_ref() {
-                    "Brave-browser" => print!("Brave"),
-                    "TelegramDesktop" => print!("Telegram"),
-                    _ => print!("{}", capitalize_first(icon_name)),
+                    "Brave-browser" => println!("Brave"),
+                    "TelegramDesktop" => println!("Telegram"),
+                    _ => println!("{}", capitalize_first(icon_name)),
                 }
             }
         }
-
-        io::stdout().flush().unwrap();
     }
 
     pub fn destroy_prev_icons(&mut self) {
