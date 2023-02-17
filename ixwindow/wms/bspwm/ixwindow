@@ -35,7 +35,7 @@ parse_config () {
 
 
 # Folder for icons
-CACHE="$(parse_config "cache")"
+CACHE_DIR="$(parse_config "cache_dir")"
 DIR="$(parse_config "prefix")"   # path to ixwindow folder
 GAP="$(parse_config "gap")"
 X="$(parse_config "x")"
@@ -105,7 +105,7 @@ exists_fullscreen_node() {
 
 display_icon() {
     remove_all_prev_icons
-    icon="$CACHE/$1.jpg"
+    icon="$CACHE_DIR/$1.jpg"
 
     if [ -f "$icon" ]; then
         "$DIR/polybar-xwindow-icon" "$icon" "$X" "$Y" "$SIZE" &> /dev/null &
@@ -114,7 +114,7 @@ display_icon() {
 
 
 generate_icon() {
-    "$DIR/generate-icon" "$CACHE" "$SIZE" "$COLOR" "$1"
+    "$DIR/generate-icon" "$CACHE_DIR" "$SIZE" "$COLOR" "$1"
 }
 
 

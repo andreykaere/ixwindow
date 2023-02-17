@@ -49,7 +49,7 @@ parse_toml () {
 install_wm () {
     local wm="$1"
     local profile="profiles/$wm.toml"
-    local cache="$(parse_toml "$profile" "cache")"
+    local cache_dir="$(parse_toml "$profile" "cache_dir")"
     local prefix="$(parse_toml "$profile" "prefix")"
     local config_dir="$(parse_toml "$profile" "config_dir")"
     local config_file="$(parse_toml "$profile" "config_file")"
@@ -58,10 +58,10 @@ install_wm () {
         rm -r "$prefix"
     fi
 
-    mkdir -p "$cache"
+    mkdir -p "$cache_dir"
     mkdir -p "$prefix"
     mkdir -p "$config_dir"
-
+    
 
     case "$wm" in 
         "bspwm")
