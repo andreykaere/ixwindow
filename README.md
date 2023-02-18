@@ -136,6 +136,12 @@ Feel free to open issue if you have any questions or you've noticed a bug.
 Also pull requests are welcome; don't hesitate to crate one, if you have a
 solution to any of the issues, stated above.
 
+## Goals
+
+- Rewrite `polybar-xwindow-icon` in Rust
+- Rewrite code for `bspwm` in Rust
+- Add png support (maybe make it an option, if user doesn't use compositor)
+
 ## Thanks
 
 ### Inspired by
