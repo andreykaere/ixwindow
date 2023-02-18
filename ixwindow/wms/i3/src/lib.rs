@@ -44,7 +44,7 @@ pub fn handle_event(event: Event, core: &mut Core) {
 }
 
 fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
-    let desktop = core.get_current_desktop();
+    // let desktop = core.get_focused_desktop();
     let node = event.container;
     let id = match node.window {
         Some(x) => x,
@@ -52,22 +52,55 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
     };
 
     match event.change {
-        // WindowChange::New => {
-        // println!("new");
-        // core.process_window(id);
-        // }
         WindowChange::Focus => {
-            // println!("Focused");
-            core.process_window(id);
+            core.process_focused_window(id);
         }
 
         WindowChange::Close => {
-            let icon_name = get_icon_name(id);
-            core.state.update(&icon_name);
+            match core.get_focused_window() {
+                Some(id) => {
+                    core.process_focused_window(id);
+                }
+
+                None => {
+                    core.state.reset_icons();
+                    core.print_info(None);
+                    core.destroy_prev_icons();
+                }
+            }
+
+            // Some(0);
         }
 
         WindowChange::FullscreenMode => {
-            // println!("fullscreen");
+            let current_desktop = core.get_focused_desktop();
+
+            match core.get_fullscreen_window(current_desktop) {
+                Some(_) => {
+                    println!("Get fullscreen ");
+                    core.destroy_prev_icons();
+
+                    // Reset icons, so that we can use process_focused_window
+                    // below. Otherwise it will not display icon, since app
+                    // name didn't change during fullscreen toggling
+                    core.state.reset_icons();
+                }
+
+                None => {
+                    println!("Exit fullscreen ");
+
+                    let window = core.get_focused_window();
+                    if let Some(id) = window {
+                        core.process_focused_window(id);
+                    }
+                }
+            }
+
+            // Some(0)
+        }
+
+        WindowChange::Move => {
+            // Handle fullscreen on new desktop
         }
 
         _ => {}
@@ -76,4 +109,6 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
 
 fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {}
 
-fn handle_mode_event(event: ModeEventInfo, core: &mut Core) {}
+fn handle_mode_event(event: ModeEventInfo, core: &mut Core) {
+    println!("Something happened");
+}
