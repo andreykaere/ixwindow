@@ -46,7 +46,19 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
     let node = event.container;
     let id = match node.window {
         Some(x) => x,
-        None => panic!("No focused window"),
+
+        // It means, the window was sent to scratchpad desktop
+        None => {
+            let window = core.get_focused_window();
+
+            if let Some(x) = window {
+                x
+            } else {
+                core.process_empty_desktop();
+                return;
+            }
+            // panic!("{}", format!("No focused window, debug info: \n{:?}", node))
+        }
     };
 
     match event.change {
@@ -63,9 +75,7 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
                 }
 
                 None => {
-                    core.state.reset_icons();
-                    core.print_info(None);
-                    core.destroy_prev_icons();
+                    core.process_empty_desktop();
                 }
             }
 
@@ -77,13 +87,13 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
 
             match core.get_fullscreen_window(current_desktop) {
                 Some(_) => {
-                    println!("Get fullscreen ");
+                    // println!("Get fullscreen ");
 
                     core.process_fullscreen_window();
                 }
 
                 None => {
-                    println!("Exit fullscreen ");
+                    // println!("Exit fullscreen ");
 
                     let window = core.get_focused_window();
                     if let Some(id) = window {
@@ -93,17 +103,11 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
             }
         }
 
-        WindowChange::Move => {
-            // Handle fullscreen on new desktop
-        }
-
         _ => {}
     }
 }
 
 fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
-    // if let Some(current_desktop) = event.current.
-
     match event.change {
         WorkspaceChange::Focus => {
             let current_desktop = core.get_focused_desktop();

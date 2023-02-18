@@ -178,7 +178,7 @@ impl Core {
         let connection = &mut self.connection;
         let tree = connection
             .get_tree()
-            .expect("couldn't read information about tree");
+            .expect("Couldn't read information about tree");
 
         get_all_childs(tree)
     }
@@ -200,7 +200,7 @@ impl Core {
         let connection = &mut self.connection;
         let tree = connection
             .get_tree()
-            .expect("couldn't read information about tree");
+            .expect("Couldn't read information about tree");
 
         get_desktop_subnodes(tree)
     }
