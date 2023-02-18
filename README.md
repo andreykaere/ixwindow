@@ -68,6 +68,9 @@ Things to modify:
 around `.config/polybar` folder, so you won't lose your custom icons, 
 if you have them)
 - `gap` constant, which is used in `ixwindow` script 
+- for `i3` you can additionally specify `gap_per_desk`. This variable is used
+  for calculation position of the icon, when the number of active desktops is
+  dynamic.
 
 You will also need to add the following to your polybar `config` file:
 
@@ -126,8 +129,7 @@ as the dependency as well
 - Untested on multimonitors system
 - Manual specification, but seems to be unfixable at this point, since polybar 
 doesn't support inserting images into bar for now
-- Works only with bspwm (work in progress to support `i3`)
-- Not being able to stop `./ixwindow` with `Ctrl-C`, due to background
+- (for `bspwm`) Not being able to stop `./ixwindow` with `Ctrl-C`, due to background
   processes
 
 Feel free to open issue if you have any questions or you've noticed a bug.
