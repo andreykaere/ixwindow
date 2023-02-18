@@ -1,12 +1,32 @@
-use i3ipc::I3Connection;
+use i3ipc::{self, I3EventListener, Subscription};
+
+use ixwindow_i3::{handle_event, Core};
 
 fn main() {
-    // establish a connection to i3 over a unix socket
-    let mut connection = I3Connection::connect().unwrap();
+    let mut listener =
+        I3EventListener::connect().expect("Couldn't connect to event listener");
 
-    // request and print the i3 version
-    println!("{}", connection.get_version().unwrap().human_readable);
+    let mut core = Core::init();
 
-    // fullscreen the focused window
-    connection.run_command("fullscreen").unwrap();
+    let subscriptions = [
+        Subscription::Workspace,
+        Subscription::Mode,
+        Subscription::Window,
+    ];
+
+    listener
+        .subscribe(&subscriptions)
+        .expect("Couldn't subscribe to events");
+
+    for event in listener.listen() {
+        match event {
+            Ok(res) => {
+                handle_event(res, &mut core);
+            }
+
+            Err(e) => {
+                println!("While listening to events, encounter the following error: {e}");
+            }
+        }
+    }
 }

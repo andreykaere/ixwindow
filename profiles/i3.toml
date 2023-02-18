@@ -2,11 +2,11 @@
 prefix = "$HOME/.config/polybar/scripts/ixwindow"
 
 # Folder for cached icons
-cache = "$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
+cache_dir = "$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
 
 # Folder for config icons
 config_dir = "$HOME/.config/ixwindow/i3"
-config_file = "$CONFIG_DIR/config.toml"
+config_file = "config.toml"
 
 # Size of the icon
 size = 24

@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 i3ipc = "0.10.1"
+serde = { version = "1.0.152", features = ["derive"] }
+shellexpand = "3.0.0"
+toml = "0.7.2"

@@ -19,19 +19,37 @@ as polybar's `tail = true`.
 
 
 ## Dependencies
-- `bash`
-- `bspwm`
-- `bspc`
-- `xdotool` (version 3.20211022.1)
+
+### Common 
+- `xprop`
 - `xdo`
 - `imagemagick` (for converting `.png` icons to `.jpg`)
 - `g++` (for compiling `polybar-xwindow-icon`)
 - `opencv` (for rendering icons)
 
-For debian-based systems you can install it by running 
+For debian-based systems you can install it by running
 ```bash
-sudo apt install bspwm xdotool xdo imagemagick g++ libopencv-dev 
+sudo apt install xdo xprop imagemagick g++ libopencv-dev 
 ```
+
+### For bspwm
+- `bash`
+- `bspwm`
+- `bspc`
+- [`xdotool`](https://github.com/jordansissel/xdotool) (version 3.20211022.1)
+
+For debian-based systems you can install it by running (make sure version is
+correct, otherwise see note below):
+```bash
+sudo apt install xdotool
+```
+
+### For i3
+- `i3`
+- [`cargo`](https://github.com/rust-lang/cargo)
+
+For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
+
 
 **Note:** depending on your system, you might get different version of the
 packages, comparing to the ones, used in this project. If you can't install
@@ -115,13 +133,24 @@ doesn't support inserting images into bar for now
 - Not being able to stop `./ixwindow` with `Ctrl-C`, due to background
   processes
 
+Feel free to open issue if you have any questions or you've noticed a bug.
+Also pull requests are welcome; don't hesitate to crate one, if you have a
+solution to any of the issues, stated above.
+
 ## Thanks
 
-### Inspired by  
+### Inspired by
 
-https://github.com/MateoNitro550/xxxwindowPolybarModule
+I got inspired to start this project, when I saw similar feature in
+`awesome-wm`. I thought it would be hard to simulate the exact same behavior
+on polybar, however I came across
+[this](https://github.com/MateoNitro550/xxxwindowPolybarModule) project and I
+thought, that I can just improve the default `xwindow`, by formatting its
+output a bit and adding icon of the focused application.
 
 ### With a great help of
+
+This project couldn't have been done without them:
 
 - https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11
 - https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program
