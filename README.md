@@ -128,11 +128,18 @@ solution to any of the issues, stated above.
 
 ## Thanks
 
-### Inspired by  
+### Inspired by
 
-https://github.com/MateoNitro550/xxxwindowPolybarModule
+I got inspired to start this project, when I saw similar feature in
+`awesome-wm`. I thought it would be hard to simulate the exact same behavior
+on polybar, however I came across
+[this](https://github.com/MateoNitro550/xxxwindowPolybarModule) project and I
+thought, that I can just improve the default `xwindow`, by formatting its
+output a bit and adding icon of the focused application.
 
 ### With a great help of
+
+This project couldn't have been done without them:
 
 - https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11
 - https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program
