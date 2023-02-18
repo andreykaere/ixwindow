@@ -19,14 +19,23 @@ as polybar's `tail = true`.
 
 
 ## Dependencies
-- `bash`
-- `bspwm`
-- `bspc`
-- `xdotool` (version 3.20211022.1)
+
+### Common 
+- `xprop`
 - `xdo`
 - `imagemagick` (for converting `.png` icons to `.jpg`)
 - `g++` (for compiling `polybar-xwindow-icon`)
 - `opencv` (for rendering icons)
+
+### For bspwm
+- `bash`
+- `bspwm`
+- `bspc`
+- `xdotool` (version 3.20211022.1)
+
+### For i3
+- `i3`
+- [`cargo`](https://github.com/rust-lang/cargo)
 
 For debian-based systems you can install it by running 
 ```bash
@@ -103,6 +112,10 @@ as the dependency as well
 doesn't support inserting images into bar for now
 - Not being able to stop `./ixwindow` with `Ctrl-C`, due to background
   processes
+
+Feel free to open issue if you have any questions or you've noticed a bug.
+Also pull requests are welcome; don't hesitate to crate one, if you have a
+solution to any of the issues, stated above.
 
 ## Thanks
 
