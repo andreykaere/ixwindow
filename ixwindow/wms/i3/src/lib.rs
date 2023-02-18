@@ -124,10 +124,11 @@ fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
         }
 
         WorkspaceChange::Init => {
-            core.update_dyn_x();
             core.process_empty_desktop();
         }
 
         _ => {}
     }
+
+    core.update_dyn_x();
 }
