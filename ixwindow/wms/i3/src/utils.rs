@@ -1,4 +1,4 @@
-use i3ipc::reply::{Node, NodeType, Workspace};
+use i3ipc::reply::{Node, NodeType};
 
 use std::io::{self, Write};
 use std::path::Path;
@@ -7,14 +7,11 @@ use std::str;
 
 use super::Core;
 
-// type Desktop = Workspace;
-
 pub struct State {
     pub curr_icon: Option<String>,
     pub prev_icon: Option<String>,
     pub curr_window: Option<i32>,
     pub curr_desktop: i32,
-    // pub fullscreen_window: Option<i32>,
 }
 
 impl Default for State {
@@ -24,7 +21,6 @@ impl Default for State {
             prev_icon: None,
             curr_window: None,
             curr_desktop: 1,
-            // fullscreen_window: None,
         }
     }
 }
@@ -39,10 +35,6 @@ impl State {
         self.prev_icon = None;
         self.curr_icon = None;
     }
-
-    // pub fn update_fullscreen_window(&mut self, window: Option<i32>) {
-    //     self.fullscreen_window = window;
-    // }
 }
 
 impl Core {
@@ -95,16 +87,16 @@ impl Core {
         self.display_icon(&icon_path);
     }
 
-    pub fn print_info(&self, window: Option<i32>) {
+    pub fn print_info(&self, maybe_window: Option<i32>) {
         // Don't add '\n' at the end, so that it will appear in front of icon
         // name, printed after it
         print!("{}", self.config.gap);
         io::stdout().flush().unwrap();
 
-        match window {
+        match maybe_window {
             None => println!("Empty"),
-            Some(id) => {
-                let icon_name = &get_icon_name(id);
+            Some(window) => {
+                let icon_name = &get_icon_name(window);
 
                 match icon_name.as_ref() {
                     "Brave-browser" => println!("Brave"),
@@ -141,10 +133,15 @@ impl Core {
         }
     }
 
-    pub fn process_focused_window(&mut self, id: i32) {
-        let icon_name = get_icon_name(id);
+    pub fn process_focused_window(&mut self, window: i32) {
+        if is_window_fullscreen(window) {
+            self.process_fullscreen_window();
+            return;
+        }
 
-        self.print_info(Some(id));
+        let icon_name = get_icon_name(window);
+
+        self.print_info(Some(window));
         self.state.update_icon(&icon_name);
         self.process_icon(&icon_name);
     }
@@ -270,10 +267,10 @@ pub fn capitalize_first(s: &str) -> String {
     }
 }
 
-pub fn is_window_fullscreen(id: i32) -> bool {
+pub fn is_window_fullscreen(window: i32) -> bool {
     let net_wm_state = Command::new("xprop")
         .arg("-id")
-        .arg(id.to_string())
+        .arg(window.to_string())
         .arg("_NET_WM_STATE")
         .stderr(Stdio::null())
         .output()
@@ -287,10 +284,10 @@ pub fn is_window_fullscreen(id: i32) -> bool {
     result.contains("FULLSCREEN")
 }
 
-pub fn get_wm_class(id: i32) -> String {
+pub fn get_wm_class(window: i32) -> String {
     let wm_class = Command::new("xprop")
         .arg("-id")
-        .arg(id.to_string())
+        .arg(window.to_string())
         .arg("WM_CLASS")
         .stderr(Stdio::null())
         .output()
@@ -310,14 +307,14 @@ pub fn get_wm_class(id: i32) -> String {
         .replace('"', "")
 }
 
-pub fn get_icon_name(id: i32) -> String {
-    get_wm_class(id)
+pub fn get_icon_name(window: i32) -> String {
+    get_wm_class(window)
 }
 
 // Returns full path of the filename, extending $HOME and ~ to real home
 // directory path
 pub fn format_filename(filename: &str) -> String {
-    let home = std::env::var("HOME").unwrap();
+    // let home = std::env::var("HOME").unwrap();
     let filename = &shellexpand::env(filename).unwrap();
     let filename = shellexpand::tilde(filename).to_string();
 

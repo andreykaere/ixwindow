@@ -1,9 +1,6 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
 use i3ipc::event::{
     inner::{WindowChange, WorkspaceChange},
-    Event, ModeEventInfo, WindowEventInfo, WorkspaceEventInfo,
+    Event, WindowEventInfo, WorkspaceEventInfo,
 };
 
 use i3ipc::I3Connection;
@@ -37,7 +34,6 @@ pub fn handle_event(event: Event, core: &mut Core) {
     match event {
         Event::WindowEvent(e) => handle_window_event(e, core),
         Event::WorkspaceEvent(e) => handle_workspace_event(e, core),
-        // Event::ModeEvent(e) => handle_mode_event(e, core),
         _ => {}
     }
 }
@@ -57,15 +53,12 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
                 core.process_empty_desktop();
                 return;
             }
-            // panic!("{}", format!("No focused window, debug info: \n{:?}", node))
         }
     };
 
     match event.change {
         WindowChange::Focus => {
-            if !is_window_fullscreen(id) {
-                core.process_focused_window(id);
-            }
+            core.process_focused_window(id);
         }
 
         WindowChange::Close => {
@@ -116,7 +109,7 @@ fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
                 core.process_empty_desktop();
             }
 
-            if let Some(window) = core.get_fullscreen_window(current_desktop) {
+            if let Some(_) = core.get_fullscreen_window(current_desktop) {
                 core.process_fullscreen_window();
             }
         }
@@ -124,5 +117,3 @@ fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
         _ => {}
     }
 }
-
-// fn handle_mode_event(event: ModeEventInfo, core: &mut Core) {}
