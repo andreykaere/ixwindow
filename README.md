@@ -31,16 +31,23 @@ as polybar's `tail = true`.
 - `bash`
 - `bspwm`
 - `bspc`
-- `xdotool` (version 3.20211022.1)
+- [`xdotool`](https://github.com/jordansissel/xdotool) (version 3.20211022.1)
+
+For debian-based systems you can install it by running
+```bash
+sudo apt install xdotool xdo imagemagick g++ libopencv-dev 
+```
 
 ### For i3
 - `i3`
 - [`cargo`](https://github.com/rust-lang/cargo)
 
-For debian-based systems you can install it by running 
+For debian-based systems you can install it by running
 ```bash
-sudo apt install bspwm xdotool xdo imagemagick g++ libopencv-dev 
+sudo apt install xdo imagemagick g++ libopencv-dev 
 ```
+For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
+
 
 **Note:** depending on your system, you might get different version of the
 packages, comparing to the ones, used in this project. If you can't install
