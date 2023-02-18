@@ -12,17 +12,7 @@ pub struct State {
     pub prev_icon: Option<String>,
     pub curr_window: Option<i32>,
     pub curr_desktop: i32,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            curr_icon: None,
-            prev_icon: None,
-            curr_window: None,
-            curr_desktop: 1,
-        }
-    }
+    pub dyn_x: u16,
 }
 
 impl State {
@@ -51,6 +41,15 @@ impl Core {
             .expect("Couldn't generate icon");
     }
 
+    pub fn update_dyn_x(&mut self) {
+        // -1 because of scratchpad desktop
+        let desks_num = self.get_desktops_as_nodes().len() - 1;
+        let config = &self.config;
+        let new_x = config.x + config.gap_per_desk * (desks_num as u16);
+
+        self.state.dyn_x = new_x;
+    }
+
     pub fn display_icon(&self, icon_path: &str) {
         let config = &self.config;
 
@@ -59,7 +58,7 @@ impl Core {
             format_filename(&config.prefix)
         ))
         .arg(icon_path)
-        .arg(format!("{}", config.x))
+        .arg(format!("{}", self.state.dyn_x))
         .arg(format!("{}", config.y))
         .arg(format!("{}", config.size))
         .stderr(Stdio::null())
@@ -95,6 +94,7 @@ impl Core {
 
         match maybe_window {
             None => println!("Empty"),
+
             Some(window) => {
                 let icon_name = &get_icon_name(window);
 

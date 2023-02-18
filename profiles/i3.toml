@@ -15,10 +15,14 @@ size = 24
 color = "#252737"
 
 # Absolute coordinates of icon
-x = 270
+x = 20
 y = 6
 
 # Amound of spaces in the title of the module, before title of the window
 # This is to be adjusted together with coordinates of the icon to achieve the
 # best result
 gap = "         "
+
+# Gap per desk is needed for "shifting" the icon and is approximately equal to
+# size of the icon, because new desktop icon occupies around this space
+gap_per_desk = 24
