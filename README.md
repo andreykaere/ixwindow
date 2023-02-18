@@ -1,17 +1,14 @@
-# ixwindow – icon xwindow module for Polybar
-
+# Ixwindow – iconized xwindow 
 
 ## About
-
-`ixwindow` is an enhanced version of standard `xwindow` polybar module. 
-The main feature is icon for active window, but it also allows you more 
-customization of printing window info. This is what `ixwindow` looks
-like in action:
+Ixwindow is an enhanced version of standard `xwindow` polybar module. The main
+feature is that `ixwindo` displays not only info about active window, but also 
+an icon for it. It also allows you more customization of printing window info.
+Below is represented and example of what `ixwindow` looks like in action:
 
 <p align="center">
   <img src="examples/example.gif" alt="animated" />
 </p>
-
 
 **Note:** basically, it doesn't really depend on polybar itself, it can be used 
 with any other bar as well, you just need to implement the same behavior,
