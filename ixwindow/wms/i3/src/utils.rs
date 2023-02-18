@@ -149,10 +149,6 @@ impl Core {
         self.process_icon(&icon_name);
     }
 
-    pub fn process_desktop(&mut self) {
-        todo!();
-    }
-
     pub fn get_fullscreen_window(&mut self, desktop: i32) -> Option<i32> {
         let nodes = self.get_desktop_windows(desktop);
 
@@ -166,6 +162,16 @@ impl Core {
 
         // If no fullscreen window is found in this desktop
         None
+    }
+
+    // Come up with a better name
+    pub fn process_fullscreen_window(&mut self) {
+        self.destroy_prev_icons();
+
+        // Reset icons, so that we can use process_focused_window
+        // below. Otherwise it will not display icon, since app
+        // name didn't change during fullscreen toggling
+        self.state.reset_icons();
     }
 
     pub fn get_all_nodes(&mut self) -> Vec<Node> {
@@ -190,13 +196,17 @@ impl Core {
         None
     }
 
-    fn get_desktop_windows(&mut self, desktop: i32) -> Vec<Node> {
+    fn get_desktops_as_nodes(&mut self) -> Vec<Node> {
         let connection = &mut self.connection;
         let tree = connection
             .get_tree()
             .expect("couldn't read information about tree");
 
-        let desktops = get_desktop_nodes(tree);
+        get_desktop_subnodes(tree)
+    }
+
+    fn get_desktop_windows(&mut self, desktop: i32) -> Vec<Node> {
+        let desktops = self.get_desktops_as_nodes();
 
         for desk in desktops {
             let desk_name = desk.name.unwrap();
@@ -223,6 +233,30 @@ impl Core {
         }
 
         panic!("Zero desktops!");
+    }
+
+    pub fn convert_desktop(&mut self, desktop: i32) -> Node {
+        let desktops = self.get_desktops_as_nodes();
+
+        for desk in desktops {
+            if desk.name == Some(desktop.to_string()) {
+                return desk;
+            }
+        }
+
+        panic!("Something went wrong, when converting desktop to node");
+    }
+
+    pub fn is_empty(&mut self, desktop: i32) -> bool {
+        let node = self.convert_desktop(desktop);
+
+        node.nodes.is_empty()
+    }
+
+    pub fn process_empty_desktop(&mut self) {
+        self.destroy_prev_icons();
+        self.state.reset_icons();
+        self.print_info(None);
     }
 }
 
@@ -291,12 +325,15 @@ pub fn format_filename(filename: &str) -> String {
 }
 
 // Returns visible desktops as nodes
-fn get_desktop_nodes(node: Node) -> Vec<Node> {
+fn get_desktop_subnodes(node: Node) -> Vec<Node> {
     if let NodeType::Workspace = node.nodetype {
         return vec![node];
     }
 
-    node.nodes.into_iter().flat_map(get_desktop_nodes).collect()
+    node.nodes
+        .into_iter()
+        .flat_map(get_desktop_subnodes)
+        .collect()
 }
 
 // Returns all childs of the node, that themselves do not contain any windows,
@@ -328,11 +365,11 @@ mod tests {
     #[test]
     fn get_all_childs_works() {
         let mut connection = I3Connection::connect().unwrap();
-        let windows = connection
+        let tree = connection
             .get_tree()
             .expect("Couldn't read information about tree");
 
-        println!("All windows:\n{:?}", get_all_childs(windows));
+        println!("All windows:\n{:?}", get_all_childs(tree));
     }
 
     #[test]

@@ -2,8 +2,8 @@
 #![allow(unused_variables)]
 
 use i3ipc::event::{
-    inner::WindowChange, Event, ModeEventInfo, WindowEventInfo,
-    WorkspaceEventInfo,
+    inner::{WindowChange, WorkspaceChange},
+    Event, ModeEventInfo, WindowEventInfo, WorkspaceEventInfo,
 };
 
 use i3ipc::I3Connection;
@@ -13,7 +13,6 @@ pub mod utils;
 
 pub use config::Config;
 pub use utils::*;
-// use config::CONFIG;
 
 pub struct Core {
     pub config: Config,
@@ -38,13 +37,12 @@ pub fn handle_event(event: Event, core: &mut Core) {
     match event {
         Event::WindowEvent(e) => handle_window_event(e, core),
         Event::WorkspaceEvent(e) => handle_workspace_event(e, core),
-        Event::ModeEvent(e) => handle_mode_event(e, core),
+        // Event::ModeEvent(e) => handle_mode_event(e, core),
         _ => {}
     }
 }
 
 fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
-    // let desktop = core.get_focused_desktop();
     let node = event.container;
     let id = match node.window {
         Some(x) => x,
@@ -53,7 +51,9 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
 
     match event.change {
         WindowChange::Focus => {
-            core.process_focused_window(id);
+            if !is_window_fullscreen(id) {
+                core.process_focused_window(id);
+            }
         }
 
         WindowChange::Close => {
@@ -78,12 +78,8 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
             match core.get_fullscreen_window(current_desktop) {
                 Some(_) => {
                     println!("Get fullscreen ");
-                    core.destroy_prev_icons();
 
-                    // Reset icons, so that we can use process_focused_window
-                    // below. Otherwise it will not display icon, since app
-                    // name didn't change during fullscreen toggling
-                    core.state.reset_icons();
+                    core.process_fullscreen_window();
                 }
 
                 None => {
@@ -95,8 +91,6 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
                     }
                 }
             }
-
-            // Some(0)
         }
 
         WindowChange::Move => {
@@ -107,8 +101,24 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
     }
 }
 
-fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {}
+fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
+    // if let Some(current_desktop) = event.current.
 
-fn handle_mode_event(event: ModeEventInfo, core: &mut Core) {
-    println!("Something happened");
+    match event.change {
+        WorkspaceChange::Focus => {
+            let current_desktop = core.get_focused_desktop();
+
+            if core.is_empty(current_desktop) {
+                core.process_empty_desktop();
+            }
+
+            if let Some(window) = core.get_fullscreen_window(current_desktop) {
+                core.process_fullscreen_window();
+            }
+        }
+
+        _ => {}
+    }
 }
+
+// fn handle_mode_event(event: ModeEventInfo, core: &mut Core) {}
