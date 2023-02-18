@@ -21,11 +21,20 @@ impl Core {
     pub fn init() -> Self {
         let connection =
             I3Connection::connect().expect("Failed to connect to i3");
+        let config = Config::init();
+
+        let state = State {
+            curr_icon: None,
+            prev_icon: None,
+            curr_window: None,
+            curr_desktop: 1,
+            dyn_x: config.x,
+        };
 
         Self {
-            config: Config::init(),
-            state: State::default(),
+            config,
             connection,
+            state,
         }
     }
 }
@@ -112,6 +121,11 @@ fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
             if let Some(_) = core.get_fullscreen_window(current_desktop) {
                 core.process_fullscreen_window();
             }
+        }
+
+        WorkspaceChange::Init => {
+            core.update_dyn_x();
+            core.process_empty_desktop();
         }
 
         _ => {}

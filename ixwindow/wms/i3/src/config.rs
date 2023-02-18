@@ -4,6 +4,7 @@ use std::io::Read;
 
 use super::utils::format_filename;
 
+// pub const CONFIG_FILE: &str = $$CONFIG;
 pub const CONFIG_FILE: &str = "~/.config/ixwindow/i3/config.toml";
 // pub const CONFIG: Config = Config::load();
 
@@ -17,6 +18,7 @@ pub struct Config {
     pub config_dir: String,
     pub cache_dir: String,
     pub color: String,
+    pub gap_per_desk: u16,
 }
 
 impl Config {

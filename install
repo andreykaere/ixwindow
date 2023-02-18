@@ -72,8 +72,8 @@ install_wm () {
 
         "i3")
             cp -r "ixwindow/wms/i3" "ixwindow_compiled/i3"
-            # local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
-            # sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/bspwm/ixwindow
+            local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
+            sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/i3/src/config.rs
 
             cd ixwindow_compiled/i3 && cargo build --release  
             cd ../ && cp i3/target/release/ixwindow_i3 ./
