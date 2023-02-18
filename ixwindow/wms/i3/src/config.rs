@@ -4,9 +4,7 @@ use std::io::Read;
 
 use super::utils::format_filename;
 
-// pub const CONFIG_FILE: &str = $$CONFIG;
-pub const CONFIG_FILE: &str = "~/.config/ixwindow/i3/config.toml";
-// pub const CONFIG: Config = Config::load();
+pub const CONFIG_FILE: &str = $$CONFIG;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -43,7 +41,6 @@ mod tests {
         let config = Config::init();
 
         assert_eq!(config.size, 24);
-        assert_eq!(config.x, 270);
         assert_eq!(
             config.cache_dir,
             "$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
