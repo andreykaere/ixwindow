@@ -28,17 +28,20 @@ impl State {
 }
 
 impl Core {
-    pub fn generate_icon(&self, icon_name: &str) {
+    pub fn generate_icon(&self, window: i32) {
         let config = &self.config;
 
-        Command::new(format!("{}/generate_icon", config.prefix))
-            .arg(&config.cache_dir)
-            .arg(format!("{}", config.size))
-            .arg(&config.color)
-            .arg(icon_name)
-            .stderr(Stdio::null())
-            .spawn()
-            .expect("Couldn't generate icon");
+        Command::new(format!(
+            "{}/generate-icon",
+            format_filename(&config.prefix)
+        ))
+        .arg(format_filename(&config.cache_dir))
+        .arg(format!("{}", config.size))
+        .arg(&config.color)
+        .arg(window.to_string())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("Couldn't generate icon");
     }
 
     pub fn update_dyn_x(&mut self) {
@@ -66,10 +69,12 @@ impl Core {
         .expect("Couldn't spawn polybar-xwindow-icon process");
     }
 
-    pub fn process_icon(&mut self, icon_name: &str) {
+    pub fn process_icon(&mut self, window: i32) {
+        let icon_name = get_icon_name(window);
+
         // If icon is the same, don't do anything
         if let Some(prev_icon) = &self.state.prev_icon {
-            if icon_name == prev_icon {
+            if &icon_name == prev_icon {
                 return;
             }
         }
@@ -79,7 +84,7 @@ impl Core {
             format!("{}/{}.jpg", format_filename(&config.cache_dir), icon_name);
 
         if !Path::new(&icon_path).exists() {
-            self.generate_icon(icon_name);
+            self.generate_icon(window);
         }
 
         self.destroy_prev_icons();
@@ -143,7 +148,7 @@ impl Core {
 
         self.print_info(Some(window));
         self.state.update_icon(&icon_name);
-        self.process_icon(&icon_name);
+        self.process_icon(window);
     }
 
     pub fn get_fullscreen_window(&mut self, desktop: i32) -> Option<i32> {
