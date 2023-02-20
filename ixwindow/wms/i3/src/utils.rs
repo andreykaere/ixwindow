@@ -1,5 +1,6 @@
 use i3ipc::reply::{Node, NodeType};
 
+use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -31,14 +32,22 @@ impl Core {
     pub fn generate_icon(&self, window: i32) {
         let config = &self.config;
 
-        Command::new(format!("{}/generate-icon", &config.prefix))
-            .arg(&config.cache_dir)
-            .arg(config.size.to_string())
-            .arg(&config.color)
-            .arg(window.to_string())
-            .stderr(Stdio::null())
-            .spawn()
-            .expect("Couldn't generate icon");
+        if !Path::new(&config.cache_dir).is_dir() {
+            fs::create_dir(&config.cache_dir)
+                .expect("No cache folder was detected and couldn't create it");
+        }
+
+        let mut generate_icon_child =
+            Command::new(format!("{}/generate-icon", &config.prefix))
+                .arg(&config.cache_dir)
+                .arg(config.size.to_string())
+                .arg(&config.color)
+                .arg(window.to_string())
+                .stderr(Stdio::null())
+                .spawn()
+                .expect("Couldn't generate icon");
+
+        generate_icon_child.wait().expect("Failed to wait on child");
     }
 
     pub fn update_dyn_x(&mut self) {
@@ -55,12 +64,15 @@ impl Core {
 
         Command::new(format!("{}/polybar-xwindow-icon", &config.prefix))
             .arg(icon_path)
-            .arg(format!("{}", self.state.dyn_x))
-            .arg(format!("{}", config.y))
-            .arg(format!("{}", config.size))
+            .arg(self.state.dyn_x.to_string())
+            .arg(config.y.to_string())
+            .arg(config.size.to_string())
             .stderr(Stdio::null())
             .spawn()
             .expect("Couldn't spawn polybar-xwindow-icon process");
+
+        // Fix: remove infinite loop from `polybar-xwindow-icon`
+        // display_icon_child.wait().expect("Failed to wait on child");
     }
 
     pub fn process_icon(&mut self, window: i32) {
@@ -122,12 +134,14 @@ impl Core {
         let icons_ids = output.trim().split('\n');
 
         for id in icons_ids {
-            Command::new("xdo")
+            let mut xdo_kill_child = Command::new("xdo")
                 .arg("kill")
                 .arg(id)
                 .stderr(Stdio::null())
                 .spawn()
                 .expect("xdo couldn't kill icon window");
+
+            xdo_kill_child.wait().expect("Failed to wait on child");
         }
     }
 
