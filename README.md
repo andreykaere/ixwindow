@@ -2,9 +2,9 @@
 
 ## About
 Ixwindow is an enhanced version of standard `xwindow` polybar module. The main
-feature is that `ixwindo` displays not only info about active window, but also 
+feature is that `ixwindow` displays not only info about active window, but also 
 an icon for it. It also allows you more customization of printing window info.
-Below is represented and example of what `ixwindow` looks like in action:
+Below is represented an example of what `ixwindow` looks like in action:
 
 <p align="center">
   <img src="examples/example.gif" alt="animated" />
@@ -57,10 +57,14 @@ this project to your versions. (if it's even possible)
 
 ## Installation
 
-In directory `profiles` there are two templates for `bspwm` and `i3`. Modify
-them if you need and then execute `./install <names of wm>` (e.g. to install
-for both, you will have to run `./install "bspwm" "i3"`). 
-Things to modify:
+Download the source code from master branch with the following command:
+```bash
+git clone git@github.com:andreykaere/ixwindow.git && cd ixwindow
+```
+In directory `profiles` there are two templates of installation profile for
+`bspwm` and `i3`. Modify them if you need and then execute `./install <names
+of wm>` (e.g. to install for both, you will have to run `./install "bspwm"
+"i3"`). Options, that can be modified: 
 - background color of polybar bar
 - size of icon
 - coordinates for icon
