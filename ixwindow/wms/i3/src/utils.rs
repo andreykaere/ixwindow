@@ -31,17 +31,14 @@ impl Core {
     pub fn generate_icon(&self, window: i32) {
         let config = &self.config;
 
-        Command::new(format!(
-            "{}/generate-icon",
-            format_filename(&config.prefix)
-        ))
-        .arg(format_filename(&config.cache_dir))
-        .arg(format!("{}", config.size))
-        .arg(&config.color)
-        .arg(window.to_string())
-        .stderr(Stdio::null())
-        .spawn()
-        .expect("Couldn't generate icon");
+        Command::new(format!("{}/generate-icon", &config.prefix))
+            .arg(&config.cache_dir)
+            .arg(config.size.to_string())
+            .arg(&config.color)
+            .arg(window.to_string())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("Couldn't generate icon");
     }
 
     pub fn update_dyn_x(&mut self) {
@@ -56,17 +53,14 @@ impl Core {
     pub fn display_icon(&self, icon_path: &str) {
         let config = &self.config;
 
-        Command::new(format!(
-            "{}/polybar-xwindow-icon",
-            format_filename(&config.prefix)
-        ))
-        .arg(icon_path)
-        .arg(format!("{}", self.state.dyn_x))
-        .arg(format!("{}", config.y))
-        .arg(format!("{}", config.size))
-        .stderr(Stdio::null())
-        .spawn()
-        .expect("Couldn't spawn polybar-xwindow-icon process");
+        Command::new(format!("{}/polybar-xwindow-icon", &config.prefix))
+            .arg(icon_path)
+            .arg(format!("{}", self.state.dyn_x))
+            .arg(format!("{}", config.y))
+            .arg(format!("{}", config.size))
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("Couldn't spawn polybar-xwindow-icon process");
     }
 
     pub fn process_icon(&mut self, window: i32) {
@@ -80,8 +74,7 @@ impl Core {
         }
 
         let config = &self.config;
-        let icon_path =
-            format!("{}/{}.jpg", format_filename(&config.cache_dir), icon_name);
+        let icon_path = format!("{}/{}.jpg", &config.cache_dir, icon_name);
 
         if !Path::new(&icon_path).exists() {
             self.generate_icon(window);
@@ -316,16 +309,6 @@ pub fn get_icon_name(window: i32) -> String {
     get_wm_class(window)
 }
 
-// Returns full path of the filename, extending $HOME and ~ to real home
-// directory path
-pub fn format_filename(filename: &str) -> String {
-    // let home = std::env::var("HOME").unwrap();
-    let filename = &shellexpand::env(filename).unwrap();
-    let filename = shellexpand::tilde(filename).to_string();
-
-    filename
-}
-
 // Returns visible desktops as nodes
 fn get_desktop_subnodes(node: Node) -> Vec<Node> {
     if let NodeType::Workspace = node.nodetype {
@@ -353,16 +336,6 @@ mod tests {
     use super::super::Config;
     use super::*;
     use i3ipc::I3Connection;
-
-    #[test]
-    fn format_filename_works() {
-        let config = Config::init();
-
-        assert_eq!(
-            format_filename(&config.cache_dir),
-            "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
-        );
-    }
 
     #[test]
     fn get_all_childs_works() {

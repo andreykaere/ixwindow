@@ -21,7 +21,7 @@ impl Core {
     pub fn init() -> Self {
         let connection =
             I3Connection::connect().expect("Failed to connect to i3");
-        let config = Config::init();
+        let config = Config::load();
 
         let state = State {
             curr_icon: None,
