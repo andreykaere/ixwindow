@@ -6,6 +6,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::str;
 
+use super::display_image::display_image;
 use super::Core;
 
 pub struct State {
@@ -62,17 +63,8 @@ impl Core {
     pub fn display_icon(&self, icon_path: &str) {
         let config = &self.config;
 
-        Command::new(format!("{}/polybar-xwindow-icon", &config.prefix))
-            .arg(icon_path)
-            .arg(self.state.dyn_x.to_string())
-            .arg(config.y.to_string())
-            .arg(config.size.to_string())
-            .stderr(Stdio::null())
-            .spawn()
-            .expect("Couldn't spawn polybar-xwindow-icon process");
-
-        // Fix: remove infinite loop from `polybar-xwindow-icon`
-        // display_icon_child.wait().expect("Failed to wait on child");
+        display_image(icon_path, self.state.dyn_x, config.y, config.size)
+            .expect("Couldn't display icon");
     }
 
     pub fn process_icon(&mut self, window: i32) {

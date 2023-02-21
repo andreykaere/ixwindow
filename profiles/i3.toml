@@ -11,12 +11,15 @@ config_file = "config.toml"
 # Size of the icon
 size = 24
 
-# Background color of your polybar
+# Background color of your polybar (used when compositor option is turned off)
 color = "#252737"
 
 # Absolute coordinates of icon
 x = 20
 y = 6
+
+# Use compositor or fill background with background color of polybar
+compositor = true
 
 # Amound of spaces in the title of the module, before title of the window
 # This is to be adjusted together with coordinates of the icon to achieve the
