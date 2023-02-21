@@ -2,8 +2,6 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
 
-pub const CONFIG_FILE: &str = $$CONFIG;
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub gap: String,
@@ -15,28 +13,36 @@ pub struct Config {
     pub cache_dir: String,
     pub color: String,
     pub gap_per_desk: u16,
+    pub monitors: Vec<String>,
 }
 
 impl Config {
     pub fn load() -> Config {
-        let mut config_file = File::open(format_filename(CONFIG_FILE))
+        let mut config_file = File::open(Config::locate_config_file())
             .expect("Failed to open config file");
+
         let mut config_str = String::new();
         config_file.read_to_string(&mut config_str).unwrap();
-
         let mut config: Config = toml::from_str(&config_str).unwrap();
 
-        config.prefix = format_filename(&config.prefix);
-        config.config_dir = format_filename(&config.config_dir);
-        config.cache_dir = format_filename(&config.cache_dir);
+        config.prefix = expand_filename(&config.prefix);
+        config.config_dir = expand_filename(&config.config_dir);
+        config.cache_dir = expand_filename(&config.cache_dir);
 
         config
     }
+
+    fn locate_config_file() -> String {
+        todo!();
+    }
+
+    // // Generates config from installation profile
+    // fn generate_config() -> String {
+    //     todo!();
+    // }
 }
 
-// Returns full path of the filename, extending $HOME and ~ to real home
-// directory path
-pub fn format_filename(filename: &str) -> String {
+fn expand_filename(filename: &str) -> String {
     let filename = &shellexpand::env(filename).unwrap();
     let filename = shellexpand::tilde(filename).to_string();
 

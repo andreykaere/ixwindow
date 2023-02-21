@@ -57,25 +57,12 @@ this project to your versions. (if it's even possible)
 
 ## Installation
 
-Download the source code from master branch with the following command:
+Download the source code from the `master` branch using the following command:
 ```bash
 git clone git@github.com:andreykaere/ixwindow.git && cd ixwindow
 ```
-In directory `profiles` there are two templates of installation profile for
-`bspwm` and `i3`. Modify them if you need and then execute `./install <names
-of wm>` (e.g. to install for both, you will have to run `./install "bspwm"
-"i3"`). Options, that can be modified: 
-- background color of polybar bar
-- size of icon
-- coordinates for icon
-- path to `polybar-icons` folder (note: it makes sense to keep it 
-around `.config/polybar` folder, so you won't lose your custom icons, 
-if you have them)
-- `gap` constant, which is used in `ixwindow` script 
-- for `i3` you can additionally specify `gap_per_desk`. This variable is used
-  for calculation position of the icon, when the number of active desktops is
-  dynamic.
-
+Then execute `./install <names of wm> --prefix=<prefix>` (e.g. to install for both, you will have to run `./install "bspwm"
+"i3"`). 
 You will also need to add the following to your polybar `config` file:
 
 ```dosini
@@ -97,6 +84,23 @@ cached icons, you should run it with `--cache` option. For removing files for
 all window managers run `./uninstall --all`.
 
 ## Configuration
+
+Default configuration file is located at
+`$XDG_CONFIG_HOME/ixwindow/ixwindow.toml`. You can also control it with
+environmental variable `IXWINDOW_CONFIG_PATH`, or run `ixwindow` script with
+`--config=<path_to_config>` option.
+
+In config file, there are various options, that can be modified, such as:
+- background color of polybar bar
+- size of icon
+- coordinates for icon
+- path to folder for cached icons (note: it makes sense to keep it 
+around `.config/polybar` folder, so you won't lose your custom icons, 
+if you have them)
+- `gap` constant, which is used in `ixwindow` script 
+- for `i3` you can additionally specify `gap_per_desk`. This variable is used
+  for calculation position of the icon, when the number of active desktops is
+  dynamic.
 
 To change your configuration, just edit your config file. For new settings to
 take affect, you have to restart polybar (for example with `polybar-msg cmd
