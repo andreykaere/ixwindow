@@ -21,8 +21,6 @@ as polybar's `tail = true`.
 - `xprop`
 - `xdo`
 - `imagemagick` (for converting `.png` icons to `.jpg`)
-- `g++` (for compiling `polybar-xwindow-icon`)
-- `opencv` (for rendering icons)
 
 For debian-based systems you can install it by running
 ```bash
@@ -34,6 +32,8 @@ sudo apt install xdo xprop imagemagick g++ libopencv-dev
 - `bspwm`
 - `bspc`
 - [`xdotool`](https://github.com/jordansissel/xdotool) (version 3.20211022.1)
+- `g++` (for compiling `polybar-xwindow-icon`)
+- `opencv` (for rendering icons)
 
 For debian-based systems you can install it by running (make sure version is
 correct, otherwise see note below):
@@ -128,8 +128,6 @@ icons.
 
 ## Known issues & limitations
 
-- Lack of png support, but replacing `jpg` with `png` would require compositor 
-as the dependency as well
 - Untested on multimonitors system
 - Manual specification, but seems to be unfixable at this point, since polybar 
 doesn't support inserting images into bar for now
@@ -142,9 +140,7 @@ solution to any of the issues, stated above.
 
 ## Goals
 
-- Rewrite `polybar-xwindow-icon` in Rust
 - Rewrite code for `bspwm` in Rust
-- Add png support (maybe make it an option, if user doesn't use compositor)
 
 ## Thanks
 
