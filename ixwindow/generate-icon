@@ -9,6 +9,7 @@ CACHE_DIR="$1"
 SIZE="$2"
 COLOR="$3"
 wid="$4"
+COMPOSITOR="$5"
 
 # wid="$(xdotool selectwindow)"
 # class="$(bspc query -T -n "$wid" | jq -r '.client.className')"
@@ -57,8 +58,13 @@ to_pam() {
 
 while read -r data; do to_pam <<< "$data" | "${cmd[@]}"; done < <(split_icons)
 
-convert "$name.png" -background $COLOR -flatten -alpha off "$name.jpg"
-mv "$name.jpg" "$CACHE_FILE.jpg" && rm "$name.png"
+
+if [ "$COMPOSITOR" = "true" ]; then
+    mv "$name.png" "$CACHE_FILE.png"
+else
+    convert "$name.png" -background $COLOR -flatten -alpha off "$name.jpg"
+    mv "$name.jpg" "$CACHE_FILE.jpg" && rm "$name.png"
+fi
 
 
 
