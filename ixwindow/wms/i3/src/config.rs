@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -32,8 +34,25 @@ impl Config {
         config
     }
 
-    fn locate_config_file() -> String {
-        todo!();
+    pub fn locate_config_file() -> String {
+        if let Ok(default_dir) = env::var("XDG_CONFIG_HOME") {
+            let default_config =
+                format!("{}/ixwindow/ixwindow.toml", default_dir);
+
+            if Path::new(&default_config).exists() {
+                return default_config;
+            }
+        } else {
+            println!("Environmental variable $XDG_CONFIG_HOME is not set");
+        }
+
+        if let Ok(specified_config) = env::var("IXWINDOW_CONFIG_PATH") {
+            if Path::new(&specified_config).exists() {
+                return specified_config;
+            }
+        }
+
+        panic!("Couldn't find config file");
     }
 
     // // Generates config from installation profile
@@ -54,6 +73,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn locate_config_file_works() {
+        Config::locate_config_file();
+    }
+
+    #[test]
     fn parse_config_works() {
         let config = Config::load();
 
@@ -65,11 +89,11 @@ mod tests {
     }
 
     #[test]
-    fn format_filename_works() {
+    fn expand_filename_works() {
         let config = Config::load();
 
         assert_eq!(
-            format_filename(&config.cache_dir),
+            expand_filename(&config.cache_dir),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
         );
     }
