@@ -10,8 +10,7 @@ pub struct Config {
     pub x: u16,
     pub y: u16,
     pub size: u16,
-    pub prefix: String,
-    pub config_dir: String,
+    pub config_file: String,
     pub cache_dir: String,
     pub color: String,
     pub gap_per_desk: u16,
@@ -20,45 +19,61 @@ pub struct Config {
 
 impl Config {
     pub fn load() -> Config {
-        let mut config_file = File::open(Config::locate_config_file())
-            .expect("Failed to open config file");
+        let config_filename = match Config::locate_config_file() {
+            Some(config_file) => config_file,
+            None => {
+                if let Some(config_opt) = Config::process_config_as_option() {
+                    config_opt
+                } else {
+                    panic!("Couldn't find config file");
+                }
+            }
+        };
 
+        let mut config_file =
+            File::open(config_filename).expect("Failed to open config file");
         let mut config_str = String::new();
         config_file.read_to_string(&mut config_str).unwrap();
         let mut config: Config = toml::from_str(&config_str).unwrap();
 
-        config.prefix = expand_filename(&config.prefix);
-        config.config_dir = expand_filename(&config.config_dir);
+        config.config_file = expand_filename(&config.config_file);
         config.cache_dir = expand_filename(&config.cache_dir);
 
         config
     }
 
-    pub fn locate_config_file() -> String {
+    pub fn process_config_as_option() -> Option<String> {
+        let args = env::args();
+
+        for arg in args {
+            let parse: Vec<_> = arg.split("--config=").collect();
+
+            if parse.len() == 2 {
+                return Some(parse[1].to_string());
+            }
+        }
+
+        None
+    }
+
+    pub fn locate_config_file() -> Option<String> {
         if let Ok(default_dir) = env::var("XDG_CONFIG_HOME") {
             let default_config =
-                format!("{}/ixwindow/ixwindow.toml", default_dir);
+                format!("{default_dir}/ixwindow/ixwindow.toml");
 
             if Path::new(&default_config).exists() {
-                return default_config;
+                return Some(default_config);
             }
-        } else {
-            println!("Environmental variable $XDG_CONFIG_HOME is not set");
         }
 
         if let Ok(specified_config) = env::var("IXWINDOW_CONFIG_PATH") {
             if Path::new(&specified_config).exists() {
-                return specified_config;
+                return Some(specified_config);
             }
         }
 
-        panic!("Couldn't find config file");
+        None
     }
-
-    // // Generates config from installation profile
-    // fn generate_config() -> String {
-    //     todo!();
-    // }
 }
 
 fn expand_filename(filename: &str) -> String {
@@ -96,5 +111,10 @@ mod tests {
             expand_filename(&config.cache_dir),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
         );
+    }
+
+    #[test]
+    fn process_config_as_option_works() {
+        Config::process_config_as_option();
     }
 }

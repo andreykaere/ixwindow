@@ -37,15 +37,14 @@ impl Core {
                 .expect("No cache folder was detected and couldn't create it");
         }
 
-        let mut generate_icon_child =
-            Command::new(format!("{}/generate-icon", &config.prefix))
-                .arg(&config.cache_dir)
-                .arg(config.size.to_string())
-                .arg(&config.color)
-                .arg(window.to_string())
-                .stderr(Stdio::null())
-                .spawn()
-                .expect("Couldn't generate icon");
+        let mut generate_icon_child = Command::new("../generate-icon")
+            .arg(&config.cache_dir)
+            .arg(config.size.to_string())
+            .arg(&config.color)
+            .arg(window.to_string())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("Couldn't generate icon");
 
         generate_icon_child.wait().expect("Failed to wait on child");
     }
@@ -62,7 +61,7 @@ impl Core {
     pub fn display_icon(&self, icon_path: &str) {
         let config = &self.config;
 
-        Command::new(format!("{}/polybar-xwindow-icon", &config.prefix))
+        Command::new("../polybar-xwindow-icon")
             .arg(icon_path)
             .arg(self.state.dyn_x.to_string())
             .arg(config.y.to_string())
