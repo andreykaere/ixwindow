@@ -94,18 +94,18 @@ init_config () {
 choose_config () {
     case "$1" in
         "i3")
-            CONFIG=""
+            CONFIG=$$I3_CONFIG
             ;;
 
         "bspwm")
-            CONFIG=""
+            CONFIG=$$BSPWM_CONFIG
             ;;
     esac
 }
 
-set_default_wm () {
-    
-}
+# TODO
+# set_default_wm () {
+# }
 
 while [ $# -gt 0 ];
 do
@@ -138,13 +138,21 @@ do
             ;;
 
         *)
-            init_config "$config"
+            init_config "$CONFIG"
 
             while [ $# -gt 0 ]; 
             do
                 name="${1%.*}"
+                ext="${1##*.}"
 
-                convert "$1" -background "$color" -flatten -alpha off "$name.jpg"
+                if [ "$ext" = "svg" ]; then
+                    inkscape -w 1024 -h 1024 "$name.svg" -o "$name.png" &> /dev/null &&
+                    convert "$name.png" -background "$color" -flatten -alpha off "$name.jpg"
+                    rm "$name.png"
+                else
+                    convert "$name.png" -background "$color" -flatten -alpha off "$name.jpg"
+                fi
+
                 shift 
             done
             ;;
