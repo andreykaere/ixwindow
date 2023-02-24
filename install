@@ -68,6 +68,13 @@ install_wm () {
             cp -r "ixwindow/wms/bspwm" "ixwindow_compiled/bspwm"
             local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
             sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/bspwm/ixwindow
+
+            cd ixwindow_compiled/bspwm/polybar-xwindow-icon && cargo build --release
+            cd ../ && cp polybar-xwindow-icon/target/release/polybar-xwindow-icon ./temp
+
+            rm -r polybar-xwindow-icon
+            mv temp polybar-xwindow-icon
+            cd ../../
             ;;
 
         "i3")
@@ -119,8 +126,6 @@ done
 
 cp -r ixwindow ixwindow_compiled
 rm -r ixwindow_compiled/wms
-
-g++ ixwindow_compiled/polybar-xwindow-icon.cpp -o ixwindow_compiled/polybar-xwindow-icon -I/usr/include/opencv4/ -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lX11
 
 for wm in "${WINDOW_MANAGES[@]}"
 do
