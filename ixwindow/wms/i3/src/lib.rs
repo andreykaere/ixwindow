@@ -5,6 +5,7 @@ use i3ipc::event::{
 
 pub mod config;
 pub mod core;
+pub mod display_icon;
 pub mod utils;
 
 pub use self::core::Core;

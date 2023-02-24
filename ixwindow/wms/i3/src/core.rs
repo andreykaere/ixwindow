@@ -1,4 +1,4 @@
-use i3ipc::reply::{Node};
+use i3ipc::reply::Node;
 use i3ipc::I3Connection;
 
 use std::fs;
@@ -6,8 +6,10 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::str;
+use std::thread;
 
 use super::config::Config;
+use super::display_icon::display_icon;
 use super::utils::*;
 
 pub struct State {
@@ -87,20 +89,19 @@ impl Core {
         self.state.dyn_x = new_x;
     }
 
-    pub fn display_icon(&self, icon_path: &str) {
+    pub fn show_icon(&self, icon_path: String) {
         let config = &self.config;
 
-        Command::new(format!("{}/polybar-xwindow-icon", &config.prefix))
-            .arg(icon_path)
-            .arg(self.state.dyn_x.to_string())
-            .arg(config.y.to_string())
-            .arg(config.size.to_string())
-            .stderr(Stdio::null())
-            .spawn()
-            .expect("Couldn't spawn polybar-xwindow-icon process");
+        let (icon, dyn_x, y, size) = (
+            icon_path,
+            self.state.dyn_x.clone(),
+            config.y.clone(),
+            config.size.clone(),
+        );
 
-        // Fix: remove infinite loop from `polybar-xwindow-icon`
-        // display_icon_child.wait().expect("Failed to wait on child");
+        thread::spawn(move || {
+            display_icon(&icon, dyn_x, y, size);
+        });
     }
 
     pub fn process_icon(&mut self, window: i32) {
@@ -121,7 +122,7 @@ impl Core {
         }
 
         self.destroy_prev_icons();
-        self.display_icon(&icon_path);
+        self.show_icon(icon_path);
     }
 
     pub fn print_info(&self, maybe_window: Option<i32>) {
@@ -149,7 +150,7 @@ impl Core {
         let icons_ids_raw = Command::new("xdo")
             .arg("id")
             .arg("-n")
-            .arg("polybar-xwindow-icon")
+            .arg("polybar-ixwindow-icon")
             .stderr(Stdio::null())
             .output()
             .expect("Couldn't detect any 'polybar-xwindow-icon' windows");

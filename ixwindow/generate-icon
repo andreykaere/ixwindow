@@ -31,9 +31,7 @@ if [ -z "$(xprop -id "$wid" | grep "Icon")" ]; then
 fi
 
 
-# Resize it in advance, so icons will look better, but it's not necessary, so
-# you can remove "-resize" flag if you prefer it the other way
-cmd=(convert -resize "$SIZE"x"$SIZE" -set 'filename:w' '%w' - "${name}.png")
+cmd=(convert -set 'filename:w' '%w' - "${name}.png")
 
 split_icons() {
     xprop -id "$wid" -notype 32c _NET_WM_ICON |
@@ -57,10 +55,7 @@ to_pam() {
 
 while read -r data; do to_pam <<< "$data" | "${cmd[@]}"; done < <(split_icons)
 
+
 convert "$name.png" -background $COLOR -flatten -alpha off "$name.jpg"
 mv "$name.jpg" "$CACHE_FILE.jpg" && rm "$name.png"
-
-
-
-
 
