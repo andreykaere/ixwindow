@@ -4,10 +4,12 @@ use i3ipc::I3Connection;
 use std::process::{Command, Stdio};
 use std::str;
 
-pub fn is_window_fullscreen(window: i32) -> bool {
+use super::config::Config;
+
+pub fn is_window_fullscreen(window_id: i32) -> bool {
     let net_wm_state = Command::new("xprop")
         .arg("-id")
-        .arg(window.to_string())
+        .arg(window_id.to_string())
         .arg("_NET_WM_STATE")
         .stderr(Stdio::null())
         .output()
@@ -21,10 +23,10 @@ pub fn is_window_fullscreen(window: i32) -> bool {
     result.contains("FULLSCREEN")
 }
 
-pub fn get_wm_class(window: i32) -> String {
+pub fn get_wm_class(window_id: i32) -> String {
     let wm_class = Command::new("xprop")
         .arg("-id")
-        .arg(window.to_string())
+        .arg(window_id.to_string())
         .arg("WM_CLASS")
         .stderr(Stdio::null())
         .output()
@@ -44,8 +46,8 @@ pub fn get_wm_class(window: i32) -> String {
         .replace('"', "")
 }
 
-pub fn get_icon_name(window: i32) -> String {
-    get_wm_class(window)
+pub fn get_icon_name(window_id: i32) -> String {
+    get_wm_class(window_id)
 }
 
 // Returns all childs of the node, that themselves do not contain any windows,
@@ -115,7 +117,7 @@ pub fn get_focused_desktop_id(
     }
 
     // Zero desktops on given monitor
-    // TODO: check if it is possible
+    // TODO: check if it is possible on multi monitors setup
     None
 }
 
@@ -200,17 +202,6 @@ fn get_desktop_subnodes(node: Node) -> Vec<Node> {
         .collect()
 }
 
-fn get_desktops_as_nodes(
-    conn: &mut I3Connection,
-    monitor_name: &str,
-) -> Vec<Node> {
-    let tree = conn
-        .get_tree()
-        .expect("Couldn't read information about tree");
-
-    todo!();
-}
-
 fn get_all_desktops(conn: &mut I3Connection) -> Vec<Node> {
     let tree = conn
         .get_tree()
@@ -235,6 +226,18 @@ pub fn get_fullscreen_window(
 
     // If no fullscreen window is found in this desktop
     None
+}
+
+pub fn calculate_dyn_x(
+    conn: &mut I3Connection,
+    config: &Config,
+    monitor_name: &str,
+) -> u16 {
+    // -1 because of scratchpad desktop
+    let desks_num = get_desks_on_mon(conn, monitor_name).len() - 1;
+    let dyn_x = config.x + config.gap_per_desk * (desks_num as u16);
+
+    dyn_x
 }
 
 #[cfg(test)]

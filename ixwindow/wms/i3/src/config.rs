@@ -15,7 +15,7 @@ pub struct Config {
     pub cache_dir: String,
     pub color: String,
     pub gap_per_desk: u16,
-    pub monitors: Vec<String>,
+    pub monitors_names: Vec<String>,
 }
 
 impl Config {

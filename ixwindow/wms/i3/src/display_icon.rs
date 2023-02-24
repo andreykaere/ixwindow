@@ -12,12 +12,13 @@ pub fn display_icon(
     x: u16,
     y: u16,
     size: u16,
+    monitor: &str,
 ) -> Result<(), Box<dyn Error>> {
     let image = Reader::open(image_path)?.decode()?;
     let image = image.resize(size as u32, size as u32, FilterType::CatmullRom);
     let (width, height) = image.dimensions();
 
-    let (conn, screen_num) = x11rb::connect(None)?;
+    let (conn, screen_num) = x11rb::connect(Some(monitor))?;
     let screen = &conn.setup().roots[screen_num];
 
     let win = conn.generate_id()?;

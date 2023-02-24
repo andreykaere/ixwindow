@@ -1,6 +1,7 @@
 use i3ipc::reply::Node;
 use i3ipc::I3Connection;
 
+use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
@@ -16,11 +17,28 @@ pub struct State {
     pub curr_icon: Option<String>,
     pub prev_icon: Option<String>,
     pub curr_window: Option<i32>,
-    pub curr_desktop: i32,
+    pub curr_desktop_id: Option<i32>,
     pub dyn_x: u16,
 }
 
 impl State {
+    pub fn init(
+        conn: &mut I3Connection,
+        config: &Config,
+        monitor_name: &str,
+    ) -> Self {
+        let curr_desktop_id = i3::get_focused_desktop_id(conn, monitor_name);
+        let dyn_x = i3::calculate_dyn_x(conn, config, monitor_name);
+
+        Self {
+            curr_icon: None,
+            prev_icon: None,
+            curr_window: None,
+            curr_desktop_id,
+            dyn_x,
+        }
+    }
+
     pub fn update_icon(&mut self, icon_name: &str) {
         self.prev_icon = self.curr_icon.as_ref().map(|x| x.to_string());
         self.curr_icon = Some(icon_name.to_string());
@@ -34,32 +52,32 @@ impl State {
 
 pub struct Core {
     pub config: Config,
-    pub state: State,
+    pub monitors_states: HashMap<String, State>,
     pub connection: I3Connection,
 }
 
 impl Core {
     pub fn init() -> Self {
-        let connection =
+        let mut connection =
             I3Connection::connect().expect("Failed to connect to i3");
         let config = Config::load();
+        let mut monitors_states: HashMap<String, State> = HashMap::new();
 
-        let state = State {
-            curr_icon: None,
-            prev_icon: None,
-            curr_window: None,
-            curr_desktop: 1,
-            dyn_x: config.x,
-        };
+        for monitor_name in config.monitors_names.clone() {
+            let monitor_state =
+                State::init(&mut connection, &config, &monitor_name);
+
+            monitors_states.insert(monitor_name, monitor_state);
+        }
 
         Self {
             config,
+            monitors_states,
             connection,
-            state,
         }
     }
 
-    pub fn generate_icon(&self, window: i32) {
+    pub fn generate_icon(&self, window_id: i32) {
         let config = &self.config;
 
         if !Path::new(&config.cache_dir).is_dir() {
@@ -72,7 +90,7 @@ impl Core {
                 .arg(&config.cache_dir)
                 .arg(config.size.to_string())
                 .arg(&config.color)
-                .arg(window.to_string())
+                .arg(window_id.to_string())
                 .stderr(Stdio::null())
                 .spawn()
                 .expect("Couldn't generate icon");
@@ -80,33 +98,41 @@ impl Core {
         generate_icon_child.wait().expect("Failed to wait on child");
     }
 
-    pub fn update_dyn_x(&mut self, monitor: &str) {
-        // -1 because of scratchpad desktop
-        let desks_num =
-            i3::get_desks_on_mon(&mut self.connection, monitor).len() - 1;
-        let config = &self.config;
-        let new_x = config.x + config.gap_per_desk * (desks_num as u16);
-
-        self.state.dyn_x = new_x;
+    pub fn update_dyn_x(&mut self, monitor_name: &str) {
+        match self.monitors_states.get_mut(monitor_name) {
+            None => panic!("Can't update dyn_x for non existing monitor"),
+            Some(state) => {
+                state.dyn_x = i3::calculate_dyn_x(
+                    &mut self.connection,
+                    &self.config,
+                    monitor_name,
+                )
+            }
+        };
     }
 
+    // add monitor
     pub fn show_icon(&self, icon_path: String) {
-        let config = &self.config;
+        todo!();
+        // let config = &self.config;
 
-        let (icon, dyn_x, y, size) = (
-            icon_path,
-            self.state.dyn_x.clone(),
-            config.y.clone(),
-            config.size.clone(),
-        );
+        // let (icon, dyn_x, y, size, monitors) = (
+        //     icon_path,
+        //     self.state.dyn_x.clone(),
+        //     config.y.clone(),
+        //     config.size.clone(),
+        //     self.config.monitors,
+        // );
 
-        thread::spawn(move || {
-            display_icon(&icon, dyn_x, y, size);
-        });
+        // for monitor in monitors {
+        //     thread::spawn(move || {
+        //         display_icon(&icon, dyn_x, y, size, &monitor);
+        //     });
+        // }
     }
 
-    pub fn process_icon(&mut self, window: i32) {
-        let icon_name = i3::get_icon_name(window);
+    pub fn process_icon(&mut self, window_id: i32, monit) {
+        let icon_name = i3::get_icon_name(window_id);
 
         // If icon is the same, don't do anything
         if let Some(prev_icon) = &self.state.prev_icon {
@@ -145,8 +171,8 @@ impl Core {
         match maybe_window {
             None => println!("Empty"),
 
-            Some(window) => {
-                let icon_name = &i3::get_icon_name(window);
+            Some(window_id) => {
+                let icon_name = &i3::get_icon_name(window_id);
 
                 match icon_name.as_ref() {
                     "Brave-browser" => println!("Brave"),
@@ -185,17 +211,17 @@ impl Core {
         }
     }
 
-    pub fn process_focused_window(&mut self, window: i32) {
-        if i3::is_window_fullscreen(window) {
+    pub fn process_focused_window(&mut self, window_id: i32) {
+        if i3::is_window_fullscreen(window_id) {
             self.process_fullscreen_window();
             return;
         }
 
-        let icon_name = i3::get_icon_name(window);
+        let icon_name = i3::get_icon_name(window_id);
 
-        self.print_info(Some(window));
+        self.print_info(Some(window_id));
         self.state.update_icon(&icon_name);
-        self.process_icon(window);
+        self.process_icon(window_id);
     }
 
     // Come up with a better name
