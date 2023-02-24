@@ -113,18 +113,25 @@ have to add them yourself.
 
 Sometimes it's not possible to get icon using `xprop`, (for example, it's the 
 case with Spotify and Discord), then you have to add them manually to your 
-`polybar-icons` folder. To do that, you need to have `.png` version of the 
-icon, named as `WM_CLASS` (you can find it by running `xprop WM_CLASS` and 
-selecting your app). Then you run the following command (requires `imagemagick`): 
+`polybar-icons` folder. To do that, you need to have `png` or `svg` version
+of the icon, named as `WM_CLASS` (which you can find by running `xprop
+WM_CLASS` and selecting your app). Then you run the following command
+(requires `imagemagick`): 
 ```bash
-ixwindow-convert --wm <wm> <icon-name>.png
+ixwindow-convert --wm <wm> <icon-name>
 ```
 where `<icon-name>` is the right name as described above and `<wm>` is the
 name of window manager you want it to be generated for (i.e. the program will
-use corresponding config file). For more info run `ixwindow-convert --help`.
+use corresponding config file). This will convert icon to `jpg` with
+appropriate background color and move to your cache directory. For more info
+run `ixwindow-convert --help`.
 
 **Note:** This method can be also used for replacing automatically generated
-icons.
+icons. 
+
+**Note:** Basically all apps have icons on your system in `png` or `svg`
+format. Usually, one can find it somewhere in `/usr/share/icons` directory
+(one can use `find` or `fd` utility for it).
 
 ## Known issues & limitations
 
