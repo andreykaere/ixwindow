@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
 
-pub const CONFIG_FILE: &str = $$CONFIG;
+pub const CONFIG_FILE: &str = "~/.config/ixwindow/i3/config.toml";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {

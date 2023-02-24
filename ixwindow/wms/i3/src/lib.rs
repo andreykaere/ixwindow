@@ -3,41 +3,12 @@ use i3ipc::event::{
     Event, WindowEventInfo, WorkspaceEventInfo,
 };
 
-use i3ipc::I3Connection;
-
 pub mod config;
+pub mod core;
+pub mod display_icon;
 pub mod utils;
 
-pub use config::Config;
-pub use utils::*;
-
-pub struct Core {
-    pub config: Config,
-    pub state: State,
-    pub connection: I3Connection,
-}
-
-impl Core {
-    pub fn init() -> Self {
-        let connection =
-            I3Connection::connect().expect("Failed to connect to i3");
-        let config = Config::load();
-
-        let state = State {
-            curr_icon: None,
-            prev_icon: None,
-            curr_window: None,
-            curr_desktop: 1,
-            dyn_x: config.x,
-        };
-
-        Self {
-            config,
-            connection,
-            state,
-        }
-    }
-}
+pub use self::core::Core;
 
 pub fn handle_event(event: Event, core: &mut Core) {
     match event {
@@ -118,7 +89,7 @@ fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
                 core.process_empty_desktop();
             }
 
-            if let Some(_) = core.get_fullscreen_window(current_desktop) {
+            if core.get_fullscreen_window(current_desktop).is_some() {
                 core.process_fullscreen_window();
             }
         }
