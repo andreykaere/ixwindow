@@ -144,7 +144,7 @@ do
             do
                 name="${1%.*}"
 
-                convert "$1" -resize "$size"x"$size" -background "$color" -flatten -alpha off "$name.jpg"
+                convert "$1" -background "$color" -flatten -alpha off "$name.jpg"
                 shift 
             done
             ;;
