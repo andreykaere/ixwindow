@@ -128,6 +128,8 @@ icons.
 
 ## Known issues & limitations
 
+- Lack of png support, but replacing `jpg` with `png` would require compositor 
+as the dependency as well
 - Untested on multimonitors system
 - Manual specification, but seems to be unfixable at this point, since polybar 
 doesn't support inserting images into bar for now
@@ -141,6 +143,7 @@ solution to any of the issues, stated above.
 ## Goals
 
 - Rewrite code for `bspwm` in Rust
+- Add png support (maybe make it an option, if user doesn't use compositor)
 
 ## Thanks
 
