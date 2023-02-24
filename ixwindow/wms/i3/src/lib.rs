@@ -6,9 +6,10 @@ use i3ipc::event::{
 pub mod config;
 pub mod core;
 pub mod display_icon;
-pub mod utils;
+pub mod i3_utils;
 
 pub use self::core::Core;
+use self::i3_utils as i3;
 
 pub fn handle_event(event: Event, core: &mut Core) {
     match event {
@@ -25,7 +26,7 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
 
         // It means, the window was sent to scratchpad desktop
         None => {
-            let window = core.get_focused_window();
+            let window = i3::get_focused_window_id(&mut core.connection);
 
             if let Some(x) = window {
                 x
@@ -42,7 +43,7 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
         }
 
         WindowChange::Close => {
-            match core.get_focused_window() {
+            match i3::get_focused_window_id(&mut core.connection) {
                 Some(id) => {
                     core.process_focused_window(id);
                 }
@@ -56,19 +57,26 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
         }
 
         WindowChange::FullscreenMode => {
-            let current_desktop = core.get_focused_desktop();
+            let current_monitor = i3::get_focused_monitor(&mut core.connection);
 
-            match core.get_fullscreen_window(current_desktop) {
+            // We can use unwrap, because some desktop should be focused
+            let current_desktop = i3::get_focused_desktop_id(
+                &mut core.connection,
+                &current_monitor,
+            )
+            .unwrap();
+
+            match i3::get_fullscreen_window(
+                &mut core.connection,
+                current_desktop,
+            ) {
                 Some(_) => {
-                    // println!("Get fullscreen ");
-
                     core.process_fullscreen_window();
                 }
 
                 None => {
-                    // println!("Exit fullscreen ");
-
-                    let window = core.get_focused_window();
+                    let window =
+                        i3::get_focused_window_id(&mut core.connection);
                     if let Some(id) = window {
                         core.process_focused_window(id);
                     }
@@ -83,13 +91,22 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
 fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
     match event.change {
         WorkspaceChange::Focus => {
-            let current_desktop = core.get_focused_desktop();
+            let current_monitor = i3::get_focused_monitor(&mut core.connection);
 
-            if core.is_empty(current_desktop) {
+            // We can use unwrap, because some desktop should be focused
+            let current_desktop = i3::get_focused_desktop_id(
+                &mut core.connection,
+                &current_monitor,
+            )
+            .unwrap();
+
+            if i3::is_desk_empty(&mut core.connection, current_desktop) {
                 core.process_empty_desktop();
             }
 
-            if core.get_fullscreen_window(current_desktop).is_some() {
+            if i3::get_fullscreen_window(&mut core.connection, current_desktop)
+                .is_some()
+            {
                 core.process_fullscreen_window();
             }
         }
@@ -101,5 +118,6 @@ fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
         _ => {}
     }
 
-    core.update_dyn_x();
+    let current_monitor = i3::get_focused_monitor(&mut core.connection);
+    core.update_dyn_x(&current_monitor);
 }

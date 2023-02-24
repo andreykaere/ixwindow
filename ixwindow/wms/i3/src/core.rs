@@ -10,7 +10,7 @@ use std::thread;
 
 use super::config::Config;
 use super::display_icon::display_icon;
-use super::utils::*;
+use super::i3_utils as i3;
 
 pub struct State {
     pub curr_icon: Option<String>,
@@ -80,9 +80,10 @@ impl Core {
         generate_icon_child.wait().expect("Failed to wait on child");
     }
 
-    pub fn update_dyn_x(&mut self) {
+    pub fn update_dyn_x(&mut self, monitor: &str) {
         // -1 because of scratchpad desktop
-        let desks_num = self.get_desktops_as_nodes().len() - 1;
+        let desks_num =
+            i3::get_desks_on_mon(&mut self.connection, monitor).len() - 1;
         let config = &self.config;
         let new_x = config.x + config.gap_per_desk * (desks_num as u16);
 
@@ -105,7 +106,7 @@ impl Core {
     }
 
     pub fn process_icon(&mut self, window: i32) {
-        let icon_name = get_icon_name(window);
+        let icon_name = i3::get_icon_name(window);
 
         // If icon is the same, don't do anything
         if let Some(prev_icon) = &self.state.prev_icon {
@@ -126,6 +127,16 @@ impl Core {
     }
 
     pub fn print_info(&self, maybe_window: Option<i32>) {
+        // Capitalizes first letter of the string, i.e. converts foo to Foo
+        fn capitalize_first(s: &str) -> String {
+            let mut c = s.chars();
+
+            match c.next() {
+                None => String::new(),
+                Some(f) => f.to_uppercase().chain(c).collect(),
+            }
+        }
+
         // Don't add '\n' at the end, so that it will appear in front of icon
         // name, printed after it
         print!("{}", self.config.gap);
@@ -135,7 +146,7 @@ impl Core {
             None => println!("Empty"),
 
             Some(window) => {
-                let icon_name = &get_icon_name(window);
+                let icon_name = &i3::get_icon_name(window);
 
                 match icon_name.as_ref() {
                     "Brave-browser" => println!("Brave"),
@@ -175,31 +186,16 @@ impl Core {
     }
 
     pub fn process_focused_window(&mut self, window: i32) {
-        if is_window_fullscreen(window) {
+        if i3::is_window_fullscreen(window) {
             self.process_fullscreen_window();
             return;
         }
 
-        let icon_name = get_icon_name(window);
+        let icon_name = i3::get_icon_name(window);
 
         self.print_info(Some(window));
         self.state.update_icon(&icon_name);
         self.process_icon(window);
-    }
-
-    pub fn get_fullscreen_window(&mut self, desktop: i32) -> Option<i32> {
-        let nodes = self.get_desktop_windows(desktop);
-
-        for node in nodes {
-            if let Some(id) = node.window {
-                if is_window_fullscreen(id) {
-                    return Some(id);
-                }
-            }
-        }
-
-        // If no fullscreen window is found in this desktop
-        None
     }
 
     // Come up with a better name
@@ -212,122 +208,9 @@ impl Core {
         self.state.reset_icons();
     }
 
-    pub fn get_all_nodes(&mut self) -> Vec<Node> {
-        let connection = &mut self.connection;
-        let tree = connection
-            .get_tree()
-            .expect("Couldn't read information about tree");
-
-        get_all_childs(tree)
-    }
-
-    pub fn get_focused_window(&mut self) -> Option<i32> {
-        let nodes = self.get_all_nodes();
-
-        for node in nodes {
-            if node.focused {
-                return node.window;
-            }
-        }
-
-        // If no window is focused
-        None
-    }
-
-    fn get_desktops_as_nodes(&mut self) -> Vec<Node> {
-        let connection = &mut self.connection;
-        let tree = connection
-            .get_tree()
-            .expect("Couldn't read information about tree");
-
-        get_desktop_subnodes(tree)
-    }
-
-    fn get_desktop_windows(&mut self, desktop: i32) -> Vec<Node> {
-        let desktops = self.get_desktops_as_nodes();
-
-        for desk in desktops {
-            let desk_name = desk.name.unwrap();
-
-            if desk_name == desktop.to_string() {
-                return desk.nodes;
-            }
-        }
-
-        vec![]
-    }
-
-    pub fn get_focused_desktop(&mut self) -> i32 {
-        let connection = &mut self.connection;
-        let desktops = connection
-            .get_workspaces()
-            .expect("Couldn't read information about desktops")
-            .workspaces;
-
-        for desktop in desktops {
-            if desktop.focused {
-                return desktop.num;
-            }
-        }
-
-        panic!("Zero desktops!");
-    }
-
-    pub fn convert_desktop(&mut self, desktop: i32) -> Node {
-        let desktops = self.get_desktops_as_nodes();
-
-        for desk in desktops {
-            if desk.name == Some(desktop.to_string()) {
-                return desk;
-            }
-        }
-
-        panic!("Something went wrong, when converting desktop to node");
-    }
-
-    pub fn is_empty(&mut self, desktop: i32) -> bool {
-        let node = self.convert_desktop(desktop);
-
-        node.nodes.is_empty()
-    }
-
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icons();
         self.state.reset_icons();
         self.print_info(None);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::super::Config;
-    use super::*;
-    use i3ipc::I3Connection;
-
-    #[test]
-    fn get_all_childs_works() {
-        let mut connection = I3Connection::connect().unwrap();
-        let tree = connection
-            .get_tree()
-            .expect("Couldn't read information about tree");
-
-        println!("All windows:\n{:?}", get_all_childs(tree));
-    }
-
-    #[test]
-    fn get_focused_window_works() {
-        let mut core = Core::init();
-        let window = core.get_focused_window();
-
-        println!("{:?}", window);
-    }
-
-    #[test]
-    fn get_desktop_windows_works() {
-        let mut core = Core::init();
-        let desktop = core.get_focused_desktop();
-        let result = core.get_desktop_windows(desktop);
-
-        println!("{:?}", result);
     }
 }
