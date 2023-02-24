@@ -54,6 +54,7 @@ pub struct Core {
     pub config: Config,
     pub monitors_states: HashMap<String, State>,
     pub connection: I3Connection,
+    pub curr_monitor_name: String,
 }
 
 impl Core {
@@ -62,6 +63,7 @@ impl Core {
             I3Connection::connect().expect("Failed to connect to i3");
         let config = Config::load();
         let mut monitors_states: HashMap<String, State> = HashMap::new();
+        let curr_monitor_name = i3::get_focused_monitor(&mut connection);
 
         for monitor_name in config.monitors_names.clone() {
             let monitor_state =
@@ -74,6 +76,7 @@ impl Core {
             config,
             monitors_states,
             connection,
+            curr_monitor_name,
         }
     }
 
@@ -99,43 +102,40 @@ impl Core {
     }
 
     pub fn update_dyn_x(&mut self, monitor_name: &str) {
-        match self.monitors_states.get_mut(monitor_name) {
-            None => panic!("Can't update dyn_x for non existing monitor"),
-            Some(state) => {
-                state.dyn_x = i3::calculate_dyn_x(
-                    &mut self.connection,
-                    &self.config,
-                    monitor_name,
-                )
-            }
-        };
+        let monitor_state = self
+            .monitors_states
+            .get_mut(monitor_name)
+            .expect("Can't update dyn_x for non existing monitor");
+
+        monitor_state.dyn_x = i3::calculate_dyn_x(
+            &mut self.connection,
+            &self.config,
+            monitor_name,
+        );
     }
 
-    // add monitor
     pub fn show_icon(&self, icon_path: String) {
-        todo!();
-        // let config = &self.config;
+        let config = &self.config;
 
-        // let (icon, dyn_x, y, size, monitors) = (
-        //     icon_path,
-        //     self.state.dyn_x.clone(),
-        //     config.y.clone(),
-        //     config.size.clone(),
-        //     self.config.monitors,
-        // );
+        let (icon, dyn_x, y, size, monitor) = (
+            icon_path,
+            self.curr_mon_state().dyn_x,
+            config.y,
+            config.size,
+            self.curr_monitor_name.clone(),
+        );
 
-        // for monitor in monitors {
-        //     thread::spawn(move || {
-        //         display_icon(&icon, dyn_x, y, size, &monitor);
-        //     });
-        // }
+        thread::spawn(move || {
+            display_icon(&icon, dyn_x, y, size, &monitor);
+        });
     }
 
-    pub fn process_icon(&mut self, window_id: i32, monit) {
+    pub fn process_icon(&mut self, window_id: i32) {
         let icon_name = i3::get_icon_name(window_id);
+        // let mon_state = self.monitors_states.get(monitor_name).unwrap();
 
-        // If icon is the same, don't do anything
-        if let Some(prev_icon) = &self.state.prev_icon {
+        if let Some(prev_icon) = &self.curr_mon_state().prev_icon {
+            // If icon is the same, don't do anything
             if &icon_name == prev_icon {
                 return;
             }
@@ -145,11 +145,11 @@ impl Core {
         let icon_path = format!("{}/{}.jpg", &config.cache_dir, icon_name);
 
         if !Path::new(&icon_path).exists() {
-            self.generate_icon(window);
+            self.generate_icon(window_id);
         }
 
         self.destroy_prev_icons();
-        self.show_icon(icon_path);
+        self.show_icon(icon_path)
     }
 
     pub fn print_info(&self, maybe_window: Option<i32>) {
@@ -220,8 +220,18 @@ impl Core {
         let icon_name = i3::get_icon_name(window_id);
 
         self.print_info(Some(window_id));
-        self.state.update_icon(&icon_name);
-        self.process_icon(window_id);
+        self.curr_mon_state_mut().update_icon(&icon_name);
+        self.process_icon(window_id)
+    }
+
+    fn curr_mon_state(&self) -> &State {
+        self.monitors_states.get(&self.curr_monitor_name).unwrap()
+    }
+
+    fn curr_mon_state_mut(&mut self) -> &mut State {
+        self.monitors_states
+            .get_mut(&self.curr_monitor_name)
+            .unwrap()
     }
 
     // Come up with a better name
@@ -231,12 +241,12 @@ impl Core {
         // Reset icons, so that we can use process_focused_window
         // after. Otherwise it will not display icon, since app
         // name didn't change during fullscreen toggling
-        self.state.reset_icons();
+        self.curr_mon_state_mut().reset_icons();
     }
 
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icons();
-        self.state.reset_icons();
+        self.curr_mon_state_mut().reset_icons();
         self.print_info(None);
     }
 }

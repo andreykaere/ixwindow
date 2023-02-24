@@ -15,6 +15,8 @@ pub struct Config {
     pub cache_dir: String,
     pub color: String,
     pub gap_per_desk: u16,
+
+    #[serde(rename = "monitors")]
     pub monitors_names: Vec<String>,
 }
 
@@ -55,7 +57,7 @@ mod tests {
         assert_eq!(config.size, 24);
         assert_eq!(
             config.cache_dir,
-            "$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
+            "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
         );
     }
 

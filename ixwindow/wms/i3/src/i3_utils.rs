@@ -111,7 +111,7 @@ pub fn get_focused_desktop_id(
         .workspaces;
 
     for desktop in desktops {
-        if desktop.focused && monitor_name == &desktop.output {
+        if desktop.focused && monitor_name == desktop.output {
             return Some(desktop.num);
         }
     }
@@ -235,9 +235,8 @@ pub fn calculate_dyn_x(
 ) -> u16 {
     // -1 because of scratchpad desktop
     let desks_num = get_desks_on_mon(conn, monitor_name).len() - 1;
-    let dyn_x = config.x + config.gap_per_desk * (desks_num as u16);
 
-    dyn_x
+    config.x + config.gap_per_desk * (desks_num as u16)
 }
 
 #[cfg(test)]
