@@ -24,6 +24,9 @@ OPTIONS:
     --color
         Specify background color directly. Overwrites config size if both specified.
 
+    --cache
+        Specify cache folder directly. Overwrites config size if both specified.
+
     --wm
         Specify for which window manager you want to generate icon for. 
         This will affect the default choice of config file.
@@ -65,14 +68,6 @@ parse_toml () {
     done < "$config"
 }
 
-get_size () {
-    parse_toml "$1" "size"
-}
-
-get_color () {
-    parse_toml "$1" "color"
-}
-
 get_wm () {
     wmctrl -m | awk '{if ($1 == "Name:") print $2}'
 }
@@ -88,6 +83,10 @@ init_config () {
 
     if [ -z "${color+x}" ]; then
         color="$(parse_toml "$config" "color")"
+    fi 
+    
+    if [ -z "${cache_dir+x}" ]; then
+        cache_dir="$(parse_toml "$config" "cache_dir")"
     fi 
 }
 
@@ -129,6 +128,10 @@ do
             color="$2"
             shift 2
             ;;
+        "--cache")
+            cache_dir="$2"
+            shift 2
+            ;;
 
         "--wm")
             wm="$2"
@@ -152,6 +155,8 @@ do
                 else
                     convert "$name.png" -background "$color" -flatten -alpha off "$name.jpg"
                 fi
+
+                mv "$name.jpg" "$cache_dir"
 
                 shift 
             done
