@@ -6,7 +6,7 @@ use i3ipc::event::{
 use i3ipc::I3Connection;
 
 pub mod config;
-pub mod display_image;
+pub mod display_icon;
 pub mod utils;
 
 pub use config::Config;

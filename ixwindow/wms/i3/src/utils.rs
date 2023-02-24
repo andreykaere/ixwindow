@@ -5,8 +5,9 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::str;
+use std::thread;
 
-use super::display_image::display_image;
+use super::display_icon::display_icon;
 use super::Core;
 
 pub struct State {
@@ -60,11 +61,19 @@ impl Core {
         self.state.dyn_x = new_x;
     }
 
-    pub fn display_icon(&self, icon_path: &str) {
+    pub fn show_icon(&self, icon_path: String) {
         let config = &self.config;
 
-        display_image(icon_path, self.state.dyn_x, config.y, config.size)
-            .expect("Couldn't display icon");
+        let (icon, dyn_x, y, size) = (
+            icon_path,
+            self.state.dyn_x.clone(),
+            config.y.clone(),
+            config.size.clone(),
+        );
+
+        thread::spawn(move || {
+            display_icon(&icon, dyn_x, y, size);
+        });
     }
 
     pub fn process_icon(&mut self, window: i32) {
@@ -85,7 +94,7 @@ impl Core {
         }
 
         self.destroy_prev_icons();
-        self.display_icon(&icon_path);
+        self.show_icon(icon_path);
     }
 
     pub fn print_info(&self, maybe_window: Option<i32>) {
@@ -113,10 +122,10 @@ impl Core {
         let icons_ids_raw = Command::new("xdo")
             .arg("id")
             .arg("-n")
-            .arg("polybar-xwindow-icon")
+            .arg("polybar-ixwindow-icon")
             .stderr(Stdio::null())
             .output()
-            .expect("Couldn't detect any 'polybar-xwindow-icon' windows");
+            .expect("Couldn't detect any 'polybar-ixwindow-icon' windows");
 
         let output = match String::from_utf8(icons_ids_raw.stdout) {
             Ok(v) => v,
