@@ -129,6 +129,8 @@ icons.
 format. Usually, one can find it somewhere in `/usr/share/icons` directory
 (one can use `find` or `fd` utility for it).
 
+You can try it out on some icons in `examples/custom-icons` folder.
+
 ## Known issues & limitations
 
 - Lack of png support, but replacing `jpg` with `png` would require compositor 
