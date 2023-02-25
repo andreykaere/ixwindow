@@ -13,7 +13,8 @@ use super::config::Config;
 use super::display_icon::display_icon;
 use super::i3_utils as i3;
 
-pub struct State {
+#[derive(Clone)]
+pub struct MonitorState {
     pub curr_icon: Option<String>,
     pub prev_icon: Option<String>,
     pub curr_window: Option<i32>,
@@ -21,7 +22,7 @@ pub struct State {
     pub dyn_x: u16,
 }
 
-impl State {
+impl MonitorState {
     pub fn init(
         conn: &mut I3Connection,
         config: &Config,
@@ -52,9 +53,9 @@ impl State {
 
 pub struct Core {
     pub config: Config,
-    pub monitors_states: HashMap<String, State>,
+    pub monitors_states: HashMap<String, MonitorState>,
     pub connection: I3Connection,
-    pub curr_monitor_name: String,
+    pub curr_mon_name: String,
 }
 
 impl Core {
@@ -62,12 +63,12 @@ impl Core {
         let mut connection =
             I3Connection::connect().expect("Failed to connect to i3");
         let config = Config::load();
-        let mut monitors_states: HashMap<String, State> = HashMap::new();
-        let curr_monitor_name = i3::get_focused_monitor(&mut connection);
+        let mut monitors_states: HashMap<String, MonitorState> = HashMap::new();
+        let curr_mon_name = i3::get_focused_monitor(&mut connection);
 
         for monitor_name in config.monitors_names.clone() {
             let monitor_state =
-                State::init(&mut connection, &config, &monitor_name);
+                MonitorState::init(&mut connection, &config, &monitor_name);
 
             monitors_states.insert(monitor_name, monitor_state);
         }
@@ -76,7 +77,7 @@ impl Core {
             config,
             monitors_states,
             connection,
-            curr_monitor_name,
+            curr_mon_name,
         }
     }
 
@@ -114,19 +115,23 @@ impl Core {
         );
     }
 
-    pub fn show_icon(&self, icon_path: String) {
+    // Get rid off clone
+    pub fn show_icon(&mut self, icon_path: String) {
         let config = &self.config;
 
-        let (icon, dyn_x, y, size, monitor) = (
+        let (icon, dyn_x, y, size, curr_mon, mut curr_mon_state) = (
             icon_path,
             self.curr_mon_state().dyn_x,
             config.y,
             config.size,
-            self.curr_monitor_name.clone(),
+            self.curr_mon_name.clone(),
+            self.curr_mon_state_mut().clone(),
         );
 
+        // let x: i32 = curr_mon_state;
+
         thread::spawn(move || {
-            display_icon(&icon, dyn_x, y, size, &monitor);
+            display_icon(&mut curr_mon_state, &icon, dyn_x, y, size, &curr_mon);
         });
     }
 
@@ -224,14 +229,12 @@ impl Core {
         self.process_icon(window_id)
     }
 
-    fn curr_mon_state(&self) -> &State {
-        self.monitors_states.get(&self.curr_monitor_name).unwrap()
+    fn curr_mon_state(&self) -> &MonitorState {
+        self.monitors_states.get(&self.curr_mon_name).unwrap()
     }
 
-    fn curr_mon_state_mut(&mut self) -> &mut State {
-        self.monitors_states
-            .get_mut(&self.curr_monitor_name)
-            .unwrap()
+    fn curr_mon_state_mut(&mut self) -> &mut MonitorState {
+        self.monitors_states.get_mut(&self.curr_mon_name).unwrap()
     }
 
     // Come up with a better name

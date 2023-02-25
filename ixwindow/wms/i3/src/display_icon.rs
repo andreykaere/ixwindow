@@ -11,6 +11,8 @@ use x11rb::protocol::randr::{
 use x11rb::protocol::xproto::*;
 use x11rb::protocol::Event;
 
+use super::core::MonitorState;
+
 // use x11rb::xcb_ffi::XCBConnection;
 
 fn get_screen_name<C: Connection>(
@@ -108,7 +110,9 @@ fn get_screen_name<C: Connection>(
 //     Err("No monitor with this name was found".into())
 // }
 
+// Add icon-handler to MonitorState to be able to kill it later
 pub fn display_icon(
+    mon_state: &mut MonitorState,
     image_path: &str,
     x: u16,
     y: u16,
