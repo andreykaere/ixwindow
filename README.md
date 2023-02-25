@@ -21,19 +21,19 @@ as polybar's `tail = true`.
 - `xprop`
 - `xdo`
 - `imagemagick` (for converting `.png` icons to `.jpg`)
+- [`cargo`](https://github.com/rust-lang/cargo)
 
 For debian-based systems you can install it by running
 ```bash
 sudo apt install xdo xprop imagemagick g++ libopencv-dev 
 ```
+For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
 
 ### For bspwm
 - `bash`
 - `bspwm`
 - `bspc`
 - [`xdotool`](https://github.com/jordansissel/xdotool) (version 3.20211022.1)
-- `g++` (for compiling `polybar-xwindow-icon`)
-- `opencv` (for rendering icons)
 
 For debian-based systems you can install it by running (make sure version is
 correct, otherwise see note below):
@@ -43,10 +43,6 @@ sudo apt install xdotool
 
 ### For i3
 - `i3`
-- [`cargo`](https://github.com/rust-lang/cargo)
-
-For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
-
 
 **Note:** depending on your system, you might get different version of the
 packages, comparing to the ones, used in this project. If you can't install
@@ -165,8 +161,10 @@ output a bit and adding icon of the focused application.
 
 ### With a great help of
 
-This project couldn't have been done without them:
-
-- https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11
-- https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program
+I would like to thank:
+- [psychon](https://github.com/psychon) for helping me understand `x11rb` and
+xorg in general
+- [This
+  link](https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program),
+  which code is used for automatic icon generation
 
