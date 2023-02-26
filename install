@@ -70,11 +70,11 @@ install_wm () {
             sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/bspwm/ixwindow
             sed -i "s/\$\$BSPWM_CONFIG/\"$config\"/g" ixwindow_compiled/ixwindow-convert
 
-            cd ixwindow_compiled/bspwm/polybar-xwindow-icon && cargo build --release
-            cd ../ && cp polybar-xwindow-icon/target/release/polybar-xwindow-icon ./temp
+            cd ixwindow_compiled/bspwm/polybar-ixwindow-icon && cargo build --release
+            cd ../ && cp polybar-ixwindow-icon/target/release/polybar-ixwindow-icon ./temp
 
-            rm -r polybar-xwindow-icon
-            mv temp polybar-xwindow-icon
+            rm -r polybar-ixwindow-icon
+            mv temp polybar-ixwindow-icon
             cd ../../
             ;;
 

@@ -1,5 +1,5 @@
 [package]
-name = "polybar-xwindow-icon"
+name = "polybar-ixwindow-icon"
 version = "0.1.0"
 edition = "2021"
 
