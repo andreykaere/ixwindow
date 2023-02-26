@@ -108,7 +108,7 @@ display_icon() {
     icon="$CACHE_DIR/$1.jpg"
 
     if [ -f "$icon" ]; then
-        "$DIR/polybar-xwindow-icon" "$icon" "$X" "$Y" "$SIZE" &> /dev/null &
+        "$DIR/bspwm/polybar-ixwindow-icon" "$icon" "$X" "$Y" "$SIZE" &> /dev/null &
     fi
 }
 
