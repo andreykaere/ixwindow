@@ -4,111 +4,54 @@ use std::string::String;
 use image::imageops::FilterType;
 use image::io::Reader;
 use image::GenericImageView;
+
 use x11rb::connection::Connection;
 use x11rb::protocol::randr::{
-    self, get_output_info, get_screen_resources, GetScreenResourcesReply,
+    self, get_output_info, get_screen_resources, ConnectionExt as _,
+    GetScreenResourcesReply,
 };
 use x11rb::protocol::xproto::*;
 use x11rb::protocol::Event;
 
 use super::core::MonitorState;
 
-// use x11rb::xcb_ffi::XCBConnection;
-
 fn get_screen_name<C: Connection>(
     conn: &C,
     screen_num: usize,
-) -> Option<String> {
-    let setup = conn.setup();
-    let screen = &setup.roots[screen_num];
-    let get_screen_resources_cookie =
-        randr::get_screen_resources(conn, screen.root);
-    let get_screen_resources_reply =
-        get_screen_resources_cookie.unwrap().reply().unwrap();
+) -> Result<String, Box<dyn Error>> {
+    let screen = &conn.setup().roots[screen_num];
+    let randr_monitors = conn.randr_get_monitors(screen.root, true)?.reply()?;
 
-    // Find the output that corresponds to the screen
-    let mut screen_output = None;
-    for output in get_screen_resources_reply.outputs {
-        let get_output_info_cookie = randr::get_output_info(conn, output, 0);
-        let get_output_info_reply =
-            get_output_info_cookie.unwrap().reply().unwrap();
+    for (i, monitor) in randr_monitors.monitors.into_iter().enumerate() {
+        let name = conn.get_atom_name(monitor.name)?.reply()?;
+        let monitor_name = String::from_utf8(name.name)?;
 
-        if get_output_info_reply.crtc == screen.root {
-            screen_output = Some(output);
-            break;
+        if i == screen_num {
+            return Ok(monitor_name);
         }
     }
 
-    if let Some(output) = screen_output {
-        let get_output_info_cookie = get_output_info(conn, output, 0);
-        let get_output_info_reply =
-            get_output_info_cookie.unwrap().reply().unwrap();
-        let output_name =
-            String::from_utf8_lossy(&get_output_info_reply.name).to_string();
-        return Some(output_name);
-    }
-
-    None
+    unimplemented!();
 }
 
-// fn get_screen_number_by_name(
-//     conn: &XCBConnection,
-//     screen_name: &str,
-// ) -> Option<usize> {
-// Loop over the screens and find the one with the specified name
-// let setup = conn.setup();
-// for (screen_num, screen) in setup.roots().enumerate() {
-//     let get_screen_resources_cookie =
-//         randr::get_screen_resources(conn, screen.root());
-//     let get_screen_resources_reply =
-//         get_screen_resources_cookie.unwrap().reply().unwrap();
+fn get_screen_num_by_name<Conn: Connection>(
+    conn: &Conn,
+    screen: &Screen,
+    monitor_name: &str,
+) -> Result<usize, Box<dyn Error>> {
+    let randr_monitors = conn.randr_get_monitors(screen.root, true)?.reply()?;
 
-//     // Loop over the outputs of the screen and find the one with the specified name
-//     for output in get_screen_resources_reply.outputs() {
-//         let get_output_info_cookie =
-//             randr::get_output_info(conn, *output, 0);
-//         let get_output_info_reply =
-//             get_output_info_cookie.unwrap().reply().unwrap();
+    for (num, mon) in randr_monitors.monitors.into_iter().enumerate() {
+        let name = conn.get_atom_name(mon.name)?.reply()?;
+        let mon_name = String::from_utf8(name.name)?;
 
-//         let output_name =
-//             String::from_utf8_lossy(get_output_info_reply.name())
-//                 .to_string();
+        if monitor_name == &mon_name {
+            return Ok(num);
+        }
+    }
 
-//         if output_name == screen_name {
-//             return Some(screen_num);
-//         }
-//     }
-// }
-
-// None
-// }
-
-// fn get_screen_name<Conn: Connection>(conn: &Conn, screen: Screen) -> String {
-//     let screen_res = get_screen_resources(conn, screen.root)?.reply()?;
-
-//     for (i, output) in screen_res.outputs.into_iter().enumerate() {
-//         let output_info = get_output_info(conn, output, 0)?.reply()?;
-//         let name = String::from_utf8(output_info.name)?;
-
-//         if i == screen_num {
-//             return name;
-//         }
-//     }
-// }
-
-// fn convert_screen_name_to_num<Conn: Connection>(
-//     conn: &Conn,
-//     monitor_name: &str,
-// ) -> Result<usize, Box<dyn Error>> {
-//     for screen_num in &conn.setup().roots {
-//         // let screen_res = get_screen_resources(conn, screen.root)?.reply()?;
-//         // let result = screen_res.outputs;
-//         let name = get_screen_name(conn, screen_num);
-//         println!("{name:?}");
-//     }
-
-//     Err("No monitor with this name was found".into())
-// }
+    Err("Couldn't find a monitor with given name".into())
+}
 
 // Add icon-handler to MonitorState to be able to kill it later
 pub fn display_icon(
@@ -123,17 +66,10 @@ pub fn display_icon(
     let image = image.resize(size as u32, size as u32, FilterType::CatmullRom);
     let (width, height) = image.dimensions();
 
-    let (conn, screen_num) = x11rb::connect(None)?;
-    println!("foo: {screen_num}");
+    let (conn, num) = x11rb::connect(None)?;
+    let screen = &conn.setup().roots[num];
 
-    println!("{:?}", get_screen_name(&conn, 0));
-
-    // let (conn1, _) = x11rb::xcb_ffi::XCBConnection::connect(None)?;
-
-    // let screen_num1 = get_screen_number_by_name(conn1, monitor_name).unwrap();
-    // println!("bar: {screen_num1}");
-
-    let screen = &conn.setup().roots[screen_num];
+    let screen_num = get_screen_num_by_name(&conn, screen, monitor_name)?;
 
     let win = conn.generate_id()?;
     let window_aux = CreateWindowAux::default()
@@ -230,11 +166,17 @@ mod tests {
 
     #[test]
     fn display_icon_works() {
-        let mut conn = I3Connection::connect().unwrap();
-        let monitor_name = i3::get_focused_monitor(&mut conn);
+        // let mut conn = I3Connection::connect().unwrap();
+        // let monitor_name = i3::get_focused_monitor(&mut conn);
+
+        let (conn, screen_num) = x11rb::connect(None).unwrap();
+        println!("1: {screen_num}");
+
+        println!("2: {:?}", get_screen_name(&conn, 0));
+        println!("3: {:?}", get_screen_num_by_name(&conn, "eDP-1"));
 
         // println!("{monitor_name}");
 
-        display_icon("/home/andrey/alacritty.png", 270, 6, 24, &monitor_name);
+        // display_icon("/home/andrey/alacritty.png", 270, 6, 24, &monitor_name);
     }
 }
