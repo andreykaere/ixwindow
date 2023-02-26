@@ -119,5 +119,6 @@ fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
     }
 
     let current_monitor = i3::get_focused_monitor(&mut core.connection);
+
     core.update_dyn_x(&current_monitor);
 }

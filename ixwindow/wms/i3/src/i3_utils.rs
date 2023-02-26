@@ -182,7 +182,7 @@ pub fn get_desks_on_mon(
     for monitor in monitors {
         if let Some(x) = monitor.name.as_ref() {
             if x == monitor_name {
-                return monitor.nodes;
+                return get_subnodes_type_desk(monitor);
             }
         }
     }
@@ -190,24 +190,25 @@ pub fn get_desks_on_mon(
     vec![]
 }
 
-// Returns subnudes, that are desktops
-fn get_desktop_subnodes(node: Node) -> Vec<Node> {
+// Returns subnodes of the given node, which type is desktop (workspace)
+fn get_subnodes_type_desk(node: Node) -> Vec<Node> {
     if let NodeType::Workspace = node.nodetype {
         return vec![node];
     }
 
     node.nodes
         .into_iter()
-        .flat_map(get_desktop_subnodes)
+        .flat_map(get_subnodes_type_desk)
         .collect()
 }
 
+// The output also includes scratchpad desktop
 fn get_all_desktops(conn: &mut I3Connection) -> Vec<Node> {
     let tree = conn
         .get_tree()
         .expect("Couldn't read information about tree");
 
-    get_desktop_subnodes(tree)
+    get_subnodes_type_desk(tree)
 }
 
 pub fn get_fullscreen_window(
@@ -233,8 +234,7 @@ pub fn calculate_dyn_x(
     config: &Config,
     monitor_name: &str,
 ) -> u16 {
-    // -1 because of scratchpad desktop
-    let desks_num = get_desks_on_mon(conn, monitor_name).len() - 1;
+    let desks_num = get_desks_on_mon(conn, monitor_name).len();
 
     config.x + config.gap_per_desk * (desks_num as u16)
 }
@@ -247,13 +247,13 @@ mod tests {
     use i3ipc::I3Connection;
 
     #[test]
-    fn test_detecting_monitors() {
+    fn test_tree() {
         let mut connection = I3Connection::connect().unwrap();
         let tree = connection
             .get_tree()
             .expect("Couldn't read information about tree");
 
-        println!("Tree:\n{:?}", tree);
+        println!("Tree:\n{:#?}", tree);
     }
 
     #[test]
@@ -271,7 +271,7 @@ mod tests {
         let mut conn = I3Connection::connect().unwrap();
 
         println!(
-            "Focused monitor desktops:\n{:?}",
+            "Focused monitor desktops:\n{:#?}",
             get_desks_on_mon(&mut conn, "eDP-1")
         );
     }

@@ -173,7 +173,7 @@ mod tests {
         println!("1: {screen_num}");
 
         println!("2: {:?}", get_screen_name(&conn, 0));
-        println!("3: {:?}", get_screen_num_by_name(&conn, "eDP-1"));
+        // println!("3: {:?}", get_screen_num_by_name(&conn, "eDP-1"));
 
         // println!("{monitor_name}");
 

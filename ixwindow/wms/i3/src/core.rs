@@ -13,11 +13,11 @@ use super::config::Config;
 use super::display_icon::display_icon;
 use super::i3_utils as i3;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MonitorState {
     pub curr_icon: Option<String>,
     pub prev_icon: Option<String>,
-    pub curr_window: Option<i32>,
+    // pub curr_window: Option<i32>,
     pub curr_desktop_id: Option<i32>,
     pub dyn_x: u16,
 }
@@ -34,7 +34,7 @@ impl MonitorState {
         Self {
             curr_icon: None,
             prev_icon: None,
-            curr_window: None,
+            // curr_window: None,
             curr_desktop_id,
             dyn_x,
         }
