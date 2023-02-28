@@ -156,8 +156,22 @@ pub fn get_all_nodes(conn: &mut I3Connection) -> Vec<Node> {
     get_all_childs(tree)
 }
 
-pub fn get_focused_window_id(conn: &mut I3Connection) -> Option<i32> {
-    let nodes = get_all_nodes(conn);
+fn get_all_nodes_on_mon(
+    conn: &mut I3Connection,
+    monitor_name: &str,
+) -> Vec<Node> {
+    let desktops = get_desks_on_mon(conn, monitor_name);
+    let nodes: Vec<_> =
+        desktops.into_iter().map(|x| x.nodes).flatten().collect();
+
+    nodes
+}
+
+pub fn get_focused_window_id(
+    conn: &mut I3Connection,
+    monitor_name: &str,
+) -> Option<i32> {
+    let nodes = get_all_nodes_on_mon(conn, monitor_name);
 
     for node in nodes {
         if node.focused {
@@ -256,15 +270,15 @@ mod tests {
         println!("Tree:\n{:#?}", tree);
     }
 
-    #[test]
-    fn get_focused_monitor_works() {
-        let mut connection = I3Connection::connect().unwrap();
+    // #[test]
+    // fn get_focused_monitor_works() {
+    //     let mut connection = I3Connection::connect().unwrap();
 
-        println!(
-            "Focused monitor:\n{:?}",
-            get_focused_monitor(&mut connection)
-        );
-    }
+    //     println!(
+    //         "Focused monitor:\n{:?}",
+    //         get_focused_monitor(&mut connection)
+    //     );
+    // }
 
     #[test]
     fn get_desks_on_mon_works() {
@@ -289,7 +303,8 @@ mod tests {
     #[test]
     fn get_focused_window_works() {
         let mut conn = I3Connection::connect().unwrap();
-        let window = get_focused_window_id(&mut conn);
+        let monitor_name = get_focused_monitor(&mut conn);
+        let window = get_focused_window_id(&mut conn, &monitor_name);
 
         println!("{:?}", window);
     }
@@ -313,12 +328,22 @@ mod tests {
         println!("{curr_desk_id:?}");
     }
 
-    // #[test]
-    // fn get_desktop_windows_works() {
-    //     let mut connection = I3Connection::connect().unwrap();
-    //     let desktop = get_focused_desktop_id();
-    //     let result = core.get_desktop_windows(desktop);
+    #[test]
+    fn get_desktop_windows_works() {
+        let mut conn = I3Connection::connect().unwrap();
+        let curr_mon = get_focused_monitor(&mut conn);
+        let desktop = get_focused_desktop_id(&mut conn, &curr_mon).unwrap();
+        let result = get_desktop_windows(&mut conn, desktop);
 
-    //     println!("{:?}", result);
-    // }
+        println!("{:?}", result);
+    }
+
+    #[test]
+    fn get_all_nodes_on_mon_works() {
+        let mut conn = I3Connection::connect().unwrap();
+        let curr_mon = get_focused_monitor(&mut conn);
+        let nodes = get_all_nodes_on_mon(&mut conn, &curr_mon);
+
+        println!("{:#?}", nodes);
+    }
 }

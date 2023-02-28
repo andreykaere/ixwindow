@@ -13,9 +13,7 @@ use x11rb::protocol::randr::{
 use x11rb::protocol::xproto::*;
 use x11rb::protocol::Event;
 
-use super::core::MonitorState;
-
-fn get_screen_name<C: Connection>(
+fn get_screen_name_by_num<C: Connection>(
     conn: &C,
     screen_num: usize,
 ) -> Result<String, Box<dyn Error>> {
@@ -31,7 +29,13 @@ fn get_screen_name<C: Connection>(
         }
     }
 
-    unimplemented!();
+    Err("Couldn't get screen name by given number".into())
+}
+
+pub fn get_default_monitor() -> String {
+    let (conn, _) = x11rb::connect(None).unwrap();
+    get_screen_name_by_num(&conn, 0)
+        .expect("Couldn't get a name of the default monitor")
 }
 
 fn get_screen_num_by_name<Conn: Connection>(
@@ -55,7 +59,6 @@ fn get_screen_num_by_name<Conn: Connection>(
 
 // Add icon-handler to MonitorState to be able to kill it later
 pub fn display_icon(
-    mon_state: &mut MonitorState,
     image_path: &str,
     x: u16,
     y: u16,
@@ -68,8 +71,7 @@ pub fn display_icon(
 
     let (conn, num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[num];
-
-    let screen_num = get_screen_num_by_name(&conn, screen, monitor_name)?;
+    let screen_num = get_screen_num_by_name(&conn, screen, monitor_name);
 
     let win = conn.generate_id()?;
     let window_aux = CreateWindowAux::default()
@@ -166,17 +168,9 @@ mod tests {
 
     #[test]
     fn display_icon_works() {
-        // let mut conn = I3Connection::connect().unwrap();
-        // let monitor_name = i3::get_focused_monitor(&mut conn);
-
         let (conn, screen_num) = x11rb::connect(None).unwrap();
-        println!("1: {screen_num}");
+        let monitor_name = get_screen_name_by_num(&conn, 0).unwrap();
 
-        println!("2: {:?}", get_screen_name(&conn, 0));
-        // println!("3: {:?}", get_screen_num_by_name(&conn, "eDP-1"));
-
-        // println!("{monitor_name}");
-
-        // display_icon("/home/andrey/alacritty.png", 270, 6, 24, &monitor_name);
+        display_icon("/home/andrey/alacritty.png", 270, 6, 24, &monitor_name);
     }
 }

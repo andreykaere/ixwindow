@@ -18,10 +18,6 @@ color = "#252737"
 x = 20
 y = 6
 
-# List of names of monitors, where you want `ixwindow` to be displayed
-# Can be checked with `xrandr --query`
-monitors = [ "eDP-1" ]
-
 # Amound of spaces in the title of the module, before title of the window
 # This is to be adjusted together with coordinates of the icon to achieve the
 # best result
