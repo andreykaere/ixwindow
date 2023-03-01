@@ -164,13 +164,55 @@ pub fn display_icon(
 mod tests {
     use super::super::i3_utils as i3;
     use super::*;
+    use crate::config::format_filename;
     use i3ipc::I3Connection;
+    use std::env;
+
+    fn get_icon_path() -> String {
+        env::current_dir().unwrap().to_str().unwrap().to_owned()
+            + "/tests/alacritty.png"
+    }
+
+    fn display(monitor_name: &str) {
+        display_icon(&get_icon_path(), 270, 6, 24, monitor_name);
+    }
 
     #[test]
-    fn display_icon_works() {
+    fn display_icon1_works() {
         let (conn, screen_num) = x11rb::connect(None).unwrap();
         let monitor_name = get_screen_name_by_num(&conn, 0).unwrap();
 
-        display_icon("/home/andrey/alacritty.png", 270, 6, 24, &monitor_name);
+        display(&monitor_name);
+    }
+
+    #[test]
+    fn display_icon2_works() {
+        let (conn, screen_num) = x11rb::connect(None).unwrap();
+        let monitor_name = get_screen_name_by_num(&conn, 1).unwrap();
+
+        display(&monitor_name);
+    }
+
+    #[test]
+    fn display_icon1_by_name_works() {
+        let (conn, screen_num) = x11rb::connect(None).unwrap();
+        let monitor_name = "DisplayPort-1";
+
+        display(&monitor_name);
+    }
+
+    #[test]
+    fn display_icon2_by_name_works() {
+        let (conn, screen_num) = x11rb::connect(None).unwrap();
+        let monitor_name = "DisplayPort-2";
+
+        display(&monitor_name);
+    }
+
+    #[test]
+    fn screen_num() {
+        let (conn, _) = x11rb::connect(None).unwrap();
+        let roots_len = &conn.setup().roots_len();
+        println!("{roots_len}");
     }
 }
