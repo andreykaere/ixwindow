@@ -1,28 +1,60 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use toml::Value;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Config {
+pub struct I3Config {
     pub gap: String,
     pub x: u16,
     pub y: u16,
     pub size: u16,
-    pub config_file: String,
     pub cache_dir: String,
     pub color: String,
     pub gap_per_desk: u16,
-    pub monitors: Vec<String>,
 }
 
-impl Config {
-    pub fn load() -> Config {
-        let config_filename = match Config::locate_config_file() {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BspwmConfig {
+    pub gap: String,
+    pub x: u16,
+    pub y: u16,
+    pub size: u16,
+    pub cache_dir: String,
+    pub color: String,
+    // pub gap_per_desk: u16,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CommonConfig {
+    #[serde(rename = "i3wm")]
+    #[serde(deserialize_with = "ok_or_default")]
+    i3: Option<I3Config>,
+
+    #[serde(deserialize_with = "ok_or_default")]
+    bspwm: Option<BspwmConfig>,
+}
+
+// We don't want to panic in case one of the config is wrong, because it
+// should not be related to another one, since they do not depend on each
+// other
+fn ok_or_default<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+where
+    T: Deserialize<'de> + Default,
+    D: Deserializer<'de>,
+{
+    let v: Value = Deserialize::deserialize(deserializer).unwrap();
+    Ok(T::deserialize(v).unwrap_or_default())
+}
+
+impl CommonConfig {
+    pub fn init() -> Self {
+        let config_filename = match Self::locate_config_file() {
             Some(config_file) => config_file,
             None => {
-                if let Some(config_opt) = Config::process_config_as_option() {
+                if let Some(config_opt) = Self::process_config_as_option() {
                     config_opt
                 } else {
                     panic!("Couldn't find config file");
@@ -34,12 +66,29 @@ impl Config {
             File::open(config_filename).expect("Failed to open config file");
         let mut config_str = String::new();
         config_file.read_to_string(&mut config_str).unwrap();
-        let mut config: Config = toml::from_str(&config_str).unwrap();
+        let common_config: CommonConfig = toml::from_str(&config_str).unwrap();
 
-        config.config_file = expand_filename(&config.config_file);
-        config.cache_dir = expand_filename(&config.cache_dir);
+        common_config
+    }
 
-        config
+    pub fn load_i3() -> I3Config {
+        let common_config = Self::init();
+        let mut i3_config = common_config
+            .i3
+            .expect("While parsing config error occured");
+        i3_config.cache_dir = expand_filename(&i3_config.cache_dir);
+
+        i3_config
+    }
+
+    pub fn load_bspwm() -> BspwmConfig {
+        let common_config = Self::init();
+        let mut bspwm_config = common_config
+            .bspwm
+            .expect("While parsing config error occured");
+        bspwm_config.cache_dir = expand_filename(&bspwm_config.cache_dir);
+
+        bspwm_config
     }
 
     pub fn process_config_as_option() -> Option<String> {

@@ -21,13 +21,13 @@ as polybar's `tail = true`.
 - `xprop`
 - `xdo`
 - `imagemagick` (for converting `.png` icons to `.jpg`)
-- `g++` (for compiling `polybar-xwindow-icon`)
-- `opencv` (for rendering icons)
+- [`cargo`](https://github.com/rust-lang/cargo)
 
 For debian-based systems you can install it by running
 ```bash
 sudo apt install xdo xprop imagemagick g++ libopencv-dev 
 ```
+For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
 
 ### For bspwm
 - `bash`
@@ -43,10 +43,6 @@ sudo apt install xdotool
 
 ### For i3
 - `i3`
-- [`cargo`](https://github.com/rust-lang/cargo)
-
-For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
-
 
 **Note:** depending on your system, you might get different version of the
 packages, comparing to the ones, used in this project. If you can't install
@@ -117,18 +113,27 @@ have to add them yourself.
 
 Sometimes it's not possible to get icon using `xprop`, (for example, it's the 
 case with Spotify and Discord), then you have to add them manually to your 
-`polybar-icons` folder. To do that, you need to have `.png` version of the 
-icon, named as `WM_CLASS` (you can find it by running `xprop WM_CLASS` and 
-selecting your app). Then you run the following command (requires `imagemagick`): 
+`polybar-icons` folder. To do that, you need to have `png` or `svg` version
+of the icon, named as `WM_CLASS` (which you can find by running `xprop
+WM_CLASS` and selecting your app). Then you run the following command
+(requires `imagemagick`): 
 ```bash
-ixwindow-convert --wm <wm> <icon-name>.png
+ixwindow-convert --wm <wm> <icon-name>
 ```
 where `<icon-name>` is the right name as described above and `<wm>` is the
 name of window manager you want it to be generated for (i.e. the program will
-use corresponding config file). For more info run `ixwindow-convert --help`.
+use corresponding config file). This will convert icon to `jpg` with
+appropriate background color and move to your cache directory. For more info
+run `ixwindow-convert --help`.
 
 **Note:** This method can be also used for replacing automatically generated
-icons.
+icons. 
+
+**Note:** Basically all apps have icons on your system in `png` or `svg`
+format. Usually, one can find it somewhere in `/usr/share/icons` directory
+(one can use `find` or `fd` utility for it).
+
+You can try it out on some icons in `examples/custom-icons` folder.
 
 ## Known issues & limitations
 
@@ -146,7 +151,6 @@ solution to any of the issues, stated above.
 
 ## Goals
 
-- Rewrite `polybar-xwindow-icon` in Rust
 - Rewrite code for `bspwm` in Rust
 - Add png support (maybe make it an option, if user doesn't use compositor)
 
@@ -163,8 +167,10 @@ output a bit and adding icon of the focused application.
 
 ### With a great help of
 
-This project couldn't have been done without them:
-
-- https://stackoverflow.com/questions/54513419/putting-image-into-a-window-in-x11
-- https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program
+I would like to thank:
+- [psychon](https://github.com/psychon) for helping me understand `x11rb` and
+xorg in general
+- [This
+  link](https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program),
+  which code is used for automatic icon generation
 

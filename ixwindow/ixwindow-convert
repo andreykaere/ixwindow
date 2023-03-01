@@ -24,6 +24,9 @@ OPTIONS:
     --color
         Specify background color directly. Overwrites config size if both specified.
 
+    --cache
+        Specify cache folder directly. Overwrites config size if both specified.
+
     --wm
         Specify for which window manager you want to generate icon for. 
         This will affect the default choice of config file.
@@ -65,14 +68,6 @@ parse_toml () {
     done < "$config"
 }
 
-get_size () {
-    parse_toml "$1" "size"
-}
-
-get_color () {
-    parse_toml "$1" "color"
-}
-
 get_wm () {
     wmctrl -m | awk '{if ($1 == "Name:") print $2}'
 }
@@ -89,23 +84,27 @@ init_config () {
     if [ -z "${color+x}" ]; then
         color="$(parse_toml "$config" "color")"
     fi 
+    
+    if [ -z "${cache_dir+x}" ]; then
+        cache_dir="$(parse_toml "$config" "cache_dir")"
+    fi 
 }
 
 choose_config () {
     case "$1" in
         "i3")
-            CONFIG=""
+            CONFIG=$$I3_CONFIG
             ;;
 
         "bspwm")
-            CONFIG=""
+            CONFIG=$$BSPWM_CONFIG
             ;;
     esac
 }
 
-set_default_wm () {
-    
-}
+# TODO
+# set_default_wm () {
+# }
 
 while [ $# -gt 0 ];
 do
@@ -129,6 +128,10 @@ do
             color="$2"
             shift 2
             ;;
+        "--cache")
+            cache_dir="$2"
+            shift 2
+            ;;
 
         "--wm")
             wm="$2"
@@ -138,13 +141,23 @@ do
             ;;
 
         *)
-            init_config "$config"
+            init_config "$CONFIG"
 
             while [ $# -gt 0 ]; 
             do
                 name="${1%.*}"
+                ext="${1##*.}"
 
-                convert "$1" -resize "$size"x"$size" -background "$color" -flatten -alpha off "$name.jpg"
+                if [ "$ext" = "svg" ]; then
+                    inkscape -w 1024 -h 1024 "$name.svg" -o "$name.png" &> /dev/null &&
+                    convert "$name.png" -background "$color" -flatten -alpha off "$name.jpg"
+                    rm "$name.png"
+                else
+                    convert "$name.png" -background "$color" -flatten -alpha off "$name.jpg"
+                fi
+
+                mv "$name.jpg" "$cache_dir"
+
                 shift 
             done
             ;;

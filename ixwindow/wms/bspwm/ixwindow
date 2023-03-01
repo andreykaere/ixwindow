@@ -55,7 +55,7 @@ PREV_ICON="/tmp/polybar-icon-prev"
 # time we switch windows. This way, if some icons were missed, they will be 
 # removed next time, when user will not switch windows this fast.
 remove_all_prev_icons() {
-    local icons_ids=($(xdo id -n "polybar-xwindow-icon" 2> /dev/null))
+    local icons_ids=($(xdo id -n "polybar-ixwindow-icon" 2> /dev/null))
     for icon in "${icons_ids[@]}";
     do
         xdo kill "$icon" &> /dev/null 
@@ -108,7 +108,7 @@ display_icon() {
     icon="$CACHE_DIR/$1.jpg"
 
     if [ -f "$icon" ]; then
-        "$DIR/polybar-xwindow-icon" "$icon" "$X" "$Y" "$SIZE" &> /dev/null &
+        "$DIR/bspwm/polybar-ixwindow-icon" "$icon" "$X" "$Y" "$SIZE" &> /dev/null &
     fi
 }
 
