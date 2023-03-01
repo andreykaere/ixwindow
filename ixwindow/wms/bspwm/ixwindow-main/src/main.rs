@@ -1,0 +1,21 @@
+use std::process::{Command, Stdio};
+
+mod config;
+use config::Config;
+
+fn main() {
+    let config = Config::load_bspwm();
+
+    let mut child = Command::new("./ixwindow")
+        .arg(&config.cache_dir)
+        .arg(&config.gap)
+        .arg(config.x.to_string())
+        .arg(config.y.to_string())
+        .arg(config.size.to_string())
+        .arg(&config.color)
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+
+    child.wait();
+}

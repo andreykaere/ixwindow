@@ -8,7 +8,7 @@ use std::process::{Command, Stdio};
 use std::str;
 use std::thread;
 
-use super::config::{CommonConfig, I3Config};
+use super::config::{Config, I3Config};
 use super::display_icon::display_icon;
 use super::utils::*;
 
@@ -42,7 +42,7 @@ impl Core {
     pub fn init() -> Self {
         let connection =
             I3Connection::connect().expect("Failed to connect to i3");
-        let config = CommonConfig::load_i3();
+        let config = Config::load_i3();
 
         let state = State {
             curr_icon: None,

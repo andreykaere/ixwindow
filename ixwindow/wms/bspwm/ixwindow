@@ -1,47 +1,12 @@
 #!/bin/bash
 
-# Config file
-CONFIG=$$CONFIG
-
-# Trim trailing spaces, which can occur because of spaces around `=` in config
-# file
-trim () {
-    echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
-}
-
-parse_toml () {
-    local config="$1"
-    local var_name="$2"
-    
-    while read -r line 
-    do
-        local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
-
-        if [ "$var" == "$var_name" ]; then
-            local res="$(echo "$(trim "$(echo "$line" | awk -F "=" '{print $2}')")" | tr -d '"')"
-
-            if [ "$var" == "gap" ]; then
-                echo "$res"
-            else
-                eval "echo \"$res\""
-            fi
-        fi
-    done < "$config"
-}
-
-parse_config () {
-    parse_toml "$CONFIG" "$1"
-}
-
-
 # Folder for icons
-CACHE_DIR="$(parse_config "cache_dir")"
-DIR="$(parse_config "prefix")"   # path to ixwindow folder
-GAP="$(parse_config "gap")"
-X="$(parse_config "x")"
-Y="$(parse_config "y")"
-SIZE="$(parse_config "size")"
-COLOR="$(parse_config "color")"
+CACHE_DIR="$1"
+GAP="$2"
+X="$3"
+Y="$4"
+SIZE="$5"
+COLOR="$6"
 
 PREV_ICON="/tmp/polybar-icon-prev"
 
@@ -108,13 +73,13 @@ display_icon() {
     icon="$CACHE_DIR/$1.jpg"
 
     if [ -f "$icon" ]; then
-        "$DIR/bspwm/polybar-ixwindow-icon" "$icon" "$X" "$Y" "$SIZE" &> /dev/null &
+        "./polybar-ixwindow-icon" "$icon" "$X" "$Y" "$SIZE" &> /dev/null &
     fi
 }
 
 
 generate_icon() {
-    "$DIR/generate-icon" "$CACHE_DIR" "$SIZE" "$COLOR" "$1"
+    "../generate-icon" "$CACHE_DIR" "$SIZE" "$COLOR" "$1"
 }
 
 
