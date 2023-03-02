@@ -69,9 +69,9 @@ pub fn display_icon(
     let image = image.resize(size as u32, size as u32, FilterType::CatmullRom);
     let (width, height) = image.dimensions();
 
-    let (conn, num) = x11rb::connect(None)?;
-    let screen = &conn.setup().roots[num];
-    let screen_num = get_screen_num_by_name(&conn, screen, monitor_name);
+    let (conn, screen_num) = x11rb::connect(None)?;
+    let screen = &conn.setup().roots[screen_num];
+    // let screen_num = get_screen_num_by_name(&conn, screen, monitor_name);
 
     let win = conn.generate_id()?;
     let window_aux = CreateWindowAux::default()
@@ -160,6 +160,74 @@ pub fn display_icon(
     }
 }
 
+fn display_window_on_monitor(conn: &impl Connection, monitor_name: &str) {
+    // Get the screen resources
+    let resources = conn
+        .randr_get_screen_resources_current(conn.setup().roots[0].root)
+        .unwrap()
+        .reply()
+        .unwrap();
+
+    // Iterate over the outputs and look for the one with the matching name
+    let mut output_info: Option<randr::GetOutputInfoReply> = None;
+    let mut crtc_info: Option<randr::GetCrtcInfoReply> = None;
+    for output in resources.outputs {
+        let oi = conn
+            .randr_get_output_info(output, 0)
+            .unwrap()
+            .reply()
+            .unwrap();
+        if std::str::from_utf8(&oi.name).unwrap() == monitor_name {
+            let ci = conn
+                .randr_get_crtc_info(oi.crtc, 0)
+                .unwrap()
+                .reply()
+                .unwrap();
+            if oi.connection == randr::Connection::CONNECTED
+            // && ci.mode() != randr::Mode::None
+            {
+                output_info = Some(oi);
+                crtc_info = Some(ci);
+                break;
+            }
+        }
+    }
+
+    // If we found a matching output, create and display a window on that monitor
+    if let (Some(output_info), Some(crtc_info)) = (output_info, crtc_info) {
+        let window_id = conn.generate_id().unwrap();
+        let (width, height) = (800, 600);
+        let aux = CreateWindowAux::new()
+            .event_mask(EventMask::EXPOSURE)
+            .background_pixel(0xffffff)
+            .override_redirect(1);
+
+        let screen = &conn.setup().roots[0];
+        conn.create_window(
+            x11rb::COPY_FROM_PARENT.try_into().unwrap(),
+            window_id,
+            screen.root,
+            crtc_info.x.try_into().unwrap(),
+            crtc_info.y,
+            width,
+            height,
+            0,
+            WindowClass::COPY_FROM_PARENT,
+            screen.root_visual,
+            &aux,
+        )
+        .unwrap();
+        conn.map_window(window_id).unwrap();
+        conn.flush().unwrap();
+    }
+
+    loop {
+        let event = conn.wait_for_event().unwrap();
+
+        conn.flush().unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::i3_utils as i3;
@@ -178,41 +246,22 @@ mod tests {
     }
 
     #[test]
-    fn display_icon1_works() {
-        let (conn, screen_num) = x11rb::connect(None).unwrap();
-        let monitor_name = get_screen_name_by_num(&conn, 0).unwrap();
-
-        display(&monitor_name);
-    }
-
-    #[test]
-    fn display_icon2_works() {
-        let (conn, screen_num) = x11rb::connect(None).unwrap();
-        let monitor_name = get_screen_name_by_num(&conn, 1).unwrap();
-
-        display(&monitor_name);
-    }
-
-    #[test]
-    fn display_icon1_by_name_works() {
-        let (conn, screen_num) = x11rb::connect(None).unwrap();
-        let monitor_name = "DisplayPort-1";
-
-        display(&monitor_name);
-    }
-
-    #[test]
-    fn display_icon2_by_name_works() {
-        let (conn, screen_num) = x11rb::connect(None).unwrap();
-        let monitor_name = "DisplayPort-2";
-
-        display(&monitor_name);
-    }
-
-    #[test]
-    fn screen_num() {
+    fn display_window_on_monitor1_works() {
+        // Open a connection to the X server
         let (conn, _) = x11rb::connect(None).unwrap();
-        let roots_len = &conn.setup().roots_len();
-        println!("{roots_len}");
+
+        // Display a window on the monitor with the given name
+        let monitor_name = "DisplayPort-1";
+        display_window_on_monitor(&conn, monitor_name);
+    }
+
+    #[test]
+    fn display_window_on_monitor2_works() {
+        // Open a connection to the X server
+        let (conn, _) = x11rb::connect(None).unwrap();
+
+        // Display a window on the monitor with the given name
+        let monitor_name = "DisplayPort-2";
+        display_window_on_monitor(&conn, monitor_name);
     }
 }
