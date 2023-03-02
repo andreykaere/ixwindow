@@ -39,26 +39,32 @@ install_wm () {
     case "$wm" in 
         "bspwm")
             cp -r "ixwindow/wms/bspwm" "ixwindow_compiled/bspwm"
+
             local config="$(echo "$XDG_CONFIG_HOME/ixwindow/ixwindow.toml" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
             sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/bspwm/ixwindow
             sed -i "s/\$\$BSPWM_CONFIG/\"$config\"/g" ixwindow_compiled/ixwindow-convert
 
             cd ixwindow_compiled/bspwm/polybar-ixwindow-icon && cargo build --release
-            cd ../ && cp polybar-ixwindow-icon/target/release/polybar-ixwindow-icon ./temp
+            cd ../ixwindow && cargo build --release
+
+            cd ../ 
+            cp polybar-ixwindow-icon/target/release/polybar-ixwindow-icon ./temp
+            cp ixwindow/target/release/ixwindow ./temp-main
 
             rm -r polybar-ixwindow-icon
+            rm -r ixwindow
+
             mv temp polybar-ixwindow-icon
+            mv temp-main ixwindow
             cd ../../
             ;;
 
         "i3")
             cp -r "ixwindow/wms/i3" "ixwindow_compiled/i3"
-<<<<<<< HEAD
-=======
+            
             local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
             sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/i3/src/config.rs
             sed -i "s/\$\$I3_CONFIG/\"$config\"/g" ixwindow_compiled/ixwindow-convert
->>>>>>> dev
 
             cd ixwindow_compiled/i3 && cargo build --release  
             cd ../ && cp i3/target/release/ixwindow_i3 ./
