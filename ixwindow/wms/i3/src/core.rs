@@ -7,6 +7,7 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::str;
+use std::sync::Arc;
 use std::thread;
 
 use super::config::Config;
@@ -52,7 +53,7 @@ impl MonitorState {
 #[derive(Debug)]
 pub struct Monitor {
     pub state: MonitorState,
-    pub name: String,
+    pub name: Arc<String>,
     pub icons_threads: Vec<thread::JoinHandle<()>>,
 }
 
@@ -67,6 +68,8 @@ impl Monitor {
             None => x11_utils::get_primary_monitor_name()
                 .expect("Couldn't get name of primary monitor"),
         };
+
+        let name = Arc::new(name);
         let state = MonitorState::init(conn, &config, &name);
         let icons_threads = Vec::new();
 
@@ -135,20 +138,18 @@ impl Core {
         );
     }
 
-    // Get rid off clone
-    pub fn show_icon(&mut self, icon_path: &str) {
+    pub fn show_icon(&mut self, icon_path: Arc<String>) {
         let config = &self.config;
 
-        let (icon, dyn_x, y, size, monitor_name_owned) = (
-            icon_path.to_string(),
+        let (dyn_x, y, size, monitor_name) = (
             self.monitor.state.dyn_x,
             config.y,
             config.size,
-            self.monitor.name.to_string(),
+            Arc::clone(&self.monitor.name),
         );
 
         let icon_thread = thread::spawn(move || {
-            x11_utils::display_icon(&icon, dyn_x, y, size, &monitor_name_owned);
+            x11_utils::display_icon(icon_path, dyn_x, y, size, monitor_name);
         });
     }
 
@@ -170,7 +171,7 @@ impl Core {
         }
 
         self.destroy_prev_icons();
-        self.show_icon(&icon_path);
+        self.show_icon(Arc::new(icon_path));
     }
 
     pub fn print_info(&self, window: Option<i32>) {

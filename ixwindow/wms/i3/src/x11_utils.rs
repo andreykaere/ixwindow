@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::string::String;
+use std::sync::Arc;
 
 use image::imageops::FilterType;
 use image::io::Reader;
@@ -28,13 +29,13 @@ pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
 
 // Add icon-handler to MonitorState to be able to kill it later
 pub fn display_icon(
-    image_path: &str,
+    image_path: Arc<String>,
     x: i16,
     y: i16,
     size: u16,
-    monitor_name: &str,
+    monitor_name: Arc<String>,
 ) -> Result<(), Box<dyn Error>> {
-    let image = Reader::open(image_path)?.decode()?;
+    let image = Reader::open(&*image_path)?.decode()?;
     let image = image.resize(size as u32, size as u32, FilterType::CatmullRom);
     let (width, height) = image.dimensions();
 
@@ -43,7 +44,7 @@ pub fn display_icon(
 
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
-    let monitor_crtc = get_monitor_crtc(&conn, monitor_name)?;
+    let monitor_crtc = get_monitor_crtc(&conn, &*monitor_name)?;
 
     let wm_class = b"polybar-ixwindow-icon";
     let win = conn.generate_id()?;
