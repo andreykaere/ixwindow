@@ -1,6 +1,9 @@
 use std::error::Error;
 use std::string::String;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 use image::imageops::FilterType;
 use image::io::Reader;
@@ -27,6 +30,31 @@ pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
     Ok(String::from_utf8(output_primary_info.name)?)
 }
 
+fn get_monitor_crtc<Conn: Connection>(
+    conn: &Conn,
+    monitor_name: &str,
+) -> Result<GetCrtcInfoReply, Box<dyn Error>> {
+    let screen = &conn.setup().roots[0];
+    let resources = conn
+        .randr_get_screen_resources_current(screen.root)?
+        .reply()?;
+
+    for output in resources.outputs {
+        let output_info = conn.randr_get_output_info(output, 0)?.reply()?;
+
+        if std::str::from_utf8(&output_info.name)? == monitor_name {
+            let crtc_info =
+                conn.randr_get_crtc_info(output_info.crtc, 0)?.reply()?;
+
+            if output_info.connection == randr::Connection::CONNECTED {
+                return Ok(crtc_info);
+            }
+        }
+    }
+
+    Err("Couldn't get given monitor CRTC".into())
+}
+
 // Add icon-handler to MonitorState to be able to kill it later
 pub fn display_icon(
     image_path: Arc<String>,
@@ -34,6 +62,7 @@ pub fn display_icon(
     y: i16,
     size: u16,
     monitor_name: Arc<String>,
+    flag: Arc<AtomicBool>,
 ) -> Result<(), Box<dyn Error>> {
     let image = Reader::open(&*image_path)?.decode()?;
     let image = image.resize(size as u32, size as u32, FilterType::CatmullRom);
@@ -44,7 +73,7 @@ pub fn display_icon(
 
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
-    let monitor_crtc = get_monitor_crtc(&conn, &*monitor_name)?;
+    let monitor_crtc = get_monitor_crtc(&conn, &monitor_name)?;
 
     let wm_class = b"polybar-ixwindow-icon";
     let win = conn.generate_id()?;
@@ -85,6 +114,7 @@ pub fn display_icon(
     let pixmap = conn.generate_id()?;
     conn.create_pixmap(screen.root_depth, pixmap, win, width, height)?;
 
+    // This is needed for making icon colorful
     let mut data = image.into_rgba8().into_raw();
     data.chunks_exact_mut(4).for_each(|chunk| {
         let (c0, c2) = (chunk[0], chunk[2]);
@@ -104,41 +134,42 @@ pub fn display_icon(
         screen.root_depth,
         &data,
     )?;
-    conn.copy_area(pixmap, win, gc, 0, 0, 0, 0, width, height)?;
+
     conn.flush()?;
 
-    loop {
-        let event = conn.wait_for_event()?;
+    let timeout = Duration::from_millis(10);
 
-        if let Event::Expose(_) = event {
-            conn.flush()?;
-        }
-    }
-}
+    while !flag.load(Ordering::SeqCst) {
+        // let event = conn.poll_for_event()?;
+        conn.copy_area(pixmap, win, gc, 0, 0, 0, 0, width, height)?;
+        conn.flush()?;
 
-fn get_monitor_crtc<Conn: Connection>(
-    conn: &Conn,
-    monitor_name: &str,
-) -> Result<GetCrtcInfoReply, Box<dyn Error>> {
-    let screen = &conn.setup().roots[0];
-    let resources = conn
-        .randr_get_screen_resources_current(screen.root)?
-        .reply()?;
-
-    for output in resources.outputs {
-        let output_info = conn.randr_get_output_info(output, 0)?.reply()?;
-
-        if std::str::from_utf8(&output_info.name)? == monitor_name {
-            let crtc_info =
-                conn.randr_get_crtc_info(output_info.crtc, 0)?.reply()?;
-
-            if output_info.connection == randr::Connection::CONNECTED {
-                return Ok(crtc_info);
-            }
-        }
+        thread::sleep(timeout);
     }
 
-    Err("Couldn't get given monitor CRTC".into())
+    // loop {
+    // let event = conn.poll_for_event()?;
+
+    // last_event_time = event.time;
+
+    // let current_time = conn.conn_time()?;
+    // let elapsed_time = current_time - last_event_time;
+    // if elapsed_time >= timeout {
+    //     continue;
+    // }
+
+    // println!("1:{event:#?} {}", flag.load(Ordering::SeqCst));
+    // println!("bar");
+
+    // if let Event::Expose(_) = event {
+    //     conn.copy_area(pixmap, win, gc, 0, 0, 0, 0, width, height)?;
+    //     conn.flush()?;
+    // }
+    // conn.flush()?;
+    // }
+
+    // println!("foo");
+    Ok(())
 }
 
 #[cfg(test)]

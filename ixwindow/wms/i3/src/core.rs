@@ -4,9 +4,11 @@ use i3ipc::I3Connection;
 use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
+use std::mem;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::str;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
@@ -15,26 +17,23 @@ use super::i3_utils as i3;
 use super::x11_utils;
 
 #[derive(Debug)]
-pub struct MonitorState {
+pub struct State {
     pub curr_icon: Option<String>,
     pub prev_icon: Option<String>,
-    pub curr_desktop_id: Option<i32>,
     pub dyn_x: i16,
 }
 
-impl MonitorState {
+impl State {
     pub fn init(
         conn: &mut I3Connection,
         config: &Config,
         monitor_name: &str,
     ) -> Self {
-        let curr_desktop_id = i3::get_focused_desktop_id(conn, monitor_name);
         let dyn_x = i3::calculate_dyn_x(conn, config, monitor_name);
 
         Self {
             curr_icon: None,
             prev_icon: None,
-            curr_desktop_id,
             dyn_x,
         }
     }
@@ -52,9 +51,10 @@ impl MonitorState {
 
 #[derive(Debug)]
 pub struct Monitor {
-    pub state: MonitorState,
+    pub state: State,
     pub name: Arc<String>,
-    pub icons_threads: Vec<thread::JoinHandle<()>>,
+    icons_threads: Vec<thread::JoinHandle<()>>,
+    destroy_icons_flag: Arc<AtomicBool>,
 }
 
 impl Monitor {
@@ -70,13 +70,15 @@ impl Monitor {
         };
 
         let name = Arc::new(name);
-        let state = MonitorState::init(conn, &config, &name);
+        let state = State::init(conn, config, &name);
         let icons_threads = Vec::new();
+        let destroy_icons_flag = Arc::new(AtomicBool::new(false));
 
         Self {
             name,
             state,
             icons_threads,
+            destroy_icons_flag,
         }
     }
 }
@@ -141,16 +143,26 @@ impl Core {
     pub fn show_icon(&mut self, icon_path: Arc<String>) {
         let config = &self.config;
 
-        let (dyn_x, y, size, monitor_name) = (
+        let (dyn_x, y, size, monitor_name, flag) = (
             self.monitor.state.dyn_x,
             config.y,
             config.size,
             Arc::clone(&self.monitor.name),
+            Arc::clone(&self.monitor.destroy_icons_flag),
         );
 
         let icon_thread = thread::spawn(move || {
-            x11_utils::display_icon(icon_path, dyn_x, y, size, monitor_name);
+            x11_utils::display_icon(
+                icon_path,
+                dyn_x,
+                y,
+                size,
+                monitor_name,
+                flag,
+            );
         });
+
+        self.monitor.icons_threads.push(icon_thread);
     }
 
     pub fn process_icon(&mut self, window_id: i32) {
@@ -205,35 +217,24 @@ impl Core {
         }
     }
 
-    // TODO: implement destroying only windows on current monitor,
-    // using icons_threads, which will be filled when new icons will be
-    // created
     pub fn destroy_prev_icons(&mut self) {
-        let icons_ids_raw = Command::new("xdo")
-            .arg("id")
-            .arg("-n")
-            .arg("polybar-ixwindow-icon")
-            .stderr(Stdio::null())
-            .output()
-            .expect("Couldn't detect any 'polybar-xwindow-icon' windows");
+        self.monitor
+            .destroy_icons_flag
+            .store(true, Ordering::SeqCst);
 
-        let output = match String::from_utf8(icons_ids_raw.stdout) {
-            Ok(v) => v,
-            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-        };
+        let icons_threads = mem::take(&mut self.monitor.icons_threads);
 
-        let icons_ids = output.trim().split('\n');
-
-        for id in icons_ids {
-            let mut xdo_kill_child = Command::new("xdo")
-                .arg("kill")
-                .arg(id)
-                .stderr(Stdio::null())
-                .spawn()
-                .expect("xdo couldn't kill icon window");
-
-            xdo_kill_child.wait().expect("Failed to wait on child");
+        // println!("foo1");
+        for thread in icons_threads {
+            // println!("foo2");
+            thread.join().unwrap();
+            // println!("foo3");
         }
+        // println!("foo4");
+
+        self.monitor
+            .destroy_icons_flag
+            .store(false, Ordering::SeqCst);
     }
 
     pub fn process_focused_window(&mut self, window_id: i32) {
