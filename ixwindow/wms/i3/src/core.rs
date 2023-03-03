@@ -98,6 +98,14 @@ impl Core {
         }
     }
 
+    pub fn process_start(&mut self) {
+        if let Some(window_id) = self.get_focused_window_id() {
+            self.process_focused_window(window_id);
+        } else {
+            self.process_empty_desktop();
+        }
+    }
+
     pub fn generate_icon(&self, window_id: i32) {
         let config = &self.config;
 

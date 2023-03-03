@@ -11,6 +11,7 @@ fn main() {
         I3EventListener::connect().expect("Couldn't connect to event listener");
 
     let mut core = Core::init(monitor_name);
+    core.process_start();
 
     let subscriptions = [
         Subscription::Workspace,
