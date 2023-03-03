@@ -7,8 +7,8 @@ pub const CONFIG_FILE: &str = "~/.config/ixwindow/i3/config.toml";
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub gap: String,
-    pub x: u16,
-    pub y: u16,
+    pub x: i16,
+    pub y: i16,
     pub size: u16,
     pub prefix: String,
     pub config_dir: String,

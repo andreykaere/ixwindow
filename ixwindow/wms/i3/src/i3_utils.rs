@@ -247,10 +247,10 @@ pub fn calculate_dyn_x(
     conn: &mut I3Connection,
     config: &Config,
     monitor_name: &str,
-) -> u16 {
+) -> i16 {
     let desks_num = get_desks_on_mon(conn, monitor_name).len();
 
-    config.x + config.gap_per_desk * (desks_num as u16)
+    config.x + (config.gap_per_desk as i16) * (desks_num as i16)
 }
 
 #[cfg(test)]

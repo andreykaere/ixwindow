@@ -11,14 +11,14 @@ use std::thread;
 
 use super::config::Config;
 use super::i3_utils as i3;
-use super::x11_utils as x11;
+use super::x11_utils;
 
 #[derive(Debug)]
 pub struct MonitorState {
     pub curr_icon: Option<String>,
     pub prev_icon: Option<String>,
     pub curr_desktop_id: Option<i32>,
-    pub dyn_x: u16,
+    pub dyn_x: i16,
 }
 
 impl MonitorState {
@@ -64,7 +64,8 @@ impl Monitor {
     ) -> Self {
         let name = match monitor_name {
             Some(x) => x,
-            None => x11::get_default_monitor(),
+            None => x11_utils::get_primary_monitor_name()
+                .expect("Couldn't get name of primary monitor"),
         };
         let state = MonitorState::init(conn, &config, &name);
         let icons_threads = Vec::new();
@@ -139,7 +140,7 @@ impl Core {
         );
 
         let icon_thread = thread::spawn(move || {
-            x11::display_icon(&icon, dyn_x, y, size, &monitor_name_owned);
+            x11_utils::display_icon(&icon, dyn_x, y, size, &monitor_name_owned);
         });
     }
 
