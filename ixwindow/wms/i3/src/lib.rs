@@ -76,8 +76,14 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
 fn handle_workspace_event(event: WorkspaceEventInfo, core: &mut Core) {
     match event.change {
         WorkspaceChange::Focus => {
-            // We can use unwrap, because some desktop should be focused
-            let current_desktop = core.get_focused_desktop_id().unwrap();
+            let current_desktop = match core.get_focused_desktop_id() {
+                Some(x) => x,
+
+                // No desktop is focused on the monitor
+                None => {
+                    return;
+                }
+            };
 
             if i3::is_desk_empty(&mut core.connection, current_desktop) {
                 core.process_empty_desktop();
