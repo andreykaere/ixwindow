@@ -11,6 +11,9 @@ pub mod x11_utils;
 pub use self::core::Core;
 use self::i3_utils as i3;
 
+use std::thread;
+use std::time::Duration;
+
 pub fn handle_event(event: Event, core: &mut Core) {
     match event {
         Event::WindowEvent(e) => handle_window_event(e, core),
@@ -38,6 +41,9 @@ fn handle_window_event(event: WindowEventInfo, core: &mut Core) {
     };
 
     match event.change {
+        WindowChange::New => {
+            thread::sleep(Duration::from_millis(100));
+        }
         WindowChange::Focus => {
             core.process_focused_window(id);
         }
