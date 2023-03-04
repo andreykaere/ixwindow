@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-use super::config::Config;
+use super::config::{Config, I3Config};
 use super::i3_utils as i3;
 use super::x11_utils;
 
@@ -26,7 +26,7 @@ pub struct State {
 impl State {
     pub fn init(
         conn: &mut I3Connection,
-        config: &Config,
+        config: &I3Config,
         monitor_name: &str,
     ) -> Self {
         let dyn_x = i3::calculate_dyn_x(conn, config, monitor_name);
@@ -60,7 +60,7 @@ pub struct Monitor {
 impl Monitor {
     pub fn init(
         conn: &mut I3Connection,
-        config: &Config,
+        config: &I3Config,
         monitor_name: Option<String>,
     ) -> Self {
         let name = match monitor_name {
@@ -84,7 +84,7 @@ impl Monitor {
 }
 
 pub struct Core {
-    pub config: Config,
+    pub config: I3Config,
     pub connection: I3Connection,
     pub monitor: Monitor,
 }
@@ -93,7 +93,7 @@ impl Core {
     pub fn init(monitor_name: Option<String>) -> Self {
         let mut connection =
             I3Connection::connect().expect("Failed to connect to i3");
-        let config = Config::load();
+        let config = Config::load_i3();
         let monitor = Monitor::init(&mut connection, &config, monitor_name);
 
         Self {

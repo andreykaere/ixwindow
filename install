@@ -12,76 +12,59 @@ ARGS:
 OPTIONS:
     -h, --help
         Show this message.
+
+    --prefix
+        Used for specifying installation directory.
+
     --clean
-        Clean destinational files from previous installation.
+        When specified, this script cleans destinational files from previous 
+        installation.
 "
 
 exit 1
 }
 
-# Trim trailing spaces, which can occur because of spaces around `=` in config
-# file
-trim () {
-    echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+
+init_config_file () {
+    mkdir --parents "$XDG_CONFIG_HOME/ixwindow"
+    cp "examples/ixwindow.toml" "$XDG_CONFIG_HOME/ixwindow/ixwindow.toml"
 }
-
-parse_toml () {
-    local config="$1"
-    local var_name="$2"
-    
-    while read -r line 
-    do
-        local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
-
-        if [ "$var" == "$var_name" ]; then
-            local res="$(echo "$(trim "$(echo "$line" | awk -F "=" '{print $2}')")" | tr -d '"')"
-
-            if [ "$var" == "gap" ]; then
-                echo "$res"
-            else
-                eval "echo \"$res\""
-            fi
-        fi
-    done < "$config"
-}
-
 
 install_wm () {
     local wm="$1"
-    local profile="profiles/$wm.toml"
-    local cache_dir="$(parse_toml "$profile" "cache_dir")"
-    local prefix="$(parse_toml "$profile" "prefix")"
-    local config_dir="$(parse_toml "$profile" "config_dir")"
-    local config_file="$(parse_toml "$profile" "config_file")"
    
     if [ "$CLEAN" -eq 1 ]; then
-        rm -r "$prefix"
+        rm -r "$PREFIX"
     fi
-
-    mkdir -p "$cache_dir"
-    mkdir -p "$prefix"
-    mkdir -p "$config_dir"
-    
 
     case "$wm" in 
         "bspwm")
             cp -r "ixwindow/wms/bspwm" "ixwindow_compiled/bspwm"
-            local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
-            sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/bspwm/ixwindow
+
+            local config="$(echo "$XDG_CONFIG_HOME/ixwindow/ixwindow.toml" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
             sed -i "s/\$\$BSPWM_CONFIG/\"$config\"/g" ixwindow_compiled/ixwindow-convert
 
             cd ixwindow_compiled/bspwm/polybar-ixwindow-icon && cargo build --release
-            cd ../ && cp polybar-ixwindow-icon/target/release/polybar-ixwindow-icon ./temp
+            cd ../ixwindow && cargo build --release
+
+            cd ../ 
+            cp polybar-ixwindow-icon/target/release/polybar-ixwindow-icon ./temp
+            cp ixwindow/target/release/ixwindow ./temp-main
 
             rm -r polybar-ixwindow-icon
+            rm -r ixwindow
+
             mv temp polybar-ixwindow-icon
+            mv temp-main ixwindow
             cd ../../
+
+            rm -r "$PREFIX/bspwm"
             ;;
 
         "i3")
             cp -r "ixwindow/wms/i3" "ixwindow_compiled/i3"
+            
             local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
-            sed -i "s/\$\$CONFIG/\"$config\"/g" ixwindow_compiled/i3/src/config.rs
             sed -i "s/\$\$I3_CONFIG/\"$config\"/g" ixwindow_compiled/ixwindow-convert
 
             cd ixwindow_compiled/i3 && cargo build --release  
@@ -90,11 +73,12 @@ install_wm () {
             rm -r i3/*
             mv ixwindow_i3 i3/ixwindow
             cd ../
+
+            rm -r "$PREFIX/i3"
             ;;
     esac
     
-    cp "$profile" "$config_dir/$config_file"
-    cp -r ixwindow_compiled/* "$prefix"
+    cp -r ixwindow_compiled/* "$PREFIX"
 }
 
 WINDOW_MANAGES=()
@@ -104,6 +88,7 @@ if [ $# -eq 0 ]; then
 fi
 
 CLEAN=0
+PREFIX="$HOME/.config/polybar/scripts/ixwindow"
 
 while [ $# -gt 0 ];
 do
@@ -114,6 +99,10 @@ do
         "--clean")
             CLEAN=1
             shift
+            ;;
+        "--prefix")
+            PREFIX="$2"
+            shift 2
             ;;
         *)
             while [ $# -gt 0 ]; 
@@ -135,6 +124,6 @@ do
 done
 
 
-
+init_config_file 
 
 rm -r ixwindow_compiled

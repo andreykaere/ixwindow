@@ -4,7 +4,7 @@ use i3ipc::I3Connection;
 use std::process::{Command, Stdio};
 use std::str;
 
-use super::config::Config;
+use super::config::I3Config;
 
 pub fn is_window_fullscreen(window_id: i32) -> bool {
     let net_wm_state = Command::new("xprop")
@@ -244,7 +244,7 @@ pub fn get_fullscreen_window(
 
 pub fn calculate_dyn_x(
     conn: &mut I3Connection,
-    config: &Config,
+    config: &I3Config,
     monitor_name: &str,
 ) -> i16 {
     let desks_num = get_desks_on_mon(conn, monitor_name).len();
@@ -255,7 +255,6 @@ pub fn calculate_dyn_x(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
     use crate::core::Core;
     use i3ipc::I3Connection;
 

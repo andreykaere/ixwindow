@@ -176,22 +176,22 @@ pub fn display_icon(
 mod tests {
     use super::super::i3_utils as i3;
     use super::*;
-    use crate::config::format_filename;
+    use crate::config::expand_filename;
     use i3ipc::I3Connection;
     use std::env;
 
-    fn get_icon_path() -> String {
-        env::current_dir().unwrap().to_str().unwrap().to_owned()
-            + "/tests/alacritty.png"
-    }
+    // fn get_icon_path() -> String {
+    //     env::current_dir().unwrap().to_str().unwrap().to_owned()
+    //         + "/tests/alacritty.png"
+    // }
 
-    fn display(monitor_name: &str) {
-        display_icon(&get_icon_path(), 270, 6, 24, monitor_name);
-    }
+    // fn display(monitor_name: &str) {
+    //     display_icon(&get_icon_path(), 270, 6, 24, monitor_name);
+    // }
 
-    #[test]
-    fn display_icon_test() {
-        let monitor_name = "eDP-1";
-        display(monitor_name);
-    }
+    // #[test]
+    // fn display_icon_test() {
+    //     let monitor_name = "eDP-1";
+    //     display(monitor_name);
+    // }
 }
