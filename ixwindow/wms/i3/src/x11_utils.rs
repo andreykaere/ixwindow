@@ -57,14 +57,14 @@ fn get_monitor_crtc<Conn: Connection>(
 
 // Add icon-handler to MonitorState to be able to kill it later
 pub fn display_icon(
-    image_path: Arc<String>,
+    image_path: &str,
     x: i16,
     y: i16,
     size: u16,
-    monitor_name: Arc<String>,
-    flag: Arc<AtomicBool>,
+    monitor_name: &str,
+    flag: &AtomicBool,
 ) -> Result<(), Box<dyn Error>> {
-    let image = Reader::open(&*image_path)?.decode()?;
+    let image = Reader::open(image_path)?.decode()?;
     let image = image.resize(size as u32, size as u32, FilterType::CatmullRom);
     let (width, height) = image.dimensions();
 

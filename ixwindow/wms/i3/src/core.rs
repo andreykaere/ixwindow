@@ -9,7 +9,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::str;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 use super::config::Config;
@@ -50,11 +50,17 @@ impl State {
 }
 
 #[derive(Debug)]
+pub struct SharedData {
+    pub monitor_name: String,
+    pub curr_icon_path: Option<String>,
+    pub destroy_icons_flag: AtomicBool,
+}
+
+#[derive(Debug)]
 pub struct Monitor {
     pub state: State,
-    pub name: Arc<String>,
-    icons_threads: Vec<thread::JoinHandle<()>>,
-    destroy_icons_flag: Arc<AtomicBool>,
+    pub data: Arc<Mutex<SharedData>>,
+    pub icons_threads: Vec<thread::JoinHandle<()>>,
 }
 
 impl Monitor {
@@ -69,18 +75,38 @@ impl Monitor {
                 .expect("Couldn't get name of primary monitor"),
         };
 
-        let name = Arc::new(name);
         let state = State::init(conn, config, &name);
         let icons_threads = Vec::new();
-        let destroy_icons_flag = Arc::new(AtomicBool::new(false));
+        let destroy_icons_flag = AtomicBool::new(false);
+        let data = Arc::new(Mutex::new(SharedData {
+            monitor_name: name,
+            curr_icon_path: None,
+            destroy_icons_flag,
+        }));
 
         Self {
-            name,
             state,
+            data,
             icons_threads,
-            destroy_icons_flag,
         }
     }
+
+    // pub fn get_name(&self) -> String {
+    //     let data = Arc::clone(&self.data);
+    //     let data = data.lock().unwrap();
+    //     data.monitor_name
+    // }
+
+    // pub fn get_destroy_icons_flag(&self) -> AtomicBool {
+    //     let data = Arc::clone(&self.data);
+    //     let lock = data.lock().unwrap();
+    //     lock.destroy_icons_flag
+    // }
+
+    // pub fn update_icon_path(&mut self, icon_path: &str) {
+    //     self.data.get_mut().unwrap().curr_icon_path =
+    //         Some(icon_path.to_string());
+    // }
 }
 
 pub struct Core {
@@ -133,27 +159,36 @@ impl Core {
     }
 
     pub fn update_dyn_x(&mut self) {
+        let data = Arc::clone(&self.monitor.data);
+        let data = data.lock().unwrap();
+
         self.monitor.state.dyn_x = i3::calculate_dyn_x(
             &mut self.connection,
             &self.config,
-            &self.monitor.name,
+            &data.monitor_name,
         );
     }
 
-    pub fn show_icon(&mut self, icon_path: Arc<String>) {
-        let config = &self.config;
+    pub fn show_icon(&mut self) {
+        println!("foo");
 
-        let (dyn_x, y, size, monitor_name, flag) = (
-            self.monitor.state.dyn_x,
-            config.y,
-            config.size,
-            Arc::clone(&self.monitor.name),
-            Arc::clone(&self.monitor.destroy_icons_flag),
-        );
+        let config = &self.config;
+        let (dyn_x, y, size) =
+            (self.monitor.state.dyn_x, config.y, config.size);
+
+        let data = Arc::clone(&self.monitor.data);
 
         let icon_thread = thread::spawn(move || {
+            let data = data.lock().unwrap();
+
+            let (icon_path, monitor_name, flag) = (
+                &data.curr_icon_path,
+                &data.monitor_name,
+                &data.destroy_icons_flag,
+            );
+
             x11_utils::display_icon(
-                icon_path,
+                icon_path.as_ref().unwrap(),
                 dyn_x,
                 y,
                 size,
@@ -166,6 +201,8 @@ impl Core {
     }
 
     pub fn process_icon(&mut self, window_id: i32) {
+        println!("bar");
+
         let icon_name = i3::get_icon_name(window_id);
 
         if let Some(prev_icon) = &self.monitor.state.prev_icon {
@@ -182,8 +219,22 @@ impl Core {
             self.generate_icon(window_id);
         }
 
+        println!("bar1");
+
+        let mut data = self.monitor.data.lock().unwrap();
+
+        println!("bar2");
+
+        data.curr_icon_path = Some(icon_path.to_string());
+
+        println!("bar3");
+
+        drop(data);
+
+        println!("bar4");
+
         self.destroy_prev_icons();
-        self.show_icon(Arc::new(icon_path));
+        self.show_icon();
     }
 
     pub fn print_info(&self, window: Option<i32>) {
@@ -218,23 +269,23 @@ impl Core {
     }
 
     pub fn destroy_prev_icons(&mut self) {
-        self.monitor
-            .destroy_icons_flag
-            .store(true, Ordering::SeqCst);
+        let data = self.monitor.data.lock().unwrap();
+        data.destroy_icons_flag.store(true, Ordering::SeqCst);
+
+        drop(data);
 
         let icons_threads = mem::take(&mut self.monitor.icons_threads);
 
-        // println!("foo1");
+        println!("foo1");
         for thread in icons_threads {
-            // println!("foo2");
+            println!("foo2");
             thread.join().unwrap();
-            // println!("foo3");
+            println!("foo3");
         }
-        // println!("foo4");
+        println!("foo4");
 
-        self.monitor
-            .destroy_icons_flag
-            .store(false, Ordering::SeqCst);
+        let data = self.monitor.data.lock().unwrap();
+        data.destroy_icons_flag.store(false, Ordering::SeqCst);
     }
 
     pub fn process_focused_window(&mut self, window_id: i32) {
@@ -266,11 +317,17 @@ impl Core {
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<i32> {
-        i3::get_focused_desktop_id(&mut self.connection, &self.monitor.name)
+        let data = Arc::clone(&self.monitor.data);
+        let data = data.lock().unwrap();
+
+        i3::get_focused_desktop_id(&mut self.connection, &data.monitor_name)
     }
 
     pub fn get_focused_window_id(&mut self) -> Option<i32> {
-        i3::get_focused_window_id(&mut self.connection, &self.monitor.name)
+        let data = Arc::clone(&self.monitor.data);
+        let data = data.lock().unwrap();
+
+        i3::get_focused_window_id(&mut self.connection, &data.monitor_name)
     }
 
     pub fn is_curr_desk_empty(&mut self) -> bool {
