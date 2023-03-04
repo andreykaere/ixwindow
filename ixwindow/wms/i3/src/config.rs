@@ -7,14 +7,14 @@ pub const CONFIG_FILE: &str = "~/.config/ixwindow/i3/config.toml";
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub gap: String,
-    pub x: u16,
-    pub y: u16,
+    pub x: i16,
+    pub y: i16,
     pub size: u16,
     pub prefix: String,
     pub config_dir: String,
     pub cache_dir: String,
     pub color: String,
-    pub gap_per_desk: u16,
+    pub gap_per_desk: f32,
 }
 
 impl Config {
@@ -54,7 +54,7 @@ mod tests {
         assert_eq!(config.size, 24);
         assert_eq!(
             config.cache_dir,
-            "$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
+            "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
         );
     }
 
