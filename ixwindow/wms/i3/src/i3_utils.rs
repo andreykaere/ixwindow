@@ -161,8 +161,7 @@ fn get_all_nodes_on_mon(
     monitor_name: &str,
 ) -> Vec<Node> {
     let desktops = get_desks_on_mon(conn, monitor_name);
-    let nodes: Vec<_> =
-        desktops.into_iter().map(|x| x.nodes).flatten().collect();
+    let nodes: Vec<_> = desktops.into_iter().flat_map(|x| x.nodes).collect();
 
     nodes
 }
@@ -250,7 +249,7 @@ pub fn calculate_dyn_x(
 ) -> i16 {
     let desks_num = get_desks_on_mon(conn, monitor_name).len();
 
-    config.x + (config.gap_per_desk as i16) * (desks_num as i16)
+    ((config.x as f32) + config.gap_per_desk * (desks_num as f32)) as i16
 }
 
 #[cfg(test)]

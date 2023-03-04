@@ -14,7 +14,7 @@ pub struct Config {
     pub config_dir: String,
     pub cache_dir: String,
     pub color: String,
-    pub gap_per_desk: u16,
+    pub gap_per_desk: f32,
 }
 
 impl Config {
