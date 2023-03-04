@@ -166,14 +166,15 @@ impl Core {
     }
 
     pub fn process_icon(&mut self, window_id: i32) {
-        let icon_name = i3::get_icon_name(window_id);
+        let state = &self.monitor.state;
 
-        if let Some(prev_icon) = &self.monitor.state.prev_icon {
-            // If icon is the same, don't do anything
-            if &icon_name == prev_icon {
-                return;
-            }
+        if state.prev_icon == state.curr_icon {
+            return;
         }
+
+        // curr_icon is not `None`, because we put the current icon name before
+        // calling `process_icon`
+        let icon_name = state.curr_icon.as_ref().unwrap();
 
         let config = &self.config;
         let icon_path = format!("{}/{}.jpg", &config.cache_dir, icon_name);
@@ -224,13 +225,9 @@ impl Core {
 
         let icons_threads = mem::take(&mut self.monitor.icons_threads);
 
-        // println!("foo1");
         for thread in icons_threads {
-            // println!("foo2");
             thread.join().unwrap();
-            // println!("foo3");
         }
-        // println!("foo4");
 
         self.monitor
             .destroy_icons_flag
