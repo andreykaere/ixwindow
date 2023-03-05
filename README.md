@@ -81,12 +81,14 @@ all window managers run `./uninstall --all`.
 
 ## Configuration
 
-Default configuration file is located at
-`$XDG_CONFIG_HOME/ixwindow/ixwindow.toml`. You can also control it with
-environmental variable `IXWINDOW_CONFIG_PATH`, or run `ixwindow` script with
+Default configuration file is supposed to be located at
+`$XDG_CONFIG_HOME/ixwindow/ixwindow.toml`. If you want it to be located
+somewhere else, you should specify that in environmental variable
+`IXWINDOW_CONFIG_PATH`, or run `ixwindow` script with
 `--config=<path_to_config>` option.
 
-In config file, there are various options, that can be modified, such as:
+In config file, there are various options, that can be modified (example of
+configuration file can be found in `examples/ixwindow.toml`), such as:
 - background color of polybar bar
 - size of icon
 - coordinates for icon
@@ -106,8 +108,8 @@ restart`).
 
 `ixwindow` uses the output of `xprop` for generating icons automatically. 
 Most of the times it works, but for some applications, for example, Spotify,
-it doesn't work. Then, if you want to have an icon for these applications, you 
-have to add them yourself. 
+it doesn't. In this case, if you want to have an icon for these applications,
+you have to add them manually. 
 
 ### Adding custom icons
 
@@ -139,7 +141,6 @@ You can try it out on some icons in `examples/custom-icons` folder.
 
 - Lack of png support, but replacing `jpg` with `png` would require compositor 
 as the dependency as well
-- Untested on multimonitors system
 - Manual specification, but seems to be unfixable at this point, since polybar 
 doesn't support inserting images into bar for now
 - (for `bspwm`) Not being able to stop `./ixwindow` with `Ctrl-C`, due to background
