@@ -152,7 +152,7 @@ impl Core {
         );
 
         let icon_thread = thread::spawn(move || {
-            x11_utils::display_icon(
+            let result = x11_utils::display_icon(
                 icon_path,
                 dyn_x,
                 y,
@@ -160,6 +160,10 @@ impl Core {
                 monitor_name,
                 flag,
             );
+
+            // We don't want to throw a error if displaying icon fails for
+            // some reason
+            result.unwrap_or(());
         });
 
         self.monitor.icons_threads.push(icon_thread);
