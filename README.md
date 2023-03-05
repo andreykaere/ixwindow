@@ -19,13 +19,12 @@ as polybar's `tail = true`.
 
 ### Common 
 - `xprop`
-- `xdo`
 - `imagemagick` (for converting `.png` icons to `.jpg`)
 - [`cargo`](https://github.com/rust-lang/cargo)
 
 For debian-based systems you can install it by running
 ```bash
-sudo apt install xdo xprop imagemagick g++ libopencv-dev 
+sudo apt install xprop imagemagick
 ```
 For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
 
@@ -33,12 +32,13 @@ For cargo installation instructions, see [here](https://github.com/rust-lang/car
 - `bash`
 - `bspwm`
 - `bspc`
+- `xdo`
 - [`xdotool`](https://github.com/jordansissel/xdotool) (version 3.20211022.1)
 
 For debian-based systems you can install it by running (make sure version is
 correct, otherwise see note below):
 ```bash
-sudo apt install xdotool
+sudo apt install xdotool xdo
 ```
 
 ### For i3
