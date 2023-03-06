@@ -80,6 +80,9 @@ display_icon() {
 
 
 generate_icon() {
+    # Needed for some applications, because sometimes icon is not added right
+    # away and some pause is needed
+    sleep 0.5
     "$PREFIX/generate-icon" "$CACHE_DIR" "$SIZE" "$COLOR" "$1"
 }
 
