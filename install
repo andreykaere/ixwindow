@@ -41,9 +41,6 @@ install_wm () {
         "bspwm")
             cp -r "ixwindow/wms/bspwm" "ixwindow_compiled/bspwm"
 
-            local config="$(echo "$XDG_CONFIG_HOME/ixwindow/ixwindow.toml" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
-            sed -i "s/\$\$BSPWM_CONFIG/\"$config\"/g" ixwindow_compiled/ixwindow-convert
-
             cd ixwindow_compiled/bspwm/polybar-ixwindow-icon && cargo build --release
             cd ../ixwindow && cargo build --release
 
@@ -64,9 +61,6 @@ install_wm () {
         "i3")
             cp -r "ixwindow/wms/i3" "ixwindow_compiled/i3"
             
-            local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
-            sed -i "s/\$\$I3_CONFIG/\"$config\"/g" ixwindow_compiled/ixwindow-convert
-
             cd ixwindow_compiled/i3 && cargo build --release  
             cd ../ && cp i3/target/release/ixwindow_i3 ./
 

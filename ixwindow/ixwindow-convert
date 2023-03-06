@@ -90,17 +90,7 @@ init_config () {
     fi 
 }
 
-choose_config () {
-    case "$1" in
-        "i3")
-            CONFIG=$$I3_CONFIG
-            ;;
-
-        "bspwm")
-            CONFIG=$$BSPWM_CONFIG
-            ;;
-    esac
-}
+CONFIG="$HOME/.config/ixwindow/ixwindow.toml"
 
 # TODO
 # set_default_wm () {
