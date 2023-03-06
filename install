@@ -58,7 +58,7 @@ install_wm () {
             mv temp-main ixwindow
             cd ../../
 
-            rm -r "$PREFIX/bspwm"
+            rm -r "$PREFIX/bspwm" 2> /dev/null
             ;;
 
         "i3")
@@ -74,11 +74,11 @@ install_wm () {
             mv ixwindow_i3 i3/ixwindow
             cd ../
 
-            rm -r "$PREFIX/i3"
+            rm -r "$PREFIX/i3" 2> /dev/null
             ;;
     esac
     
-    cp -r ixwindow_compiled/* "$PREFIX"
+    mkdir -p "$PREFIX" && cp -r ixwindow_compiled/* "$PREFIX"
 }
 
 WINDOW_MANAGES=()

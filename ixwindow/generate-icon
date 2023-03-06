@@ -18,6 +18,7 @@ name="$WM_CLASS"
 
 CACHE_FILE="$CACHE_DIR/$name"
 
+mkdir -p "$CACHE_DIR"
 
 if [ -f "$CACHE_FILE.jpg" ]; then
     exit 0
