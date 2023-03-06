@@ -19,5 +19,5 @@ fn main() {
             .spawn()
             .unwrap();
 
-    child.wait();
+    child.wait().unwrap();
 }

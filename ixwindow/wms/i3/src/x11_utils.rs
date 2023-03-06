@@ -11,11 +11,11 @@ use image::GenericImageView;
 
 use x11rb::connection::Connection;
 use x11rb::protocol::randr::{
-    self, get_output_info, get_screen_resources, ConnectionExt as _,
-    GetCrtcInfoReply, GetScreenResourcesReply,
+    self, ConnectionExt as _,
+    GetCrtcInfoReply,
 };
 use x11rb::protocol::xproto::*;
-use x11rb::protocol::Event;
+
 
 pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
     let (conn, screen_num) = x11rb::connect(None)?;
@@ -174,11 +174,11 @@ pub fn display_icon(
 
 #[cfg(test)]
 mod tests {
-    use super::super::i3_utils as i3;
-    use super::*;
-    use crate::config::expand_filename;
-    use i3ipc::I3Connection;
-    use std::env;
+    
+    
+    
+    
+    
 
     // fn get_icon_path() -> String {
     //     env::current_dir().unwrap().to_str().unwrap().to_owned()

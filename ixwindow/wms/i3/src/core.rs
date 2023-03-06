@@ -1,7 +1,7 @@
-use i3ipc::reply::Node;
+
 use i3ipc::I3Connection;
 
-use std::collections::HashMap;
+
 use std::fs;
 use std::io::{self, Write};
 use std::mem;

@@ -74,18 +74,6 @@ fn get_desktop_windows(conn: &mut I3Connection, desktop: i32) -> Vec<Node> {
     vec![]
 }
 
-fn get_desk_num(desktop: Node) -> Option<i32> {
-    if desktop.nodetype != NodeType::Workspace {
-        panic!("This is not a desktop");
-    }
-
-    if let Some(name) = desktop.name {
-        return name.parse::<i32>().ok();
-    }
-
-    None
-}
-
 pub fn get_focused_monitor(conn: &mut I3Connection) -> String {
     let monitors = conn
         .get_outputs()
@@ -119,12 +107,6 @@ pub fn get_focused_desktop_id(
     // Zero desktops on given monitor
     // TODO: check if it is possible on multi monitors setup
     None
-}
-
-fn get_focused_desktop(conn: &mut I3Connection, monitor_name: &str) -> Node {
-    let curr_desk_id = get_focused_desktop_id(conn, monitor_name).unwrap();
-
-    convert_desk_id_to_node(conn, curr_desk_id)
 }
 
 pub fn convert_desk_id_to_node(
@@ -255,8 +237,29 @@ pub fn calculate_dyn_x(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::Core;
+
     use i3ipc::I3Connection;
+
+    fn get_desk_num(desktop: Node) -> Option<i32> {
+        if desktop.nodetype != NodeType::Workspace {
+            panic!("This is not a desktop");
+        }
+
+        if let Some(name) = desktop.name {
+            return name.parse::<i32>().ok();
+        }
+
+        None
+    }
+
+    fn get_focused_desktop(
+        conn: &mut I3Connection,
+        monitor_name: &str,
+    ) -> Node {
+        let curr_desk_id = get_focused_desktop_id(conn, monitor_name).unwrap();
+
+        convert_desk_id_to_node(conn, curr_desk_id)
+    }
 
     #[test]
     fn test_tree() {
@@ -268,15 +271,15 @@ mod tests {
         println!("Tree:\n{:#?}", tree);
     }
 
-    // #[test]
-    // fn get_focused_monitor_works() {
-    //     let mut connection = I3Connection::connect().unwrap();
+    #[test]
+    fn get_focused_monitor_works() {
+        let mut connection = I3Connection::connect().unwrap();
 
-    //     println!(
-    //         "Focused monitor:\n{:?}",
-    //         get_focused_monitor(&mut connection)
-    //     );
-    // }
+        println!(
+            "Focused monitor:\n{:?}",
+            get_focused_monitor(&mut connection)
+        );
+    }
 
     #[test]
     fn get_desks_on_mon_works() {
