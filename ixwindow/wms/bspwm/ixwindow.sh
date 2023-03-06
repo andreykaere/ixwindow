@@ -40,7 +40,7 @@ print_info() {
         
         # Doesn't always work, so xprop is more realiable here 
         # WM_CLASS="$(bspc query -T -n "$Node" | jq -r '.client.className')"  
-        local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
+        local WM_CLASS="$(get_wm_class "$wid")"
         
         case "$WM_CLASS" in
             'Brave-browser')
@@ -96,10 +96,16 @@ update_prev_icon() {
    echo "$1" > "$PREV_ICON" 
 }
 
+get_wm_class() {
+    echo "$(xprop -id "$1" WM_CLASS | awk -F '=' '{print $2}' | \
+    awk -F ',' '{print $2}' |  tr -d '"' | \
+    sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+}
+
 process_window() {
     local desk="$2"    
     local wid="$1"
-    local WM_CLASS="$(xprop -id "$wid" WM_CLASS | awk '{print $4}' | tr -d '"')"
+    local WM_CLASS="$(get_wm_class "$wid")"
     
     # If there is a fullscreen node, don't show anything, 
     # since we shouldn't see it

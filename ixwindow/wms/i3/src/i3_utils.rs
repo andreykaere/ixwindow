@@ -47,7 +47,7 @@ pub fn get_wm_class(window_id: i32) -> String {
 }
 
 pub fn get_icon_name(window_id: i32) -> String {
-    get_wm_class(window_id)
+    get_wm_class(window_id).replace(" ", "-")
 }
 
 // Returns all childs of the node, that themselves do not contain any windows,
