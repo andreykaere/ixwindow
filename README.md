@@ -7,7 +7,7 @@ an icon for it. It also allows you more customization of printing window info.
 Below is represented an example of what `ixwindow` looks like in action:
 
 <p align="center">
-  <img src="examples/example.gif" alt="animated" />
+  <img src="assets/bspwm_example.gif" alt="animated" />
 </p>
 
 **Note:** basically, it doesn't really depend on polybar itself, it can be used 
@@ -51,13 +51,18 @@ have to either build the newer version from source, or modify source code of
 this project to your versions. (if it's even possible)
 
 
-## Installation
+## Downloading
 
-Download the source code from the `master` branch using the following command:
+If you want to install stable version, then you should download the source code 
+from the `master` branch using the following command:
 ```bash
 git clone git@github.com:andreykaere/ixwindow.git && cd ixwindow
 ```
-Then execute `./install <names of wm> --prefix=<prefix>` (e.g. to install for both, you will have to run `./install "bspwm"
+If you want the bleeding edge version, switch to `dev` branch.
+
+### Installation
+
+Execute `./install <names of wm> --prefix=<prefix>` (e.g. to install for both, you will have to run `./install "bspwm"
 "i3"`). 
 You will also need to add the following to your polybar `config` file:
 
