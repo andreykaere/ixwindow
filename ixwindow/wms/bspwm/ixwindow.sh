@@ -102,10 +102,15 @@ get_wm_class() {
     sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
 }
 
+get_icon_name() {
+    echo "$(get_wm_class "$1").jpg"
+}
+
 process_window() {
     local desk="$2"    
     local wid="$1"
     local WM_CLASS="$(get_wm_class "$wid")"
+    local icon_name="$(get_icon_name "$wid")"
     
     # If there is a fullscreen node, don't show anything, 
     # since we shouldn't see it
@@ -114,8 +119,10 @@ process_window() {
         reset_prev_icon
         return 0;
     fi
-
-    generate_icon "$wid"
+    
+    if [ ! -f "$CACHE_DIR/$icon_name" ]; then
+        generate_icon "$wid"
+    fi
    
     # We use icon-prev thing just so icon won't blink 
     # when one is switching between the same types of windows
