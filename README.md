@@ -62,10 +62,9 @@ If you want the bleeding edge version, switch to `dev` branch.
 
 ### Installation
 
-Execute `./install <names of wm> --prefix=<prefix>` (e.g. to install for both, you will have to run `./install "bspwm"
-"i3"`). 
+Execute `./install <names of wm>` (e.g. to install for both, you can run
+`./install "bspwm" "i3"`). To see more options run `./install --help`. 
 You will also need to add the following to your polybar `config` file:
-
 ```dosini
 [module/ixwindow]
 type = custom/script
@@ -138,7 +137,7 @@ icons.
 format. Usually, one can find it somewhere in `/usr/share/icons` directory
 (one can use `find` or `fd` utility for it).
 
-You can try it out on some icons in `examples/custom-icons` folder.
+You can try it out on some icons located in `examples/custom-icons` folder.
 
 ## Known issues & limitations
 
