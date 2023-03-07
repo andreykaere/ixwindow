@@ -1,6 +1,4 @@
-
 use i3ipc::I3Connection;
-
 
 use std::fs;
 use std::io::{self, Write};
@@ -11,7 +9,6 @@ use std::str;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
 
 use super::config::{Config, I3Config};
 use super::i3_utils as i3;
@@ -113,10 +110,6 @@ impl Core {
     }
 
     pub fn generate_icon(&self, window_id: i32) {
-        // This is needed to make sure that WM set all necessary properties to
-        // the window
-        thread::sleep(Duration::from_millis(100));
-
         let config = &self.config;
 
         if !Path::new(&config.cache_dir).is_dir() {
