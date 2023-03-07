@@ -12,9 +12,6 @@ ARGS:
 
 
 OPTIONS:
-    -c, --config
-        Path to the configuration file for ixwindow.
-
     -h, --help
         Show this message.
 
@@ -26,85 +23,10 @@ OPTIONS:
 
     --cache
         Specify cache folder directly. Overwrites config size if both specified.
-
-    --wm
-        Specify for which window manager you want to generate icon for. 
-        This will affect the default choice of config file.
-
-    --default
-        Makes specified window manager the default one, which will be assumed 
-        if option --wm was not used.
 "
 
 exit 1
 }
-
-
-# Trim trailing spaces, which can occur because of spaces around `=` in config
-# file
-trim () {
-    echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
-}
-
-# parse_toml takes path to config and then the name of the variable in the
-# config and returns the value of that variable
-parse_toml () {
-    local config="$1"
-    local var_name="$2"
-    
-    while read -r line 
-    do
-        local var="$(trim "$(echo "$line" | awk -F "=" '{print $1}')")"
-
-        if [ "$var" == "$var_name" ]; then
-            local res="$(echo "$(trim "$(echo "$line" | awk -F "=" '{print $2}')")" | tr -d '"')"
-
-            if [ "$var" == "gap" ]; then
-                echo "$res"
-            else
-                eval "echo \"$res\""
-            fi
-        fi
-    done < "$config"
-}
-
-get_wm () {
-    wmctrl -m | awk '{if ($1 == "Name:") print $2}'
-}
-
-init_config () {
-    local config="$1" 
-
-    # Check if variables size and color were set before
-    # and if they were set, we should not overwrite them
-    if [ -z "${size+x}" ]; then
-        size="$(parse_toml "$config" "size")"
-    fi
-
-    if [ -z "${color+x}" ]; then
-        color="$(parse_toml "$config" "color")"
-    fi 
-    
-    if [ -z "${cache_dir+x}" ]; then
-        cache_dir="$(parse_toml "$config" "cache_dir")"
-    fi 
-}
-
-choose_config () {
-    case "$1" in
-        "i3")
-            CONFIG=$$I3_CONFIG
-            ;;
-
-        "bspwm")
-            CONFIG=$$BSPWM_CONFIG
-            ;;
-    esac
-}
-
-# TODO
-# set_default_wm () {
-# }
 
 while [ $# -gt 0 ];
 do
@@ -113,12 +35,6 @@ do
             usage
             exit 0
             ;;
-
-        "--config" | "-c")
-            CONFIG="$2"
-            shift 2
-            ;;
-
         "--size")
             size="$2"
             shift 2
@@ -132,17 +48,7 @@ do
             cache_dir="$2"
             shift 2
             ;;
-
-        "--wm")
-            wm="$2"
-            choose_config "$wm"
-
-            shift 2
-            ;;
-
         *)
-            init_config "$CONFIG"
-
             while [ $# -gt 0 ]; 
             do
                 name="${1%.*}"

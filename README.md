@@ -125,13 +125,11 @@ of the icon, named as `WM_CLASS` (which you can find by running `xprop
 WM_CLASS` and selecting your app). Then you run the following command
 (requires `imagemagick`): 
 ```bash
-ixwindow-convert --wm <wm> <icon-name>
+ixwindow-convert --size <size> --color <color> --cache <chache_dir> <icon-name>
 ```
-where `<icon-name>` is the right name as described above and `<wm>` is the
-name of window manager you want it to be generated for (i.e. the program will
-use corresponding config file). This will convert icon to `jpg` with
-appropriate background color and move to your cache directory. For more info
-run `ixwindow-convert --help`.
+where `<icon-name>` is the right name as described above. This will convert
+icon to `jpg` format with appropriate background color and move to your cache 
+directory. 
 
 **Note:** This method can be also used for replacing automatically generated
 icons. 
