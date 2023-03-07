@@ -8,11 +8,12 @@ Below is represented an example of what `ixwindow` looks like in action:
 
 ### Bspwm
 
-[bspwm\_demo.webm](assets/bspwm_demo.webm)
+[bspwm_demo.webm](https://user-images.githubusercontent.com/32775308/223551520-a605d964-29f6-4602-874d-2b1b254d432c.webm)
 
 ### I3
 
-[i3\_demo.webm](assets/i3_demo.webm)
+[i3_demo.webm](https://user-images.githubusercontent.com/32775308/223551794-b1300ef6-f65a-4d05-89d3-9af3be25765f.webm)
+
 
 **Note:** basically, it doesn't really depend on polybar itself, it can be used 
 with any other bar as well, you just need to implement the same behavior,
