@@ -6,9 +6,13 @@ feature is that `ixwindow` displays not only info about active window, but also
 an icon for it. It also allows you more customization of printing window info.
 Below is represented an example of what `ixwindow` looks like in action:
 
-<p align="center">
-  <img src="assets/bspwm_example.gif" alt="animated" />
-</p>
+### Bspwm
+
+[bspwm\_demo.webm](assets/bspwm_demo.webm)
+
+### I3
+
+[i3\_demo.webm](assets/i3_demo.webm)
 
 **Note:** basically, it doesn't really depend on polybar itself, it can be used 
 with any other bar as well, you just need to implement the same behavior,
