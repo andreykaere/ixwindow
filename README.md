@@ -80,14 +80,6 @@ tail = true
 and put it somewhere on bar, for example, add it right next to `bspwm`: 
 `modules-left = bspwm ixwindow`.
 
-### Uninstallation
-
-To uninstall, simply run `./uninstall <wm>`, where `<wm>` is the one you want
-to uninstall files from. Make sure that paths, specified in the `uninstall` 
-script, match the ones you actually use. If you want additionally to remove 
-cached icons, you should run it with `--cache` option. For removing files for
-all window managers run `./uninstall --all`.
-
 ## Configuration
 
 Default configuration file is supposed to be located at
