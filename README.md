@@ -76,9 +76,40 @@ type = custom/script
 exec = /path/to/ixwindow
 tail = true
 ```
+and put it somewhere on bar, for example, add it right next to your window
+manager: `modules-left = <wm> ixwindow`. 
 
-and put it somewhere on bar, for example, add it right next to `bspwm`: 
-`modules-left = bspwm ixwindow`.
+If you have multi monitors setup, then you need to have distinct bar for
+each of them and create modules like this:
+```dosini
+[module/ixwindow1]
+type = custom/script
+exec = /path/to/ixwindow <name_of_monitor_1>
+tail = true
+
+[module/ixwindow2]
+type = custom/script
+exec = /path/to/ixwindow <name_of_monitor_2>
+tail = true
+...
+```
+and then put these modules on respective bars:
+```dosini
+...
+; Bar for monitor1
+[bar/bar1]
+...
+modules-left = <wm> ixwindow1
+...
+
+; Bar for monitor2
+[bar/bar2]
+...
+modules-left = <wm> ixwindow2
+...
+
+...
+```
 
 ## Configuration
 
