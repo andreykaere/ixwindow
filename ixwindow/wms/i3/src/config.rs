@@ -3,10 +3,9 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-// use toml::Value;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct I3Config {
+pub struct EssentialConfig {
     pub prefix: String,
     pub gap: String,
     pub x: i16,
@@ -14,121 +13,149 @@ pub struct I3Config {
     pub size: u16,
     pub cache_dir: String,
     pub color: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct I3Config {
+    #[serde(flatten)]
+    pub essential_config: EssentialConfig,
+
     pub gap_per_desk: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BspwmConfig {
-    pub prefix: String,
-    pub gap: String,
-    pub x: u16,
-    pub y: u16,
-    pub size: u16,
-    pub cache_dir: String,
-    pub color: String,
+    #[serde(flatten)]
+    pub essential_config: EssentialConfig,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Config {
-    I3Config(I3Config),
-    BspwmConfig(BspwmConfig),
-}
+pub trait Config {
+    fn essential_config(&self) -> &EssentialConfig;
 
-impl Config {
-    pub fn init() -> toml::Table {
-        let config_filename = match Self::locate_config_file() {
-            Some(config_file) => config_file,
-            None => {
-                if let Some(config_opt) = Self::process_config_as_option() {
-                    config_opt
-                } else {
-                    panic!("Couldn't find config file");
-                }
-            }
-        };
-
-        let mut config_file =
-            File::open(config_filename).expect("Failed to open config file");
-        let mut config_str = String::new();
-        config_file.read_to_string(&mut config_str).unwrap();
-
-        config_str.parse().unwrap()
+    fn gap(&self) -> &str {
+        &self.essential_config().gap
     }
 
-    fn load(name: &str) -> Config {
-        let mut table = Self::init();
-
-        // We use remove here, because we need ownership for try_into
-        let config_table = table.remove(name).unwrap();
-
-        match name {
-            "i3" => {
-                let mut i3_config: I3Config = config_table.try_into().unwrap();
-                i3_config.cache_dir = expand_filename(&i3_config.cache_dir);
-                i3_config.prefix = expand_filename(&i3_config.prefix);
-
-                Config::I3Config(i3_config)
-            }
-
-            "bspwm" => {
-                let mut bspwm_config: BspwmConfig =
-                    config_table.try_into().unwrap();
-                bspwm_config.cache_dir =
-                    expand_filename(&bspwm_config.cache_dir);
-                bspwm_config.prefix = expand_filename(&bspwm_config.prefix);
-
-                Config::BspwmConfig(bspwm_config)
-            }
-
-            _ => {
-                unimplemented!();
-            }
-        }
+    fn color(&self) -> &str {
+        &self.essential_config().color
     }
 
-    pub fn load_i3() -> Config {
-        Self::load("i3")
+    fn cache_dir(&self) -> &str {
+        &self.essential_config().cache_dir
     }
 
-    pub fn load_bspwm() -> Config {
-        Self::load("bspwm")
+    fn prefix(&self) -> &str {
+        &self.essential_config().prefix
     }
 
-    pub fn process_config_as_option() -> Option<String> {
-        let args = env::args();
-
-        for arg in args {
-            let parse: Vec<_> = arg.split("--config=").collect();
-
-            if parse.len() == 2 {
-                return Some(parse[1].to_string());
-            }
-        }
-
-        None
+    fn x(&self) -> i16 {
+        self.essential_config().x
     }
 
-    pub fn locate_config_file() -> Option<String> {
-        if let Ok(default_dir) = env::var("XDG_CONFIG_HOME") {
-            let default_config =
-                format!("{default_dir}/ixwindow/ixwindow.toml");
+    fn y(&self) -> i16 {
+        self.essential_config().y
+    }
 
-            if Path::new(&default_config).exists() {
-                return Some(default_config);
-            }
-        }
-
-        if let Ok(specified_config) = env::var("IXWINDOW_CONFIG_PATH") {
-            if Path::new(&specified_config).exists() {
-                return Some(specified_config);
-            }
-        }
-
-        None
+    fn size(&self) -> u16 {
+        self.essential_config().size
     }
 }
 
-pub fn expand_filename(filename: &str) -> String {
+impl Config for I3Config {
+    fn essential_config(&self) -> &EssentialConfig {
+        &self.essential_config
+    }
+}
+
+impl Config for BspwmConfig {
+    fn essential_config(&self) -> &EssentialConfig {
+        &self.essential_config
+    }
+}
+
+pub fn read_to_table() -> toml::Table {
+    let config_filename = match locate_config_file() {
+        Some(config_file) => config_file,
+        None => {
+            if let Some(config_opt) = process_config_as_option() {
+                config_opt
+            } else {
+                panic!("Couldn't find config file");
+            }
+        }
+    };
+
+    let mut config_file =
+        File::open(config_filename).expect("Failed to open config file");
+    let mut config_str = String::new();
+    config_file.read_to_string(&mut config_str).unwrap();
+
+    config_str.parse().unwrap()
+}
+
+pub fn load_i3() -> I3Config {
+    let mut table = read_to_table();
+
+    // We use remove here, because we need ownership for try_into
+    let config_table = table.remove("i3").unwrap();
+
+    let mut i3_config: I3Config = config_table.try_into().unwrap();
+    i3_config.essential_config.cache_dir =
+        expand_filename(&i3_config.essential_config.cache_dir);
+    i3_config.essential_config.prefix =
+        expand_filename(&i3_config.essential_config.prefix);
+
+    i3_config
+}
+
+pub fn load_bspwm() -> BspwmConfig {
+    let mut table = read_to_table();
+
+    // We use remove here, because we need ownership for try_into
+    let config_table = table.remove("bspwm").unwrap();
+
+    let mut bspwm_config: BspwmConfig = config_table.try_into().unwrap();
+    bspwm_config.essential_config.cache_dir =
+        expand_filename(&bspwm_config.essential_config.cache_dir);
+    bspwm_config.essential_config.prefix =
+        expand_filename(&bspwm_config.essential_config.prefix);
+
+    bspwm_config
+}
+
+fn process_config_as_option() -> Option<String> {
+    let args = env::args();
+
+    for arg in args {
+        let parse: Vec<_> = arg.split("--config=").collect();
+
+        if parse.len() == 2 {
+            return Some(parse[1].to_string());
+        }
+    }
+
+    None
+}
+
+fn locate_config_file() -> Option<String> {
+    if let Ok(default_dir) = env::var("XDG_CONFIG_HOME") {
+        let default_config = format!("{default_dir}/ixwindow/ixwindow.toml");
+
+        if Path::new(&default_config).exists() {
+            return Some(default_config);
+        }
+    }
+
+    if let Ok(specified_config) = env::var("IXWINDOW_CONFIG_PATH") {
+        if Path::new(&specified_config).exists() {
+            return Some(specified_config);
+        }
+    }
+
+    None
+}
+
+fn expand_filename(filename: &str) -> String {
     let filename = &shellexpand::env(filename).unwrap();
     let filename = shellexpand::tilde(filename).to_string();
 
@@ -141,34 +168,32 @@ mod tests {
 
     #[test]
     fn locate_config_file_works() {
-        Config::locate_config_file();
+        locate_config_file();
     }
 
     #[test]
     fn parse_config_works() {
-        let config = Config::load("i3");
+        let config = load_i3();
 
-        if let Config::I3Config(conf) = config {
-            assert_eq!(conf.size, 24);
-            assert_eq!(
-                conf.cache_dir,
-                "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
-            );
-        }
+        assert_eq!(config.size(), 24);
+        assert_eq!(
+            config.cache_dir(),
+            "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+        );
     }
 
     #[test]
     fn expand_filename_works() {
-        let config = Config::load_i3();
+        let config = load_i3();
 
         assert_eq!(
-            expand_filename(&config.cache_dir),
+            expand_filename(config.cache_dir()),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
         );
     }
 
     #[test]
     fn process_config_as_option_works() {
-        Config::process_config_as_option();
+        process_config_as_option();
     }
 }

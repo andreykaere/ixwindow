@@ -10,12 +10,8 @@ use image::io::Reader;
 use image::GenericImageView;
 
 use x11rb::connection::Connection;
-use x11rb::protocol::randr::{
-    self, ConnectionExt as _,
-    GetCrtcInfoReply,
-};
+use x11rb::protocol::randr::{self, ConnectionExt as _, GetCrtcInfoReply};
 use x11rb::protocol::xproto::*;
-
 
 pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
     let (conn, screen_num) = x11rb::connect(None)?;
@@ -147,51 +143,33 @@ pub fn display_icon(
         thread::sleep(timeout);
     }
 
-    // loop {
-    // let event = conn.poll_for_event()?;
-
-    // last_event_time = event.time;
-
-    // let current_time = conn.conn_time()?;
-    // let elapsed_time = current_time - last_event_time;
-    // if elapsed_time >= timeout {
-    //     continue;
-    // }
-
-    // println!("1:{event:#?} {}", flag.load(Ordering::SeqCst));
-    // println!("bar");
-
-    // if let Event::Expose(_) = event {
-    //     conn.copy_area(pixmap, win, gc, 0, 0, 0, 0, width, height)?;
-    //     conn.flush()?;
-    // }
-    // conn.flush()?;
-    // }
-
-    // println!("foo");
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    
-    
-    
-    
-    
+    use super::*;
+    use std::env;
 
-    // fn get_icon_path() -> String {
-    //     env::current_dir().unwrap().to_str().unwrap().to_owned()
-    //         + "/tests/alacritty.png"
-    // }
+    fn get_icon_path() -> String {
+        env::current_dir().unwrap().to_str().unwrap().to_owned()
+            + "/tests/alacritty.png"
+    }
 
-    // fn display(monitor_name: &str) {
-    //     display_icon(&get_icon_path(), 270, 6, 24, monitor_name);
-    // }
+    fn display(monitor_name: &str) {
+        display_icon(
+            &get_icon_path(),
+            270,
+            6,
+            24,
+            monitor_name,
+            Arc::new(AtomicBool::new(true)),
+        );
+    }
 
-    // #[test]
-    // fn display_icon_test() {
-    //     let monitor_name = "eDP-1";
-    //     display(monitor_name);
-    // }
+    #[test]
+    fn display_icon_test() {
+        let monitor_name = "eDP-1";
+        display(monitor_name);
+    }
 }
