@@ -21,7 +21,7 @@ y = 6
 gap = "         "
 
 
-[i3wm]
+[i3]
 # Destination folder
 prefix = "$HOME/.config/polybar/scripts/ixwindow"
 

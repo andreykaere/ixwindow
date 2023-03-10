@@ -24,16 +24,20 @@ pub struct State {
 impl State {
     pub fn init(
         conn: &mut I3Connection,
-        config: &I3Config,
+        config: &Config,
         monitor_name: &str,
     ) -> Self {
-        let dyn_x = i3::calculate_dyn_x(conn, config, monitor_name);
+        if let Config::I3Config(config) = config {
+            let dyn_x = i3::calculate_dyn_x(conn, config, monitor_name);
 
-        Self {
-            curr_icon: None,
-            prev_icon: None,
-            dyn_x,
+            return Self {
+                curr_icon: None,
+                prev_icon: None,
+                dyn_x,
+            };
         }
+
+        unreachable!();
     }
 
     pub fn update_icon(&mut self, icon_name: &str) {
@@ -58,7 +62,7 @@ pub struct Monitor {
 impl Monitor {
     pub fn init(
         conn: &mut I3Connection,
-        config: &I3Config,
+        config: &Config,
         monitor_name: Option<String>,
     ) -> Self {
         let name = match monitor_name {
@@ -94,11 +98,14 @@ impl Core {
         let config = Config::load_i3();
         let monitor = Monitor::init(&mut connection, &config, monitor_name);
 
-        Self {
-            config,
-            connection,
-            monitor,
+        if let Config::I3Config(config) = config {
+            return Self {
+                config,
+                connection,
+                monitor,
+            };
         }
+        unreachable!();
     }
 
     pub fn process_start(&mut self) {

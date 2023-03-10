@@ -1,9 +1,9 @@
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use toml::Value;
+// use toml::Value;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct I3Config {
@@ -29,30 +29,13 @@ pub struct BspwmConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Config {
-    #[serde(rename = "i3wm")]
-    #[serde(deserialize_with = "ok_or_default")]
-    i3: Option<I3Config>,
-
-    #[serde(deserialize_with = "ok_or_default")]
-    bspwm: Option<BspwmConfig>,
-}
-
-// We don't want to panic in case one of the config is wrong, because it
-// should not be related to another one, since they do not depend on each
-// other
-// Copied from https://users.rust-lang.org/t/solved-serde-deserialization-on-error-use-default-values/6681
-fn ok_or_default<'de, T, D>(deserializer: D) -> Result<T, D::Error>
-where
-    T: Deserialize<'de> + Default,
-    D: Deserializer<'de>,
-{
-    let v: Value = Deserialize::deserialize(deserializer).unwrap();
-    Ok(T::deserialize(v).unwrap_or_default())
+pub enum Config {
+    I3Config(I3Config),
+    BspwmConfig(BspwmConfig),
 }
 
 impl Config {
-    pub fn init() -> Self {
+    pub fn init() -> toml::Table {
         let config_filename = match Self::locate_config_file() {
             Some(config_file) => config_file,
             None => {
@@ -68,29 +51,47 @@ impl Config {
             File::open(config_filename).expect("Failed to open config file");
         let mut config_str = String::new();
         config_file.read_to_string(&mut config_str).unwrap();
-        let config: Config = toml::from_str(&config_str).unwrap();
 
-        config
+        config_str.parse().unwrap()
     }
 
-    pub fn load_i3() -> I3Config {
-        let config = Self::init();
-        let mut i3_config =
-            config.i3.expect("While parsing config error occured");
-        i3_config.cache_dir = expand_filename(&i3_config.cache_dir);
-        i3_config.prefix = expand_filename(&i3_config.prefix);
+    fn load(name: &str) -> Config {
+        let mut table = Self::init();
 
-        i3_config
+        // We use remove here, because we need ownership for try_into
+        let config_table = table.remove(name).unwrap();
+
+        match name {
+            "i3" => {
+                let mut i3_config: I3Config = config_table.try_into().unwrap();
+                i3_config.cache_dir = expand_filename(&i3_config.cache_dir);
+                i3_config.prefix = expand_filename(&i3_config.prefix);
+
+                Config::I3Config(i3_config)
+            }
+
+            "bspwm" => {
+                let mut bspwm_config: BspwmConfig =
+                    config_table.try_into().unwrap();
+                bspwm_config.cache_dir =
+                    expand_filename(&bspwm_config.cache_dir);
+                bspwm_config.prefix = expand_filename(&bspwm_config.prefix);
+
+                Config::BspwmConfig(bspwm_config)
+            }
+
+            _ => {
+                unimplemented!();
+            }
+        }
     }
 
-    pub fn load_bspwm() -> BspwmConfig {
-        let config = Self::init();
-        let mut bspwm_config =
-            config.bspwm.expect("While parsing config error occured");
-        bspwm_config.cache_dir = expand_filename(&bspwm_config.cache_dir);
-        bspwm_config.prefix = expand_filename(&bspwm_config.prefix);
+    pub fn load_i3() -> Config {
+        Self::load("i3")
+    }
 
-        bspwm_config
+    pub fn load_bspwm() -> Config {
+        Self::load("bspwm")
     }
 
     pub fn process_config_as_option() -> Option<String> {
@@ -145,13 +146,15 @@ mod tests {
 
     #[test]
     fn parse_config_works() {
-        let config = Config::load_i3();
+        let config = Config::load("i3");
 
-        assert_eq!(config.size, 24);
-        assert_eq!(
-            config.cache_dir,
-            "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
-        );
+        if let Config::I3Config(conf) = config {
+            assert_eq!(conf.size, 24);
+            assert_eq!(
+                conf.cache_dir,
+                "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+            );
+        }
     }
 
     #[test]
