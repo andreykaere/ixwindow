@@ -1,5 +1,7 @@
 use i3ipc::I3Connection;
+
 use std::process::{Command, Stdio};
+use std::str;
 
 use super::i3_utils;
 
