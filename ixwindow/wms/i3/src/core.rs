@@ -2,13 +2,12 @@ use i3ipc::I3Connection;
 
 use std::fs;
 use std::io::{self, Write};
-use std::mem;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::str;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
+
+use x11rb::protocol::xproto::ConnectionExt;
+use x11rb::rust_connection::RustConnection;
 
 use super::config::{self, Config, I3Config};
 use super::i3_utils;
@@ -41,9 +40,8 @@ impl State {
 #[derive(Debug)]
 pub struct Monitor {
     pub state: State,
-    pub name: Arc<String>,
-    icons_threads: Vec<thread::JoinHandle<()>>,
-    destroy_icons_flag: Arc<AtomicBool>,
+    pub name: String,
+    prev_icon_id: Option<u32>,
 }
 
 impl Monitor {
@@ -55,15 +53,12 @@ impl Monitor {
         };
 
         let state = State::init();
-        let name = Arc::new(name);
-        let icons_threads = Vec::new();
-        let destroy_icons_flag = Arc::new(AtomicBool::new(false));
+        let prev_icon_id = None;
 
         Self {
             name,
             state,
-            icons_threads,
-            destroy_icons_flag,
+            prev_icon_id,
         }
     }
 }
@@ -74,7 +69,8 @@ where
     C: Config,
 {
     config: C,
-    connection: W,
+    wm_connection: W,
+    x11rb_connection: RustConnection,
     monitor: Monitor,
 }
 
@@ -89,22 +85,24 @@ where
 
 impl ConfigFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
     fn init(monitor_name: Option<String>) -> Self {
-        let connection =
+        let wm_connection =
             I3Connection::connect().expect("Failed to connect to i3");
         let config = config::load_i3();
         let monitor = Monitor::init(monitor_name);
+        let (x11rb_connection, _) = x11rb::connect(None).unwrap();
 
         Self {
             config,
-            connection,
+            wm_connection,
             monitor,
+            x11rb_connection,
         }
     }
 
     fn update_x(&mut self) {
         let config = &self.config;
         let desks_num = i3_utils::get_desks_on_mon(
-            &mut self.connection,
+            &mut self.wm_connection,
             &self.monitor.name,
         )
         .len();
@@ -152,33 +150,27 @@ where
         generate_icon_child.wait().expect("Failed to wait on child");
     }
 
-    pub fn show_icon(&mut self, icon_path: Arc<String>) {
+    pub fn show_icon(&mut self, icon_path: &str) {
         let config = &self.config;
 
-        let (curr_x, y, size, monitor_name, flag) = (
+        let (curr_x, y, size, monitor_name) = (
             self.monitor.state.curr_x,
             config.y(),
             config.size(),
-            Arc::clone(&self.monitor.name),
-            Arc::clone(&self.monitor.destroy_icons_flag),
+            &self.monitor.name,
         );
 
-        let icon_thread = thread::spawn(move || {
-            let result = x11_utils::display_icon(
-                icon_path,
-                curr_x,
-                y,
-                size,
-                monitor_name,
-                flag,
-            );
+        let icon_id = x11_utils::display_icon(
+            &self.x11rb_connection,
+            icon_path,
+            curr_x,
+            y,
+            size,
+            monitor_name,
+        )
+        .ok();
 
-            // We don't want to throw a error if displaying icon fails for
-            // some reason
-            result.unwrap_or(());
-        });
-
-        self.monitor.icons_threads.push(icon_thread);
+        self.monitor.prev_icon_id = icon_id;
     }
 
     pub fn process_icon(&mut self, window_id: i32) {
@@ -200,7 +192,7 @@ where
         }
 
         self.destroy_prev_icons();
-        self.show_icon(Arc::new(icon_path));
+        self.show_icon(&icon_path);
     }
 
     pub fn print_info(&mut self, window: Option<i32>) {
@@ -223,7 +215,7 @@ where
             None => println!("Empty"),
 
             Some(window_id) => {
-                let icon_name = &self.connection.get_icon_name(window_id);
+                let icon_name = &self.wm_connection.get_icon_name(window_id);
 
                 match icon_name.as_ref() {
                     "Brave-browser" => println!("Brave"),
@@ -235,28 +227,22 @@ where
     }
 
     pub fn destroy_prev_icons(&mut self) {
-        self.monitor
-            .destroy_icons_flag
-            .store(true, Ordering::SeqCst);
+        let conn = &self.x11rb_connection;
 
-        let icons_threads = mem::take(&mut self.monitor.icons_threads);
-
-        for thread in icons_threads {
-            thread.join().unwrap();
+        if let Some(id) = self.monitor.prev_icon_id {
+            conn.destroy_window(id)
+                .expect("Failed to destroy previous icon");
+            self.monitor.prev_icon_id = None;
         }
-
-        self.monitor
-            .destroy_icons_flag
-            .store(false, Ordering::SeqCst);
     }
 
     pub fn process_focused_window(&mut self, window_id: i32) {
-        if self.connection.is_window_fullscreen(window_id) {
+        if self.wm_connection.is_window_fullscreen(window_id) {
             self.process_fullscreen_window();
             return;
         }
 
-        let icon_name = self.connection.get_icon_name(window_id);
+        let icon_name = self.wm_connection.get_icon_name(window_id);
 
         self.print_info(Some(window_id));
         self.monitor.state.update_icon(&icon_name);
@@ -279,25 +265,26 @@ where
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<i32> {
-        self.connection.get_focused_desktop_id(&self.monitor.name)
+        self.wm_connection
+            .get_focused_desktop_id(&self.monitor.name)
     }
 
     pub fn get_focused_window_id(&mut self) -> Option<i32> {
-        self.connection.get_focused_window_id(&self.monitor.name)
+        self.wm_connection.get_focused_window_id(&self.monitor.name)
     }
 
     pub fn is_curr_desk_empty(&mut self) -> bool {
         match self.get_focused_desktop_id() {
-            Some(curr_desk) => self.connection.is_desk_empty(curr_desk),
+            Some(curr_desk) => self.wm_connection.is_desk_empty(curr_desk),
             None => panic!("Can't know if non-existing desktop empty or not"),
         }
     }
 
     pub fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32> {
-        self.connection.get_fullscreen_window_id(desktop_id)
+        self.wm_connection.get_fullscreen_window_id(desktop_id)
     }
 
     pub fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
-        self.connection.is_desk_empty(desktop_id)
+        self.wm_connection.is_desk_empty(desktop_id)
     }
 }

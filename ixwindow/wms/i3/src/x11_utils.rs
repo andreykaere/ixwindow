@@ -1,9 +1,5 @@
 use std::error::Error;
 use std::string::String;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
 
 use image::imageops::FilterType;
 use image::io::Reader;
@@ -52,24 +48,23 @@ fn get_monitor_crtc<Conn: Connection>(
 }
 
 // Add icon-handler to MonitorState to be able to kill it later
-pub fn display_icon(
-    image_path: Arc<String>,
+pub fn display_icon<Conn: Connection>(
+    conn: &Conn,
+    image_path: &str,
     x: i16,
     y: i16,
     size: u16,
-    monitor_name: Arc<String>,
-    flag: Arc<AtomicBool>,
-) -> Result<(), Box<dyn Error>> {
-    let image = Reader::open(&*image_path)?.decode()?;
+    monitor_name: &str,
+) -> Result<Window, Box<dyn Error>> {
+    let image = Reader::open(image_path)?.decode()?;
     let image = image.resize(size as u32, size as u32, FilterType::CatmullRom);
     let (width, height) = image.dimensions();
 
     // Converting to u16, because it is required later by x11rb
     let (width, height) = (width as u16, height as u16);
 
-    let (conn, screen_num) = x11rb::connect(None)?;
-    let screen = &conn.setup().roots[screen_num];
-    let monitor_crtc = get_monitor_crtc(&conn, &monitor_name)?;
+    let screen = &conn.setup().roots[0];
+    let monitor_crtc = get_monitor_crtc(conn, monitor_name)?;
 
     let wm_class = b"polybar-ixwindow-icon";
     let win = conn.generate_id()?;
@@ -105,7 +100,7 @@ pub fn display_icon(
 
     let gc_aux = CreateGCAux::new();
     let gc = conn.generate_id()?;
-    create_gc(&conn, gc, win, &gc_aux)?;
+    create_gc(conn, gc, win, &gc_aux)?;
 
     let pixmap = conn.generate_id()?;
     conn.create_pixmap(screen.root_depth, pixmap, win, width, height)?;
@@ -131,19 +126,10 @@ pub fn display_icon(
         &data,
     )?;
 
+    conn.copy_area(pixmap, win, gc, 0, 0, 0, 0, width, height)?;
     conn.flush()?;
 
-    let timeout = Duration::from_millis(10);
-
-    while !flag.load(Ordering::SeqCst) {
-        // let event = conn.poll_for_event()?;
-        conn.copy_area(pixmap, win, gc, 0, 0, 0, 0, width, height)?;
-        conn.flush()?;
-
-        thread::sleep(timeout);
-    }
-
-    Ok(())
+    Ok(win)
 }
 
 #[cfg(test)]
