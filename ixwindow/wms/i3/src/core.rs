@@ -15,37 +15,39 @@ use super::wm_connection::WMConnection;
 use super::x11_utils;
 
 #[derive(Debug, Default)]
-pub struct State {
-    pub curr_icon: Option<String>,
-    pub prev_icon: Option<String>,
-    pub curr_x: i16,
+struct State {
+    curr_icon: Option<String>,
+    prev_icon: Option<String>,
+    curr_x: i16,
 }
 
 impl State {
-    pub fn init() -> Self {
+    fn init() -> Self {
+        // We don't care about `curr_x` value, because it will be set to real
+        // one in `process_start`
         Self::default()
     }
 
-    pub fn update_icon(&mut self, icon_name: &str) {
+    fn update_icon(&mut self, icon_name: &str) {
         self.prev_icon = self.curr_icon.as_ref().map(|x| x.to_string());
         self.curr_icon = Some(icon_name.to_string());
     }
 
-    pub fn reset_icons(&mut self) {
+    fn reset_icons(&mut self) {
         self.prev_icon = None;
         self.curr_icon = None;
     }
 }
 
 #[derive(Debug)]
-pub struct Monitor {
-    pub state: State,
-    pub name: String,
+struct Monitor {
+    state: State,
+    name: String,
     prev_icon_id: Option<u32>,
 }
 
 impl Monitor {
-    pub fn init(monitor_name: Option<String>) -> Self {
+    fn init(monitor_name: Option<String>) -> Self {
         let name = match monitor_name {
             Some(x) => x,
             None => x11_utils::get_primary_monitor_name()
@@ -129,7 +131,7 @@ where
         }
     }
 
-    pub fn generate_icon(&self, window_id: i32) {
+    fn generate_icon(&self, window_id: i32) {
         let config = &self.config;
 
         if !Path::new(config.cache_dir()).is_dir() {
@@ -150,7 +152,7 @@ where
         generate_icon_child.wait().expect("Failed to wait on child");
     }
 
-    pub fn show_icon(&mut self, icon_path: &str) {
+    fn show_icon(&mut self, icon_path: &str) {
         let config = &self.config;
 
         let (curr_x, y, size, monitor_name) = (
@@ -173,7 +175,7 @@ where
         self.monitor.prev_icon_id = icon_id;
     }
 
-    pub fn process_icon(&mut self, window_id: i32) {
+    fn process_icon(&mut self, window_id: i32) {
         let state = &self.monitor.state;
 
         if state.prev_icon == state.curr_icon {
@@ -195,7 +197,7 @@ where
         self.show_icon(&icon_path);
     }
 
-    pub fn print_info(&mut self, window: Option<i32>) {
+    fn print_info(&mut self, window: Option<i32>) {
         // Capitalizes first letter of the string, i.e. converts foo to Foo
         let capitalize_first = |s: &str| {
             let mut c = s.chars();
@@ -226,7 +228,7 @@ where
         }
     }
 
-    pub fn destroy_prev_icons(&mut self) {
+    fn destroy_prev_icons(&mut self) {
         let conn = &self.x11rb_connection;
 
         if let Some(id) = self.monitor.prev_icon_id {
