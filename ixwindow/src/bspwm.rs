@@ -73,6 +73,29 @@ impl Core<BspwmConnection, BspwmConfig> {
     }
 
     fn handle_desktop_event(&mut self, event: DesktopEvent) {
-        todo!();
+        match event {
+            DesktopEvent::DesktopFocus(event_info) => {
+                let current_desktop = match self.get_focused_desktop_id() {
+                    Some(x) => x,
+
+                    // No desktop is focused on the monitor
+                    None => {
+                        return;
+                    }
+                };
+
+                if self.is_desk_empty(current_desktop) {
+                    self.process_empty_desktop();
+                }
+
+                if self.get_fullscreen_window_id(current_desktop).is_some() {
+                    self.process_fullscreen_window();
+                }
+            }
+
+            _ => {
+                unreachable!();
+            }
+        }
     }
 }

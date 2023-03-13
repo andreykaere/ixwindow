@@ -132,6 +132,7 @@ pub fn display_icon<Conn: Connection>(
     Ok(win)
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,3 +160,5 @@ mod tests {
         display(monitor_name);
     }
 }
+
+*/

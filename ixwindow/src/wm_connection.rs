@@ -1,4 +1,4 @@
-use bspc_rs::BspwmConnection;
+use bspc_rs::{errors::ReplyError, BspwmConnection, Id};
 use i3ipc::I3Connection;
 
 use std::process::{Command, Stdio};
@@ -12,7 +12,7 @@ pub trait WMConnection {
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32>;
     fn is_desk_empty(&mut self, desktop_id: i32) -> bool;
     fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32>;
-    fn get_fullscreen_window_id(&mut self, desktop: i32) -> Option<i32>;
+    fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32>;
 }
 
 impl WMConnection for I3Connection {
@@ -73,8 +73,8 @@ impl WMConnection for I3Connection {
         None
     }
 
-    fn get_fullscreen_window_id(&mut self, desktop: i32) -> Option<i32> {
-        let nodes = i3_utils::get_desktop_windows(self, desktop);
+    fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32> {
+        let nodes = i3_utils::get_desktop_windows(self, desktop_id);
 
         for node in nodes {
             if let Some(id) = node.window {
@@ -91,21 +91,103 @@ impl WMConnection for I3Connection {
 
 impl WMConnection for BspwmConnection {
     fn is_window_fullscreen(&mut self, window_id: i32) -> bool {
-        todo!();
+        let node_request = format!("{window_id}.fullscreen.window");
+        let query_result =
+            self.query_nodes(None, Some(&node_request), None, None);
+
+        from_query_result_to_id(query_result).is_some()
     }
+
     fn get_icon_name(&mut self, window_id: i32) -> String {
-        todo!();
+        let node = self
+            .from_id_to_node(window_id.try_into().unwrap())
+            .unwrap()
+            .unwrap();
+
+        if let Some(client) = node.client {
+            client.class_name
+        } else {
+            panic!("This node is not a window!");
+        }
     }
+
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
-        todo!();
+        let query_result = self.query_desktops(
+            false,
+            None,
+            None,
+            Some("focused"),
+            Some(monitor_name),
+        );
+
+        from_query_result_to_id(query_result)
     }
+
     fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
-        todo!();
+        let desk_id = desktop_id.to_string();
+
+        self.query_nodes(None, None, Some(&desk_id), None)
+            .expect("Couldn't query nodes on desktop {desktop_id}")
+            .is_empty()
     }
+
     fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32> {
-        todo!();
+        let query_result = self.query_nodes(
+            None,
+            Some(monitor_name),
+            None,
+            Some("focused.window"),
+        );
+
+        from_query_result_to_id(query_result)
     }
-    fn get_fullscreen_window_id(&mut self, desktop: i32) -> Option<i32> {
-        todo!();
+
+    fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32> {
+        let desk_id = desktop_id.to_string();
+        let query_result = self.query_nodes(
+            None,
+            None,
+            Some(&desk_id),
+            Some(".fullscreen.window"),
+        );
+
+        from_query_result_to_id(query_result)
+    }
+}
+
+fn from_query_result_to_id(
+    query_result: Result<Vec<Id>, ReplyError>,
+) -> Option<i32> {
+    match query_result {
+        Ok(ids) => Some(ids[0].try_into().unwrap()),
+
+        Err(ReplyError::RequestFailed(err)) => {
+            if err.is_empty() {
+                return None;
+            } else {
+                panic!("Query request failed with error {err}");
+            }
+        }
+
+        Err(err) => {
+            panic!("Query request failed with error {err}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_desk_empty_bspwm() {
+        let mut conn = BspwmConnection::connect().unwrap();
+
+        let desktop_id = conn
+            .query_desktops(false, None, None, Some("focused"), None)
+            .unwrap()[0];
+        let res = conn.is_desk_empty(desktop_id.try_into().unwrap());
+
+        assert_eq!(res, false);
     }
 }

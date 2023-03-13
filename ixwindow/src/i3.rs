@@ -124,6 +124,7 @@ impl Core<I3Connection, I3Config> {
                 }
             }
 
+            // TODO: test if this is needed
             WorkspaceChange::Init => {
                 self.process_empty_desktop();
             }
