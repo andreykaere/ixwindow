@@ -1,5 +1,5 @@
 [package]
-name = "ixwindow_i3"
+name = "ixwindow"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 i3ipc = "0.10.1"
+bspc-rs = { git = "https://github.com/andreykaere/bspc-rs", branch = "master" }
 image = "0.24.5"
 serde = { version = "1.0.152", features = [ "derive" ] }
 shellexpand = "3.0.0"

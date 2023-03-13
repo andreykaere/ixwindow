@@ -1,9 +1,10 @@
+use bspc_rs::BspwmConnection;
 use i3ipc::I3Connection;
 
 use std::process::{Command, Stdio};
 use std::str;
 
-use super::i3_utils;
+use crate::i3_utils;
 
 pub trait WMConnection {
     fn is_window_fullscreen(&mut self, window_id: i32) -> bool;
@@ -85,5 +86,26 @@ impl WMConnection for I3Connection {
 
         // If no fullscreen window is found in this desktop
         None
+    }
+}
+
+impl WMConnection for BspwmConnection {
+    fn is_window_fullscreen(&mut self, window_id: i32) -> bool {
+        todo!();
+    }
+    fn get_icon_name(&mut self, window_id: i32) -> String {
+        todo!();
+    }
+    fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
+        todo!();
+    }
+    fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
+        todo!();
+    }
+    fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32> {
+        todo!();
+    }
+    fn get_fullscreen_window_id(&mut self, desktop: i32) -> Option<i32> {
+        todo!();
     }
 }

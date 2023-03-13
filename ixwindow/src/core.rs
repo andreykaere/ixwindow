@@ -1,3 +1,4 @@
+use bspc_rs::BspwmConnection;
 use i3ipc::I3Connection;
 
 use std::fs;
@@ -9,7 +10,7 @@ use std::str;
 use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::rust_connection::RustConnection;
 
-use super::config::{self, Config, I3Config};
+use super::config::{self, BspwmConfig, Config, I3Config};
 use super::i3_utils;
 use super::wm_connection::WMConnection;
 use super::x11_utils;
@@ -82,7 +83,7 @@ where
     C: Config,
 {
     fn init(monitor_name: Option<String>) -> Core<W, C>;
-    fn update_x(&mut self);
+    fn update_x(&mut self) {}
 }
 
 impl ConfigFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
@@ -112,6 +113,25 @@ impl ConfigFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
         self.monitor.state.curr_x = ((config.x() as f32)
             + config.gap_per_desk * (desks_num as f32))
             as i16;
+    }
+}
+
+impl ConfigFeatures<BspwmConnection, BspwmConfig>
+    for Core<BspwmConnection, BspwmConfig>
+{
+    fn init(monitor_name: Option<String>) -> Self {
+        let wm_connection =
+            BspwmConnection::connect().expect("Failed to connect to i3");
+        let config = config::load_bspwm();
+        let monitor = Monitor::init(monitor_name);
+        let (x11rb_connection, _) = x11rb::connect(None).unwrap();
+
+        Self {
+            config,
+            wm_connection,
+            monitor,
+            x11rb_connection,
+        }
     }
 }
 
