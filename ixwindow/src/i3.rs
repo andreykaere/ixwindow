@@ -13,9 +13,7 @@ use std::time::Duration;
 pub fn exec(monitor_name: Option<String>) {
     let mut listener =
         I3EventListener::connect().expect("Couldn't connect to event listener");
-
-    let mut core: Core<I3Connection, I3Config> = Core::init(monitor_name);
-    // let mut core = Core::init(monitor_name);
+    let mut core = Core::init(monitor_name);
     core.process_start();
 
     let subscriptions = [
@@ -46,12 +44,14 @@ impl Core<I3Connection, I3Config> {
         match event {
             Event::WindowEvent(e) => self.handle_window_event(e),
             Event::WorkspaceEvent(e) => self.handle_workspace_event(e),
-            _ => {}
+            _ => {
+                unreachable!();
+            }
         }
     }
 
-    fn handle_window_event(&mut self, event: WindowEventInfo) {
-        let node = event.container;
+    fn handle_window_event(&mut self, event_info: WindowEventInfo) {
+        let node = event_info.container;
         let id = match node.window {
             Some(x) => x,
 
@@ -68,7 +68,7 @@ impl Core<I3Connection, I3Config> {
             }
         };
 
-        match event.change {
+        match event_info.change {
             WindowChange::New => thread::sleep(Duration::from_millis(100)),
 
             WindowChange::Focus => {
@@ -103,8 +103,8 @@ impl Core<I3Connection, I3Config> {
         }
     }
 
-    fn handle_workspace_event(&mut self, event: WorkspaceEventInfo) {
-        match event.change {
+    fn handle_workspace_event(&mut self, event_info: WorkspaceEventInfo) {
+        match event_info.change {
             WorkspaceChange::Focus => {
                 let current_desktop = match self.get_focused_desktop_id() {
                     Some(x) => x,
