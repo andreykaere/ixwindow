@@ -7,6 +7,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::str;
 
+use x11rb::connection::Connection;
 use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::rust_connection::RustConnection;
 
@@ -257,6 +258,8 @@ where
         if let Some(id) = self.monitor.prev_icon_id {
             conn.destroy_window(id)
                 .expect("Failed to destroy previous icon");
+            conn.flush().unwrap();
+
             self.monitor.prev_icon_id = None;
         }
     }
