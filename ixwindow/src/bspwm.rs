@@ -2,6 +2,8 @@ use bspc_rs::events::{
     DesktopEvent, DesktopFocusInfo, Event, NodeAddInfo, NodeEvent,
     NodeFocusInfo, NodeRemoveInfo, NodeTransferInfo, Subscription,
 };
+
+use bspc_rs::properties::State;
 use bspc_rs::BspwmConnection;
 use std::thread;
 use std::time::Duration;
@@ -10,8 +12,7 @@ use crate::config::BspwmConfig;
 use crate::core::{ConfigFeatures as _, Core};
 
 pub fn exec(monitor_name: Option<String>) {
-    let mut listener =
-        BspwmConnection::connect().expect("Couldn't connect to event listener");
+    let mut conn = BspwmConnection::new();
     let mut core = Core::init(monitor_name);
     core.process_start();
 
@@ -21,14 +22,17 @@ pub fn exec(monitor_name: Option<String>) {
         Subscription::NodeRemove,
         Subscription::NodeFlag,
         Subscription::NodeState,
-        Subscription::DesktopFocus,
+        // Subscription::DesktopFocus,
     ];
 
-    listener
+    let subscriber = conn
         .subscribe(&subscriptions, false, None)
         .expect("Couldn't subscribe to events");
 
-    for raw_event in listener.listen() {
+    for raw_event in subscriber {
+        println!("Fooo");
+        // println!("{raw_event:#?}");
+
         match raw_event {
             Ok(event) => {
                 core.handle_event(event);
@@ -54,18 +58,43 @@ impl Core<BspwmConnection, BspwmConfig> {
 
     fn handle_node_event(&mut self, event: NodeEvent) {
         match event {
-            NodeEvent::NodeAdd(event_info) => {
+            NodeEvent::NodeAdd(node_info) => {
                 thread::sleep(Duration::from_millis(100));
             }
+            NodeEvent::NodeFocus(node_info) => {
+                self.process_focused_window(
+                    node_info.node_id.try_into().unwrap(),
+                );
+            }
 
-            NodeEvent::NodeFocus(event_info) => {}
+            NodeEvent::NodeRemove(node_info) => {
+                if self.is_curr_desk_empty() {
+                    self.process_empty_desktop();
+                }
+            }
 
-            NodeEvent::NodeRemove(event_info) => {}
+            NodeEvent::NodeFlag(node_info) => {}
 
-            NodeEvent::NodeFlag(event_info) => {}
+            NodeEvent::NodeState(node_info) => {
+                if let State::Fullscreen = node_info.state {
+                    // We can use unwrap, because some desktop should be focused
+                    let current_desktop =
+                        self.get_focused_desktop_id().unwrap();
 
-            NodeEvent::NodeState(event_info) => {}
+                    match self.get_fullscreen_window_id(current_desktop) {
+                        Some(_) => {
+                            self.process_fullscreen_window();
+                        }
 
+                        None => {
+                            let window = self.get_focused_window_id();
+                            if let Some(id) = window {
+                                self.process_focused_window(id);
+                            }
+                        }
+                    }
+                }
+            }
             _ => {
                 unreachable!();
             }

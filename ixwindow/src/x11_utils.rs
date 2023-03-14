@@ -132,6 +132,41 @@ pub fn display_icon<Conn: Connection>(
     Ok(win)
 }
 
+// https://stackoverflow.com/questions/758648/find-the-name-of-the-x-window-manager
+pub fn get_current_wm() -> Result<String, Box<dyn Error>> {
+    let (conn, screen_num) = x11rb::connect(None)?;
+    let screen = &conn.setup().roots[screen_num];
+
+    let net_supporting_wm_check = conn
+        .intern_atom(false, b"_NET_SUPPORTING_WM_CHECK")?
+        .reply()?
+        .atom;
+
+    let property = conn
+        .get_property(
+            false,
+            screen.root,
+            net_supporting_wm_check,
+            AtomEnum::STRING,
+            0,
+            1024,
+        )?
+        .reply()?;
+
+    let window_id = std::str::from_utf8(&property.value)?.parse()?;
+
+    let net_wm_name = conn
+        .intern_atom(false, b"_NET_WM_NAME(UTF8_STRING)")?
+        .reply()?
+        .atom;
+
+    let property = conn
+        .get_property(false, window_id, net_wm_name, AtomEnum::STRING, 0, 1024)?
+        .reply()?;
+
+    Ok(String::from_utf8(property.value)?)
+}
+
 /*
 #[cfg(test)]
 mod tests {

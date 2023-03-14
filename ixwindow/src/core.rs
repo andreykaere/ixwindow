@@ -83,7 +83,7 @@ where
     C: Config,
 {
     fn init(monitor_name: Option<String>) -> Core<W, C>;
-    fn update_x(&mut self) {}
+    fn update_x(&mut self);
 }
 
 impl ConfigFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
@@ -120,8 +120,7 @@ impl ConfigFeatures<BspwmConnection, BspwmConfig>
     for Core<BspwmConnection, BspwmConfig>
 {
     fn init(monitor_name: Option<String>) -> Self {
-        let wm_connection =
-            BspwmConnection::connect().expect("Failed to connect to i3");
+        let wm_connection = BspwmConnection::new();
         let config = config::load_bspwm();
         let monitor = Monitor::init(monitor_name);
         let (x11rb_connection, _) = x11rb::connect(None).unwrap();
@@ -132,6 +131,10 @@ impl ConfigFeatures<BspwmConnection, BspwmConfig>
             monitor,
             x11rb_connection,
         }
+    }
+
+    fn update_x(&mut self) {
+        self.monitor.state.curr_x = self.config.x();
     }
 }
 

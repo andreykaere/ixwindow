@@ -11,13 +11,16 @@ mod x11_utils;
 fn main() {
     let monitor_name = env::args().nth(1);
 
-    match get_current_wm().as_ref() {
-        "i3wm" => i3::exec(monitor_name),
-        "bspwm" => bspwm::exec(monitor_name),
-        _ => {}
-    }
-}
+    bspwm::exec(monitor_name);
 
-fn get_current_wm() -> String {
-    todo!();
+    // println!("{:?}", x11_utils::get_current_wm());
+
+    // match x11_utils::get_current_wm()
+    //     .expect("Couldn't get current window manager name")
+    //     .as_ref()
+    // {
+    //     "i3wm" => i3::exec(monitor_name),
+    //     "bspwm" => bspwm::exec(monitor_name),
+    //     _ => {}
+    // }
 }

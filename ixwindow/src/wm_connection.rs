@@ -7,6 +7,7 @@ use std::str;
 use crate::i3_utils;
 
 pub trait WMConnection {
+    // fn is_window_fullscreen(foo: Option<&mut Self>, window_id: i32) -> bool;
     fn is_window_fullscreen(&mut self, window_id: i32) -> bool;
     fn get_icon_name(&mut self, window_id: i32) -> String;
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32>;
@@ -93,31 +94,31 @@ impl WMConnection for BspwmConnection {
     fn is_window_fullscreen(&mut self, window_id: i32) -> bool {
         let node_request = format!("{window_id}.fullscreen.window");
         let query_result =
-            self.query_nodes(None, Some(&node_request), None, None);
+            self.query_nodes(None, None, None, Some(&node_request));
 
         from_query_result_to_id(query_result).is_some()
     }
 
     fn get_icon_name(&mut self, window_id: i32) -> String {
-        let node = self
-            .from_id_to_node(window_id.try_into().unwrap())
-            .unwrap()
-            .unwrap();
+        i3_utils::get_wm_class(window_id).replace(' ', "-")
+        // let node = Self::from_id_to_node(window_id.try_into().unwrap())
+        //     .unwrap()
+        //     .unwrap();
 
-        if let Some(client) = node.client {
-            client.class_name
-        } else {
-            panic!("This node is not a window!");
-        }
+        // if let Some(client) = node.client {
+        //     client.class_name
+        // } else {
+        //     panic!("This node is not a window!");
+        // }
     }
 
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
         let query_result = self.query_desktops(
             false,
             None,
-            None,
-            Some("focused"),
             Some(monitor_name),
+            Some("focused"),
+            None,
         );
 
         from_query_result_to_id(query_result)
@@ -179,15 +180,31 @@ fn from_query_result_to_id(
 mod tests {
     use super::*;
 
+    // #[ignore]
+    // #[test]
+    // fn is_desk_empty_bspwm() {
+    //     // let mut conn = BspwmConnection::connect().unwrap();
+    //     let mut conn = BspwmConnection::connect().unwrap();
+    //     conn.send_message("");
+
+    //     let desktop_id = BspwmConnection::query_desktops(
+    //         false,
+    //         None,
+    //         None,
+    //         Some("focused"),
+    //         None,
+    //     )
+    //     .unwrap()[0];
+    //     println!("foo");
+    //     // let res = conn.is_desk_empty(desktop_id.try_into().unwrap());
+
+    //     // assert_eq!(res, false);
+    // }
+
     #[test]
-    fn is_desk_empty_bspwm() {
-        let mut conn = BspwmConnection::connect().unwrap();
+    fn test_get_focused_desktop_id() {
+        let mut conn = BspwmConnection::new();
 
-        let desktop_id = conn
-            .query_desktops(false, None, None, Some("focused"), None)
-            .unwrap()[0];
-        let res = conn.is_desk_empty(desktop_id.try_into().unwrap());
-
-        assert_eq!(res, false);
+        println!("{:#?}", conn.get_focused_desktop_id("eDP-1"));
     }
 }
