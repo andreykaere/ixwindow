@@ -1,4 +1,6 @@
+use bspc_rs::errors::ReplyError::RequestFailed;
 use bspc_rs::{errors::ReplyError, BspwmConnection, Id};
+
 use i3ipc::I3Connection;
 
 use std::process::{Command, Stdio};
@@ -126,10 +128,9 @@ impl WMConnection for BspwmConnection {
 
     fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
         let desk_id = desktop_id.to_string();
+        let query_result = self.query_nodes(None, None, Some(&desk_id), None);
 
-        self.query_nodes(None, None, Some(&desk_id), None)
-            .expect("Couldn't query nodes on desktop {desktop_id}")
-            .is_empty()
+        !from_query_result_to_id(query_result).is_some()
     }
 
     fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32> {

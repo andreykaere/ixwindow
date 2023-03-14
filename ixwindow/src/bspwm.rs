@@ -30,7 +30,6 @@ pub fn exec(monitor_name: Option<String>) {
         .expect("Couldn't subscribe to events");
 
     for raw_event in subscriber {
-        println!("Fooo");
         // println!("{raw_event:#?}");
 
         match raw_event {
@@ -68,12 +67,18 @@ impl Core<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeRemove(node_info) => {
-                if self.is_curr_desk_empty() {
+                if self.is_desk_empty(node_info.desktop_id.try_into().unwrap())
+                {
                     self.process_empty_desktop();
                 }
             }
 
-            NodeEvent::NodeFlag(node_info) => {}
+            NodeEvent::NodeFlag(node_info) => {
+                let window = self.get_focused_window_id();
+                if let None = window {
+                    self.process_empty_desktop();
+                }
+            }
 
             NodeEvent::NodeState(node_info) => {
                 if let State::Fullscreen = node_info.state {
