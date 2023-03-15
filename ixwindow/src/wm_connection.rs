@@ -1,12 +1,13 @@
-use bspc_rs::errors::ReplyError::RequestFailed;
-use bspc_rs::{errors::ReplyError, BspwmConnection, Id};
+use bspc_rs::errors::ReplyError;
+use bspc_rs::{Bspc, Id};
 
 use i3ipc::I3Connection;
 
 use std::process::{Command, Stdio};
 use std::str;
 
-use crate::i3_utils;
+use crate::bspwm::BspwmConnection;
+use crate::{i3_utils, x11_utils};
 
 pub trait WMConnection {
     // fn is_window_fullscreen(foo: Option<&mut Self>, window_id: i32) -> bool;
@@ -37,7 +38,9 @@ impl WMConnection for I3Connection {
     }
 
     fn get_icon_name(&mut self, window_id: i32) -> String {
-        i3_utils::get_wm_class(window_id).replace(' ', "-")
+        x11_utils::get_wm_class(window_id)
+            .unwrap()
+            .replace(' ', "-")
     }
 
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
@@ -96,13 +99,15 @@ impl WMConnection for BspwmConnection {
     fn is_window_fullscreen(&mut self, window_id: i32) -> bool {
         let node_request = format!("{window_id}.fullscreen.window");
         let query_result =
-            self.query_nodes(None, None, None, Some(&node_request));
+            Bspc::query_nodes(None, None, None, Some(&node_request));
 
         from_query_result_to_id(query_result).is_some()
     }
 
     fn get_icon_name(&mut self, window_id: i32) -> String {
-        i3_utils::get_wm_class(window_id).replace(' ', "-")
+        x11_utils::get_wm_class(window_id)
+            .unwrap()
+            .replace(' ', "-")
         // let node = Self::from_id_to_node(window_id.try_into().unwrap())
         //     .unwrap()
         //     .unwrap();
@@ -115,7 +120,7 @@ impl WMConnection for BspwmConnection {
     }
 
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
-        let query_result = self.query_desktops(
+        let query_result = Bspc::query_desktops(
             false,
             None,
             Some(monitor_name),
@@ -128,13 +133,13 @@ impl WMConnection for BspwmConnection {
 
     fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
         let desk_id = desktop_id.to_string();
-        let query_result = self.query_nodes(None, None, Some(&desk_id), None);
+        let query_result = Bspc::query_nodes(None, None, Some(&desk_id), None);
 
-        !from_query_result_to_id(query_result).is_some()
+        from_query_result_to_id(query_result).is_none()
     }
 
     fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32> {
-        let query_result = self.query_nodes(
+        let query_result = Bspc::query_nodes(
             None,
             Some(monitor_name),
             None,
@@ -146,7 +151,7 @@ impl WMConnection for BspwmConnection {
 
     fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32> {
         let desk_id = desktop_id.to_string();
-        let query_result = self.query_nodes(
+        let query_result = Bspc::query_nodes(
             None,
             None,
             Some(&desk_id),
@@ -165,7 +170,7 @@ fn from_query_result_to_id(
 
         Err(ReplyError::RequestFailed(err)) => {
             if err.is_empty() {
-                return None;
+                None
             } else {
                 panic!("Query request failed with error {err}");
             }
