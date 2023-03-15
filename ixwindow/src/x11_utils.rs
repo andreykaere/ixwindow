@@ -15,6 +15,8 @@ atom_manager! {
         WM_PROTOCOLS,
         WM_DELETE_WINDOW,
         _NET_WM_NAME,
+        _NET_WM_STATE,
+        _NET_WM_STATE_FULLSCREEN,
         UTF8_STRING,
         _NET_SUPPORTING_WM_CHECK,
     }
@@ -215,7 +217,7 @@ pub fn get_wm_class(id: i32) -> Result<String, Box<dyn Error>> {
     Ok(String::new())
 }
 
-pub fn is_window_fullscreen(id: i32) -> Result<String, Box<dyn Error>> {
+pub fn is_window_fullscreen(id: i32) -> Result<bool, Box<dyn Error>> {
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
 
@@ -232,14 +234,41 @@ pub fn is_window_fullscreen(id: i32) -> Result<String, Box<dyn Error>> {
         .get_property(
             false,
             id.try_into().unwrap(),
-            atoms._NET_WM_NAME,
-            atoms.UTF8_STRING,
+            atoms._NET_WM_STATE,
+            AtomEnum::ATOM,
             0,
             1024,
         )?
         .reply()?;
 
-    Ok(String::from_utf8(property.value)?)
+    if property.value.is_empty() {
+        return Ok(false);
+    }
+
+    // println!("{:#?}", property.value);
+
+    let mut i = 0;
+
+    while property.value.len() >= i + 4 {
+        let net_wm_state_atom =
+            u32::from_le_bytes(property.value[i..i + 4].try_into().unwrap());
+        // println!(
+        //     "{:#?} {}",
+        //     net_wm_state_atom, atoms._NET_WM_STATE_FULLSCREEN
+        // );
+
+        if net_wm_state_atom == atoms._NET_WM_STATE_FULLSCREEN {
+            return Ok(true);
+        }
+
+        i += 4;
+    }
+
+    Ok(false)
+
+    // let name = conn.get_atom_name(atom)?.reply()?.name;
+
+    // Ok(String::from_utf8(name)?)
 }
 
 #[cfg(test)]
@@ -267,7 +296,7 @@ mod tests {
     #[test]
     fn test_is_window_fullscreen() {
         // let id = 69206018;
-        let id = 37748738;
+        let id = 20971522;
         let flag = is_window_fullscreen(id).unwrap();
 
         println!("flag: {flag}");

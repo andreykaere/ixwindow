@@ -310,11 +310,11 @@ where
         self.print_info();
 
         if self.wm_connection.is_window_fullscreen(window_id) {
-            self.process_fullscreen_window();
             self.monitor.update_fullscreen(true);
+            self.process_fullscreen_window();
         } else {
-            self.process_icon(window_id);
             self.monitor.update_fullscreen(false);
+            self.process_icon(window_id);
         }
     }
 

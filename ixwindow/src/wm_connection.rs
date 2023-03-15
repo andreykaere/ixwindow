@@ -21,20 +21,10 @@ pub trait WMConnection {
 
 impl WMConnection for I3Connection {
     fn is_window_fullscreen(&mut self, window_id: i32) -> bool {
-        let net_wm_state = Command::new("xprop")
-            .arg("-id")
-            .arg(window_id.to_string())
-            .arg("_NET_WM_STATE")
-            .stderr(Stdio::null())
-            .output()
-            .expect("Failed to get WM_CLASS of the window");
-
-        let result = match String::from_utf8(net_wm_state.stdout) {
-            Ok(v) => v,
-            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-        };
-
-        result.contains("FULLSCREEN")
+        let res = x11_utils::is_window_fullscreen(window_id).unwrap();
+        println!("{}", res);
+        res
+        // x11_utils::is_window_fullscreen(window_id).unwrap()
     }
 
     fn get_icon_name(&mut self, window_id: i32) -> String {

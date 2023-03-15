@@ -14,7 +14,7 @@ fn main() {
         .expect("Couldn't get current window manager name");
 
     match wm_name.as_ref() {
-        "i3wm" => i3::exec(monitor_name),
+        "i3" => i3::exec(monitor_name),
         "bspwm" => bspwm::exec(monitor_name),
         _ => {}
     }
