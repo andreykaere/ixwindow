@@ -260,11 +260,9 @@ where
     }
 
     fn print_info(&mut self) {
-        if self.monitor.state.prev_icon == self.monitor.state.curr_icon {
-            println!(
-                "{:#?} == {:#?}",
-                self.monitor.state.prev_icon, self.monitor.state.curr_icon
-            );
+        let state = &self.monitor.state;
+
+        if state.prev_icon == state.curr_icon {
             return;
         }
 
@@ -283,7 +281,7 @@ where
         print!("{}", self.config.gap());
         io::stdout().flush().unwrap();
 
-        match self.monitor.state.curr_icon.as_ref() {
+        match state.curr_icon.as_ref() {
             None => println!("Empty"),
 
             Some(icon_name) => match icon_name.as_ref() {
