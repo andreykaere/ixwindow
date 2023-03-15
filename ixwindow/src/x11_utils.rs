@@ -5,9 +5,20 @@ use image::imageops::FilterType;
 use image::io::Reader;
 use image::GenericImageView;
 
+use x11rb::atom_manager;
 use x11rb::connection::Connection;
 use x11rb::protocol::randr::{self, ConnectionExt as _, GetCrtcInfoReply};
 use x11rb::protocol::xproto::*;
+
+atom_manager! {
+    pub AtomCollection: AtomCollectionCookie {
+        WM_PROTOCOLS,
+        WM_DELETE_WINDOW,
+        _NET_WM_NAME,
+        UTF8_STRING,
+        _NET_SUPPORTING_WM_CHECK,
+    }
+}
 
 pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
     let (conn, screen_num) = x11rb::connect(None)?;
@@ -137,63 +148,149 @@ pub fn get_current_wm() -> Result<String, Box<dyn Error>> {
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
 
-    let net_supporting_wm_check = conn
-        .intern_atom(false, b"_NET_SUPPORTING_WM_CHECK")?
-        .reply()?
-        .atom;
+    let atoms = AtomCollection::new(&conn)?;
+    let atoms = atoms.reply()?;
 
     let property = conn
         .get_property(
             false,
             screen.root,
-            net_supporting_wm_check,
+            atoms._NET_SUPPORTING_WM_CHECK,
+            AtomEnum::WINDOW,
+            0,
+            1024,
+        )?
+        .reply()?;
+
+    let wm_window_id =
+        u32::from_le_bytes(property.value[..].try_into().unwrap());
+
+    let property = conn
+        .get_property(
+            false,
+            wm_window_id,
+            atoms._NET_WM_NAME,
+            atoms.UTF8_STRING,
+            0,
+            1024,
+        )?
+        .reply()?;
+
+    let wm_name = String::from_utf8(property.value)?;
+
+    Ok(wm_name)
+}
+
+pub fn get_wm_class(id: i32) -> Result<String, Box<dyn Error>> {
+    let (conn, screen_num) = x11rb::connect(None)?;
+    let screen = &conn.setup().roots[screen_num];
+
+    let property = conn
+        .get_property(
+            false,
+            id.try_into().unwrap(),
+            AtomEnum::WM_CLASS,
             AtomEnum::STRING,
             0,
             1024,
         )?
         .reply()?;
 
-    let window_id = std::str::from_utf8(&property.value)?.parse()?;
+    // println!("{:#?}", property.value);
 
-    let net_wm_name = conn
-        .intern_atom(false, b"_NET_WM_NAME(UTF8_STRING)")?
-        .reply()?
-        .atom;
+    // let (wm_class, wm_instance) = property.value.split(|x| x == 0).collect();
+    let mut iter = property.value.split(|x| *x == 0);
+
+    let wm_class = iter.next();
+    let wm_instance = iter.next();
+
+    if let Some(name) = wm_instance {
+        return Ok(String::from_utf8(name.to_vec())?);
+    }
+
+    if let Some(name) = wm_class {
+        return Ok(String::from_utf8(name.to_vec())?);
+    }
+
+    Ok(String::new())
+}
+
+pub fn is_window_fullscreen(id: i32) -> Result<String, Box<dyn Error>> {
+    let (conn, screen_num) = x11rb::connect(None)?;
+    let screen = &conn.setup().roots[screen_num];
+
+    let atoms = AtomCollection::new(&conn)?;
+    let atoms = atoms.reply()?;
+
+    // let net_wm_state = conn.intern_atom(false, b"_NET_WM_STATE")?.reply()?.atom;
+
+    // let wm_class = conn.intern_atom(false, b"WM_CLASS")?.reply()?.atom;
+
+    // println!("{} ? {:?}", wm_class, AtomEnum::WM_CLASS);
 
     let property = conn
-        .get_property(false, window_id, net_wm_name, AtomEnum::STRING, 0, 1024)?
+        .get_property(
+            false,
+            id.try_into().unwrap(),
+            atoms._NET_WM_NAME,
+            atoms.UTF8_STRING,
+            0,
+            1024,
+        )?
         .reply()?;
 
     Ok(String::from_utf8(property.value)?)
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::env;
 
-    fn get_icon_path() -> String {
-        env::current_dir().unwrap().to_str().unwrap().to_owned()
-            + "/tests/alacritty.png"
-    }
+    #[test]
+    fn test_get_wm_class() {
+        // let id = 69206018;
+        let id = 123731974;
+        let wm_class = get_wm_class(id).unwrap();
 
-    fn display(monitor_name: &str) {
-        display_icon(
-            &get_icon_path(),
-            270,
-            6,
-            24,
-            monitor_name,
-            Arc::new(AtomicBool::new(true)),
-        );
+        println!("{wm_class}");
     }
 
     #[test]
-    fn display_icon_test() {
-        let monitor_name = "eDP-1";
-        display(monitor_name);
-    }
-}
+    fn test_get_current_wm() {
+        // let id = 69206018;
+        let wm = get_current_wm().unwrap();
 
-*/
+        println!("wm: {wm}");
+    }
+
+    #[test]
+    fn test_is_window_fullscreen() {
+        // let id = 69206018;
+        let id = 37748738;
+        let flag = is_window_fullscreen(id).unwrap();
+
+        println!("flag: {flag}");
+    }
+    // fn get_icon_path() -> String {
+    //     env::current_dir().unwrap().to_str().unwrap().to_owned()
+    //         + "/tests/alacritty.png"
+    // }
+
+    // fn display(monitor_name: &str) {
+    //     display_icon(
+    //         &get_icon_path(),
+    //         270,
+    //         6,
+    //         24,
+    //         monitor_name,
+    //         Arc::new(AtomicBool::new(true)),
+    //     );
+    // }
+
+    // #[test]
+    // fn display_icon_test() {
+    //     let monitor_name = "eDP-1";
+    //     display(monitor_name);
+    // }
+}
