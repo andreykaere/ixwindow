@@ -81,8 +81,8 @@ impl Core<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeFlag(node_info) => {
-                let window = self.get_focused_window_id();
-                if window.is_none() {
+                if self.is_desk_empty(node_info.desktop_id.try_into().unwrap())
+                {
                     self.process_empty_desktop();
                 }
             }

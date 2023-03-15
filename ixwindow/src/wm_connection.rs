@@ -133,7 +133,12 @@ impl WMConnection for BspwmConnection {
 
     fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
         let desk_id = desktop_id.to_string();
-        let query_result = Bspc::query_nodes(None, None, Some(&desk_id), None);
+        let query_result = Bspc::query_nodes(
+            None,
+            None,
+            Some(&desk_id),
+            Some(".window.!hidden"),
+        );
 
         from_query_result_to_id(query_result).is_none()
     }
