@@ -11,20 +11,11 @@ use crate::{i3_utils, x11_utils};
 
 pub trait WMConnection {
     // fn is_window_fullscreen(foo: Option<&mut Self>, window_id: i32) -> bool;
-    fn is_window_fullscreen(&mut self, window_id: i32) -> bool;
-    fn get_icon_name(&mut self, window_id: i32) -> String;
-    fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32>;
-    fn is_desk_empty(&mut self, desktop_id: i32) -> bool;
-    fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32>;
-    fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32>;
-}
-
-impl WMConnection for I3Connection {
     fn is_window_fullscreen(&mut self, window_id: i32) -> bool {
-        let res = x11_utils::is_window_fullscreen(window_id).unwrap();
-        println!("{}", res);
-        res
-        // x11_utils::is_window_fullscreen(window_id).unwrap()
+        // let res = x11_utils::is_window_fullscreen(window_id).unwrap();
+        // println!("{}", res);
+        // res
+        x11_utils::is_window_fullscreen(window_id).unwrap()
     }
 
     fn get_icon_name(&mut self, window_id: i32) -> String {
@@ -33,6 +24,13 @@ impl WMConnection for I3Connection {
             .replace(' ', "-")
     }
 
+    fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32>;
+    fn is_desk_empty(&mut self, desktop_id: i32) -> bool;
+    fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32>;
+    fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32>;
+}
+
+impl WMConnection for I3Connection {
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
         let desktops = self
             .get_workspaces()
@@ -86,29 +84,6 @@ impl WMConnection for I3Connection {
 }
 
 impl WMConnection for BspwmConnection {
-    fn is_window_fullscreen(&mut self, window_id: i32) -> bool {
-        let node_request = format!("{window_id}.fullscreen.window");
-        let query_result =
-            Bspc::query_nodes(None, None, None, Some(&node_request));
-
-        from_query_result_to_id(query_result).is_some()
-    }
-
-    fn get_icon_name(&mut self, window_id: i32) -> String {
-        x11_utils::get_wm_class(window_id)
-            .unwrap()
-            .replace(' ', "-")
-        // let node = Self::from_id_to_node(window_id.try_into().unwrap())
-        //     .unwrap()
-        //     .unwrap();
-
-        // if let Some(client) = node.client {
-        //     client.class_name
-        // } else {
-        //     panic!("This node is not a window!");
-        // }
-    }
-
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
         let query_result = Bspc::query_desktops(
             false,
