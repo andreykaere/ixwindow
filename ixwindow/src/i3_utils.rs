@@ -4,29 +4,6 @@ use i3ipc::I3Connection;
 use std::process::{Command, Stdio};
 use std::str;
 
-pub fn get_wm_class(window_id: i32) -> String {
-    let wm_class = Command::new("xprop")
-        .arg("-id")
-        .arg(window_id.to_string())
-        .arg("WM_CLASS")
-        .stderr(Stdio::null())
-        .output()
-        .expect("Failed to get WM_CLASS of the window");
-
-    let result = match String::from_utf8(wm_class.stdout) {
-        Ok(v) => v,
-        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-    };
-
-    result
-        .split(' ')
-        .last()
-        .expect("WM_CLASS is empty")
-        .to_string()
-        .trim()
-        .replace('"', "")
-}
-
 pub fn get_desktop_windows(
     conn: &mut I3Connection,
     desktop_id: i32,

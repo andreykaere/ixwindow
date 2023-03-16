@@ -23,7 +23,6 @@ as polybar's `tail = true`.
 ## Dependencies
 
 ### Common 
-- `xprop`
 - `imagemagick` (for converting `.png` icons to `.jpg`)
 - [`cargo`](https://github.com/rust-lang/cargo)
 
@@ -34,26 +33,10 @@ sudo apt install xprop imagemagick
 For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
 
 ### For bspwm
-- `bash`
 - `bspwm`
-- `bspc`
-- `xdo`
-- [`xdotool`](https://github.com/jordansissel/xdotool) (version 3.20211022.1)
-
-For debian-based systems you can install it by running (make sure version is
-correct, otherwise see note below):
-```bash
-sudo apt install xdotool xdo
-```
 
 ### For i3
 - `i3`
-
-**Note:** depending on your system, you might get different version of the
-packages, comparing to the ones, used in this project. If you can't install
-the right versions via built-in package manager (e.g. `apt`), then you will 
-have to either build the newer version from source, or modify source code of 
-this project to your versions. (if it's even possible)
 
 
 ## Downloading
@@ -173,8 +156,6 @@ You can try it out on some icons located in `examples/custom-icons` folder.
 as the dependency as well
 - Manual specification, but seems to be unfixable at this point, since polybar 
 doesn't support inserting images into bar for now
-- (for `bspwm`) Not being able to stop `./ixwindow` with `Ctrl-C`, due to background
-  processes
 
 Feel free to open issue if you have any questions or you've noticed a bug.
 Also pull requests are welcome; don't hesitate to crate one, if you have a
@@ -182,7 +163,6 @@ solution to any of the issues, stated above.
 
 ## Goals
 
-- Rewrite code for `bspwm` in Rust
 - Add png support (maybe make it an option, if user doesn't use compositor)
 
 ## Thanks
