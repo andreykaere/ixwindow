@@ -81,6 +81,9 @@ impl Core<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeFlag(node_info) => {
+                // NodeFlag event can in particular mean, that node can become
+                // hidden and we need to check if that was the only visible
+                // node on that desktop
                 if self.is_desk_empty(node_info.desktop_id.try_into().unwrap())
                 {
                     self.process_empty_desktop();
@@ -101,14 +104,7 @@ impl Core<BspwmConnection, BspwmConfig> {
     fn handle_desktop_event(&mut self, event: DesktopEvent) {
         match event {
             DesktopEvent::DesktopFocus(event_info) => {
-                let current_desktop = match self.get_focused_desktop_id() {
-                    Some(x) => x,
-
-                    // No desktop is focused on the monitor
-                    None => {
-                        return;
-                    }
-                };
+                let current_desktop = event_info.desktop_id.try_into().unwrap();
 
                 if self.is_desk_empty(current_desktop) {
                     self.process_empty_desktop();

@@ -83,24 +83,6 @@ impl Core<I3Connection, I3Config> {
 
             WindowChange::FullscreenMode => {
                 self.process_focused_window(id);
-                // let window = self.get_focused_window_id();
-                // if let Some(id) = window {
-                //     self.process_focused_window(id);
-                // }
-
-                // // We can use unwrap, because some desktop should be focused
-                // let current_desktop = self.get_focused_desktop_id().unwrap();
-
-                // match self.get_fullscreen_window_id(current_desktop) {
-                //     Some(_) => {
-                //         self.process_fullscreen_window();
-                //     }
-
-                //     None => {
-                //         println!("foo");
-                //         }
-                //     }
-                // }
             }
 
             _ => {}
