@@ -23,13 +23,7 @@ as polybar's `tail = true`.
 ## Dependencies
 
 ### Common 
-- `imagemagick` (for converting `.png` icons to `.jpg`)
 - [`cargo`](https://github.com/rust-lang/cargo)
-
-For debian-based systems you can install it by running
-```bash
-sudo apt install xprop imagemagick
-```
 For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
 
 ### For bspwm
@@ -50,8 +44,8 @@ If you want the bleeding edge version, switch to `dev` branch.
 
 ### Installation
 
-Execute `./install <names of wm>` (e.g. to install for both, you can run
-`./install "bspwm" "i3"`). To see more options run `./install --help`. 
+To install it to your system you just have to run `./install` . 
+To see installation options run `./install --help`. 
 You will also need to add the following to your polybar `config` file:
 ```dosini
 [module/ixwindow]

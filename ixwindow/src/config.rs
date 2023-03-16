@@ -6,7 +6,6 @@ use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EssentialConfig {
-    pub prefix: String,
     pub gap: String,
     pub x: i16,
     pub y: i16,
@@ -42,10 +41,6 @@ pub trait Config {
 
     fn cache_dir(&self) -> &str {
         &self.essential_config().cache_dir
-    }
-
-    fn prefix(&self) -> &str {
-        &self.essential_config().prefix
     }
 
     fn x(&self) -> i16 {
@@ -102,8 +97,6 @@ pub fn load_i3() -> I3Config {
     let mut i3_config: I3Config = config_table.try_into().unwrap();
     i3_config.essential_config.cache_dir =
         expand_filename(&i3_config.essential_config.cache_dir);
-    i3_config.essential_config.prefix =
-        expand_filename(&i3_config.essential_config.prefix);
 
     i3_config
 }
@@ -117,8 +110,6 @@ pub fn load_bspwm() -> BspwmConfig {
     let mut bspwm_config: BspwmConfig = config_table.try_into().unwrap();
     bspwm_config.essential_config.cache_dir =
         expand_filename(&bspwm_config.essential_config.cache_dir);
-    bspwm_config.essential_config.prefix =
-        expand_filename(&bspwm_config.essential_config.prefix);
 
     bspwm_config
 }

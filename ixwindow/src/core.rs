@@ -169,17 +169,13 @@ where
                 .expect("No cache folder was detected and couldn't create it");
         }
 
-        let mut generate_icon_child =
-            Command::new(format!("{}/generate-icon", &config.prefix()))
-                .arg(config.cache_dir())
-                .arg(config.size().to_string())
-                .arg(config.color())
-                .arg(window_id.to_string())
-                .stderr(Stdio::null())
-                .spawn()
-                .expect("Couldn't generate icon");
-
-        generate_icon_child.wait().expect("Failed to wait on child");
+        x11_utils::generate_icon(
+            self.monitor.state.curr_icon.as_ref().unwrap(),
+            config.cache_dir(),
+            config.color(),
+            window_id,
+        )
+        .unwrap();
     }
 
     fn display_icon(&mut self, icon_path: &str) {

@@ -1,7 +1,4 @@
 [bspwm]
-# Destination folder
-prefix = "$HOME/.config/polybar/scripts/ixwindow"
-
 # Folder for cached icons
 cache_dir = "$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
 
@@ -22,9 +19,6 @@ gap = "         "
 
 
 [i3]
-# Destination folder
-prefix = "$HOME/.config/polybar/scripts/ixwindow"
-
 # Folder for cached icons
 cache_dir = "$HOME/.config/polybar/scripts/ixwindow/polybar-icons"
 
