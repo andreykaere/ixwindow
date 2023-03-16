@@ -172,10 +172,7 @@ output a bit and adding icon of the focused application.
 
 ### With a great help of
 
-I would like to thank:
-- [psychon](https://github.com/psychon) for helping me understand `x11rb` and
-xorg in general
-- [This
-  link](https://unix.stackexchange.com/questions/48860/how-to-dump-the-icon-of-a-running-x-program),
-  which code is used for automatic icon generation
+I would like to thank  [psychon](https://github.com/psychon) for helping me 
+understand `x11rb` and xorg in general, which made it possible to rewrite code
+in rust and drastically improve that project.
 
