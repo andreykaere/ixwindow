@@ -1,7 +1,6 @@
 use i3ipc::reply::{Node, NodeType};
 use i3ipc::I3Connection;
 
-use std::process::{Command, Stdio};
 use std::str;
 
 pub fn get_desktop_windows(

@@ -1,12 +1,6 @@
-use bspc_rs::events::{
-    DesktopEvent, DesktopFocusInfo, Event, NodeAddInfo, NodeEvent,
-    NodeFocusInfo, NodeRemoveInfo, NodeTransferInfo, Subscription,
-};
+use bspc_rs::events::{DesktopEvent, Event, NodeEvent, Subscription};
 
-use bspc_rs::properties::State;
 use bspc_rs::Bspc;
-use std::thread;
-use std::time::Duration;
 
 use crate::config::BspwmConfig;
 use crate::core::{ConfigFeatures as _, Core};
@@ -20,12 +14,10 @@ impl BspwmConnection {
 }
 
 pub fn exec(monitor_name: Option<String>) {
-    let mut conn = BspwmConnection::new();
     let mut core = Core::init(monitor_name);
     core.process_start();
 
     let subscriptions = [
-        Subscription::NodeAdd,
         Subscription::NodeFocus,
         Subscription::NodeRemove,
         Subscription::NodeFlag,
@@ -64,9 +56,6 @@ impl Core<BspwmConnection, BspwmConfig> {
 
     fn handle_node_event(&mut self, event: NodeEvent) {
         match event {
-            NodeEvent::NodeAdd(node_info) => {
-                thread::sleep(Duration::from_millis(100));
-            }
             NodeEvent::NodeFocus(node_info) => {
                 self.process_focused_window(
                     node_info.node_id.try_into().unwrap(),

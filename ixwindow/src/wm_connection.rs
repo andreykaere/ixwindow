@@ -3,7 +3,6 @@ use bspc_rs::{Bspc, Id};
 
 use i3ipc::I3Connection;
 
-use std::process::{Command, Stdio};
 use std::str;
 
 use crate::bspwm::BspwmConnection;
@@ -18,10 +17,8 @@ pub trait WMConnection {
         x11_utils::is_window_fullscreen(window_id).unwrap()
     }
 
-    fn get_icon_name(&mut self, window_id: i32) -> String {
-        x11_utils::get_wm_class(window_id)
-            .unwrap()
-            .replace(' ', "-")
+    fn get_icon_name(&mut self, window_id: i32) -> Option<String> {
+        Some(x11_utils::get_wm_class(window_id).ok()?.replace(' ', "-"))
     }
 
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32>;

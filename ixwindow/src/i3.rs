@@ -7,8 +7,6 @@ use i3ipc::{self, I3Connection, I3EventListener, Subscription};
 
 use crate::config::I3Config;
 use crate::core::{ConfigFeatures as _, Core};
-use std::thread;
-use std::time::Duration;
 
 pub fn exec(monitor_name: Option<String>) {
     let mut listener =
@@ -69,8 +67,6 @@ impl Core<I3Connection, I3Config> {
         };
 
         match event_info.change {
-            WindowChange::New => thread::sleep(Duration::from_millis(100)),
-
             WindowChange::Focus => {
                 self.process_focused_window(id);
             }

@@ -1,12 +1,11 @@
 use std::error::Error;
+use std::path::Path;
 use std::string::String;
 
 use image::imageops::FilterType;
 use image::io::Reader as ImageReader;
-use image::DynamicImage;
-use image::GenericImageView;
-use image::RgbImage;
-use image::RgbaImage;
+
+use image::{GenericImageView, RgbaImage};
 
 use x11rb::atom_manager;
 use x11rb::connection::Connection;
@@ -151,12 +150,11 @@ pub fn display_icon<Conn: Connection>(
 }
 
 // https://stackoverflow.com/questions/758648/find-the-name-of-the-x-window-manager
-pub fn get_current_wm() -> Result<String, Box<dyn Error>> {
+pub fn get_current_wm() -> Result<String, Box<dyn std::error::Error>> {
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
 
-    let atoms = AtomCollection::new(&conn)?;
-    let atoms = atoms.reply()?;
+    let atoms = AtomCollection::new(&conn)?.reply()?;
 
     let property = conn
         .get_property(
@@ -169,7 +167,7 @@ pub fn get_current_wm() -> Result<String, Box<dyn Error>> {
         )?
         .reply()?;
 
-    let wm_window_id = u32::from_le_bytes(property.value[..].try_into()?);
+    let wm_window_id = property.value32().unwrap().next().unwrap();
 
     let property = conn
         .get_property(
@@ -188,8 +186,7 @@ pub fn get_current_wm() -> Result<String, Box<dyn Error>> {
 }
 
 pub fn get_wm_class(wid: i32) -> Result<String, Box<dyn Error>> {
-    let (conn, screen_num) = x11rb::connect(None)?;
-    let screen = &conn.setup().roots[screen_num];
+    let (conn, _) = x11rb::connect(None)?;
 
     let property = conn
         .get_property(
@@ -219,8 +216,7 @@ pub fn get_wm_class(wid: i32) -> Result<String, Box<dyn Error>> {
 }
 
 pub fn is_window_fullscreen(window_id: i32) -> Result<bool, Box<dyn Error>> {
-    let (conn, screen_num) = x11rb::connect(None)?;
-    let screen = &conn.setup().roots[screen_num];
+    let (conn, _) = x11rb::connect(None)?;
 
     let atoms = AtomCollection::new(&conn)?;
     let atoms = atoms.reply()?;
@@ -251,18 +247,10 @@ pub fn is_window_fullscreen(window_id: i32) -> Result<bool, Box<dyn Error>> {
     }))
 }
 
-fn save_image(
+fn save_transparent_image(
     image_data: &ImageData,
     icon_path: &str,
 ) -> Result<(), Box<dyn Error>> {
-    // let img = ImageReader::new(Cursor::new(bytes))
-    //     .with_guessed_format()?
-    //     .decode()?;
-    // let img = image::load_from_memory_with_format(
-    //     image_data.buf,
-    //     image::ImageFormat::Pnm,
-    // )?;
-
     let img = RgbaImage::from_raw(
         image_data.width,
         image_data.height,
@@ -270,10 +258,60 @@ fn save_image(
     )
     .unwrap();
 
-    // let img2 = DynamicImage::ImageRgba8(img.clone()).to_rgba8();
-    // img2.save_with_format(icon_path, image::ImageFormat::Png)?;
-    // img2.save("/home/andrey/foogooo.png");
-    img.save_with_format(icon_path, image::ImageFormat::Png)?;
+    img.save(icon_path)?;
+
+    Ok(())
+}
+
+fn save_filled_image(
+    image_data: &ImageData,
+    icon_path: &str,
+    color: &str,
+) -> Result<(), Box<dyn Error>> {
+    let bg_color = color[1..]
+        .chars()
+        .collect::<Vec<_>>()
+        .chunks_exact(2)
+        .map(|x| {
+            u8::from_str_radix(format!("{}{}", x[0], x[1]).as_ref(), 16)
+                .unwrap()
+        })
+        .collect::<Vec<u8>>();
+
+    let (bg_r, bg_g, bg_b) = (bg_color[0], bg_color[1], bg_color[2]);
+
+    let mut new_img = vec![
+        0u8;
+        (image_data.width * image_data.height * 3)
+            .try_into()
+            .unwrap()
+    ];
+    let buf = image_data.buf.to_vec();
+
+    let mut i = 0;
+    let mut j = 0;
+
+    // Fill background color, for more information, see here:
+    // https://stackoverflow.com/questions/2049230/convert-rgba-color-to-rgb
+    for _chunk in buf.chunks(4) {
+        let (r, g, b, a) =
+            (buf[j], buf[j + 1], buf[j + 2], (buf[j + 3] as f64) / 255.0);
+
+        new_img[i] = (((1.0 - a) * (bg_r as f64)) + a * (r as f64)) as u8;
+        new_img[i + 1] = (((1.0 - a) * (bg_g as f64)) + a * (g as f64)) as u8;
+        new_img[i + 2] = (((1.0 - a) * (bg_b as f64)) + a * (b as f64)) as u8;
+
+        i += 3;
+        j += 4;
+    }
+
+    image::save_buffer(
+        Path::new(icon_path),
+        &new_img,
+        image_data.width,
+        image_data.height,
+        image::ColorType::Rgb8,
+    )?;
 
     Ok(())
 }
@@ -290,8 +328,7 @@ pub fn generate_icon(
     color: &str,
     window_id: i32,
 ) -> Result<(), Box<dyn Error>> {
-    let (conn, screen_num) = x11rb::connect(None)?;
-    let screen = &conn.setup().roots[screen_num];
+    let (conn, _) = x11rb::connect(None)?;
 
     let atoms = AtomCollection::new(&conn)?;
     let atoms = atoms.reply()?;
@@ -308,14 +345,14 @@ pub fn generate_icon(
         .reply()?;
 
     let mut icons = Vec::new();
-    let mut data = property.value;
+    let data = property.value;
 
     let mut i = 0;
 
     // println!("{}", data.len());
 
     while i < data.len() {
-        let mut chunks = (&data[i..]).chunks_exact(4);
+        let mut chunks = data[i..].chunks_exact(4);
         // Ok(.fold(false, |acc, chunk| {
         //     let net_wm_state_atom = u32::from_le_bytes(chunk.try_into().unwrap());
 
@@ -337,7 +374,7 @@ pub fn generate_icon(
         if i + size > data.len() {
             break;
         } else {
-            let mut buf = (&data[i..i + size]).to_vec();
+            let mut buf = data[i..i + size].to_vec();
 
             buf.chunks_exact_mut(4).for_each(|chunk| {
                 let (c0, c2) = (chunk[0], chunk[2]);
@@ -352,17 +389,27 @@ pub fn generate_icon(
 
     let icon_path = format!("{cache_dir}/{icon_name}.png");
 
-    // println!("{}", icons.len());
-
-    save_image(icons.last().unwrap(), &icon_path);
+    match icons.last() {
+        Some(icon) => save_filled_image(icon, &icon_path, color)?,
+        None => return Err("foo".into()),
+    };
 
     Ok(())
+}
+
+fn composite_manager_running(
+    conn: &impl Connection,
+    screen_num: usize,
+) -> Result<bool, Box<dyn Error>> {
+    let atom = format!("_NET_WM_CM_S{}", screen_num);
+    let atom = conn.intern_atom(false, atom.as_bytes())?.reply()?.atom;
+    let owner = conn.get_selection_owner(atom)?.reply()?;
+    Ok(owner.owner != x11rb::NONE)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
 
     #[test]
     #[ignore]
@@ -394,8 +441,8 @@ mod tests {
 
     #[test]
     fn test_generate_icon() {
-        let id = 71303170;
-        generate_icon("foo.png", "/home/andrey", "#252737", id);
+        let id = 27262978;
+        generate_icon("foo.jpg", "/home/andrey", "#252737", id).unwrap();
     }
 
     // fn get_icon_path() -> String {

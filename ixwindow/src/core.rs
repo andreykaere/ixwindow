@@ -3,8 +3,10 @@ use i3ipc::I3Connection;
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
-use std::process::{Command, Stdio};
+
 use std::str;
+use std::thread;
+use std::time::Duration;
 
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::ConnectionExt;
@@ -79,7 +81,7 @@ where
     C: Config,
 {
     config: C,
-    wm_connection: W,
+    pub wm_connection: W,
     x11rb_connection: RustConnection,
     monitor: Monitor,
 }
@@ -175,7 +177,7 @@ where
             config.color(),
             window_id,
         )
-        .unwrap();
+        .unwrap_or(());
     }
 
     fn display_icon(&mut self, icon_path: &str) {
@@ -217,20 +219,19 @@ where
     }
 
     fn show_icon(&mut self) -> bool {
-        // let state = &self.monitor.state;
+        !self.curr_desk_contains_fullscreen()
+            && (self.monitor.state.prev_icon != self.monitor.state.curr_icon
+                || self.monitor.prev_window_fullscreen)
 
-        // !self.curr_desk_contains_fullscreen()
-        //     && self.monitor.state.prev_icon != self.monitor.state.curr_icon
+        // if self.curr_desk_contains_fullscreen() {
+        //     return false;
+        // } else if self.monitor.state.prev_icon == self.monitor.state.curr_icon
+        //     && !self.monitor.prev_window_fullscreen
+        // {
+        //     return false;
+        // }
 
-        if self.curr_desk_contains_fullscreen() {
-            return false;
-        } else if self.monitor.state.prev_icon == self.monitor.state.curr_icon
-            && !self.monitor.prev_window_fullscreen
-        {
-            return false;
-        }
-
-        true
+        // true
     }
 
     fn process_icon(&mut self, window_id: i32) {
@@ -245,7 +246,7 @@ where
         let icon_name = state.curr_icon.as_ref().unwrap();
 
         let config = &self.config;
-        let icon_path = format!("{}/{}.jpg", &config.cache_dir(), icon_name);
+        let icon_path = format!("{}/{}.png", &config.cache_dir(), icon_name);
 
         if !Path::new(&icon_path).exists() {
             self.generate_icon(window_id);
@@ -301,7 +302,21 @@ where
     }
 
     pub fn process_focused_window(&mut self, window_id: i32) {
-        let icon_name = self.wm_connection.get_icon_name(window_id);
+        // let icon_name = self.wm_connection.get_icon_name(window_id).unwrap();
+        let mut timeout = 2000;
+
+        while self.wm_connection.get_icon_name(window_id).is_none()
+            && timeout > 0
+        {
+            thread::sleep(Duration::from_millis(100));
+            timeout -= 100;
+        }
+
+        let icon_name = match self.wm_connection.get_icon_name(window_id) {
+            Some(name) => name,
+            None => String::new(),
+        };
+
         self.monitor.state.update_icon(Some(&icon_name));
         self.print_info();
 
