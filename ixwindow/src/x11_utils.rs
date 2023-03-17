@@ -25,6 +25,12 @@ atom_manager! {
     }
 }
 
+struct ImageData {
+    width: u32,
+    height: u32,
+    buf: Vec<u8>,
+}
+
 pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
@@ -286,7 +292,7 @@ fn save_filled_image(
             .try_into()
             .unwrap()
     ];
-    let buf = image_data.buf.to_vec();
+    let buf = &image_data.buf;
 
     let mut i = 0;
     let mut j = 0;
@@ -316,12 +322,6 @@ fn save_filled_image(
     Ok(())
 }
 
-struct ImageData {
-    width: u32,
-    height: u32,
-    buf: Vec<u8>,
-}
-
 pub fn generate_icon(
     icon_name: &str,
     cache_dir: &str,
@@ -344,32 +344,21 @@ pub fn generate_icon(
         )?
         .reply()?;
 
-    let mut icons = Vec::new();
     let data = property.value;
-
+    let mut icons = Vec::new();
     let mut i = 0;
-
-    // println!("{}", data.len());
 
     while i < data.len() {
         let mut chunks = data[i..].chunks_exact(4);
-        // Ok(.fold(false, |acc, chunk| {
-        //     let net_wm_state_atom = u32::from_le_bytes(chunk.try_into().unwrap());
 
-        //     acc && (net_wm_state_atom == atoms._NET_WM_STATE_FULLSCREEN)
-        // }))
         let width =
             u32::from_le_bytes(chunks.next().unwrap().try_into().unwrap());
         let height =
             u32::from_le_bytes(chunks.next().unwrap().try_into().unwrap());
 
-        // println!("{}, {}", width, height);
-        // data = data[8..].to_vec();
         i += 8;
 
         let size = usize::try_from(width * height * 4).unwrap();
-
-        // println!("{}", i + size);
 
         if i + size > data.len() {
             break;
@@ -390,11 +379,9 @@ pub fn generate_icon(
     let icon_path = format!("{cache_dir}/{icon_name}.png");
 
     match icons.last() {
-        Some(icon) => save_filled_image(icon, &icon_path, color)?,
-        None => return Err("foo".into()),
-    };
-
-    Ok(())
+        Some(icon) => save_filled_image(icon, &icon_path, color),
+        None => return Err("No icon was found for this window".into()),
+    }
 }
 
 fn composite_manager_running(
