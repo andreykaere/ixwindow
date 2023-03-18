@@ -1,9 +1,9 @@
 use i3ipc::I3Connection;
 
+use std::error::Error;
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
-
 use std::str;
 use std::thread;
 use std::time::Duration;
@@ -163,7 +163,7 @@ where
         }
     }
 
-    fn generate_icon(&self, window_id: i32) {
+    fn generate_icon(&self, window_id: i32) -> Result<(), Box<dyn Error>> {
         let config = &self.config;
 
         if !Path::new(config.cache_dir()).is_dir() {
@@ -177,7 +177,6 @@ where
             config.color(),
             window_id,
         )
-        .unwrap_or(());
     }
 
     fn display_icon(&mut self, icon_path: &str) {
@@ -239,6 +238,8 @@ where
             return;
         }
 
+        self.destroy_prev_icon();
+
         let state = &self.monitor.state;
 
         // curr_icon is not `None`, because we put the current icon name before
@@ -249,10 +250,14 @@ where
         let icon_path = format!("{}/{}.jpg", &config.cache_dir(), icon_name);
 
         if !Path::new(&icon_path).exists() {
-            self.generate_icon(window_id);
+            // Repeatedly try to retrieve and generate_icon
+            let mut timeout_icon = 1000;
+            while self.generate_icon(window_id).is_err() && timeout_icon > 0 {
+                thread::sleep(Duration::from_millis(100));
+                timeout_icon -= 100;
+            }
         }
 
-        self.destroy_prev_icon();
         self.display_icon(&icon_path);
     }
 
@@ -303,13 +308,16 @@ where
 
     pub fn process_focused_window(&mut self, window_id: i32) {
         // let icon_name = self.wm_connection.get_icon_name(window_id).unwrap();
-        let mut timeout = 2000;
+        let mut timeout_name = 1000;
+        while timeout_name > 0 {
+            if let Some(name) = self.wm_connection.get_icon_name(window_id) {
+                if name.len() > 0 {
+                    break;
+                }
+            }
 
-        while self.wm_connection.get_icon_name(window_id).is_none()
-            && timeout > 0
-        {
             thread::sleep(Duration::from_millis(100));
-            timeout -= 100;
+            timeout_name -= 100;
         }
 
         let icon_name = self

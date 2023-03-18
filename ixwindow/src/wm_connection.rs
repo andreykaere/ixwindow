@@ -11,12 +11,11 @@ use crate::bspwm::BspwmConnection;
 use crate::{i3_utils, x11_utils};
 
 pub trait WMConnection {
-    // fn is_window_fullscreen(foo: Option<&mut Self>, window_id: i32) -> bool;
     fn is_window_fullscreen(&mut self, window_id: i32) -> bool {
-        // let res = x11_utils::is_window_fullscreen(window_id).unwrap();
-        // println!("{}", res);
-        // res
-        x11_utils::is_window_fullscreen(window_id).unwrap()
+        // We can't just use unwrap here, because some apps (at least Discord
+        // and Zoom) that are changing its window_id as it is running.
+        // Probably there are more apps like that
+        x11_utils::is_window_fullscreen(window_id).unwrap_or(false)
     }
 
     fn get_icon_name(&mut self, window_id: i32) -> Option<String> {
