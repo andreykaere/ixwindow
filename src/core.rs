@@ -356,18 +356,8 @@ where
         self.wm_connection.get_focused_window_id(&self.monitor.name)
     }
 
-    pub fn is_curr_desk_empty(&mut self) -> bool {
-        match self.get_focused_desktop_id() {
-            Some(curr_desk) => {
-                self.wm_connection.is_desk_empty(curr_desk)
-            }
-            None => panic!("Can't know if non-existing desktop empty or not"),
-        }
-    }
-
     pub fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32> {
-        self.wm_connection
-            .get_fullscreen_window_id(desktop_id)
+        self.wm_connection.get_fullscreen_window_id(desktop_id)
     }
 
     pub fn is_desk_empty(&mut self, desktop_id: u32) -> bool {

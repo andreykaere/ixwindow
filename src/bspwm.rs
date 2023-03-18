@@ -59,8 +59,12 @@ impl Core<BspwmConnection, BspwmConfig> {
                 self.process_focused_window(node_info.node_id);
             }
 
-            NodeEvent::NodeRemove(node_info) => {
-                if self.is_desk_empty(node_info.desktop_id) {
+            NodeEvent::NodeRemove(_) => {
+                let window_id = self.get_focused_window_id();
+
+                if let Some(id) = window_id {
+                    self.process_focused_window(id);
+                } else {
                     self.process_empty_desktop();
                 }
             }
