@@ -278,10 +278,7 @@ fn save_filled_image(
         .chars()
         .collect::<Vec<_>>()
         .chunks_exact(2)
-        .map(|x| {
-            u8::from_str_radix(format!("{}{}", x[0], x[1]).as_ref(), 16)
-                .unwrap()
-        })
+        .map(|x| u8::from_str_radix(&format!("{}{}", x[0], x[1]), 16).unwrap())
         .collect::<Vec<u8>>();
 
     let (bg_r, bg_g, bg_b) = (bg_color[0], bg_color[1], bg_color[2]);
@@ -376,11 +373,11 @@ pub fn generate_icon(
         }
     }
 
-    let icon_path = format!("{cache_dir}/{icon_name}.png");
+    let icon_path = format!("{cache_dir}/{icon_name}.jpg");
 
     match icons.last() {
         Some(icon) => save_filled_image(icon, &icon_path, color),
-        None => return Err("No icon was found for this window".into()),
+        None => Err("No icon was found for this window".into()),
     }
 }
 

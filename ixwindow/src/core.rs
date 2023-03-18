@@ -33,7 +33,7 @@ impl State {
     }
 
     fn update_icon(&mut self, icon_name: Option<&str>) {
-        self.prev_icon = self.curr_icon.as_ref().map(|x| x.to_string());
+        self.prev_icon = self.curr_icon.take();
         self.curr_icon = icon_name.map(|x| x.to_string());
     }
 }
@@ -246,7 +246,7 @@ where
         let icon_name = state.curr_icon.as_ref().unwrap();
 
         let config = &self.config;
-        let icon_path = format!("{}/{}.png", &config.cache_dir(), icon_name);
+        let icon_path = format!("{}/{}.jpg", &config.cache_dir(), icon_name);
 
         if !Path::new(&icon_path).exists() {
             self.generate_icon(window_id);
@@ -278,10 +278,10 @@ where
         print!("{}", self.config.gap());
         io::stdout().flush().unwrap();
 
-        match state.curr_icon.as_ref() {
+        match &state.curr_icon {
             None => println!("Empty"),
 
-            Some(icon_name) => match icon_name.as_ref() {
+            Some(icon_name) => match icon_name.as_str() {
                 "Brave-browser" => println!("Brave"),
                 "TelegramDesktop" => println!("Telegram"),
                 _ => println!("{}", capitalize_first(icon_name)),

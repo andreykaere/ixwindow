@@ -13,7 +13,7 @@ fn main() {
     let wm_name = x11_utils::get_current_wm()
         .expect("Couldn't get current window manager name");
 
-    match wm_name.as_ref() {
+    match wm_name.as_str() {
         "i3" => i3::exec(monitor_name),
         "bspwm" => bspwm::exec(monitor_name),
         _ => {}

@@ -56,7 +56,7 @@ pub fn get_desks_on_mon(
     let monitors = tree.nodes;
 
     for monitor in monitors {
-        if let Some(x) = monitor.name.as_ref() {
+        if let Some(x) = &monitor.name {
             if x == monitor_name {
                 return get_subnodes_type_desk(monitor);
             }

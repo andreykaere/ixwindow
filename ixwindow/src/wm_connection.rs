@@ -1,5 +1,7 @@
-use bspc_rs::errors::ReplyError;
-use bspc_rs::{Bspc, Id};
+use bspc::errors::ReplyError;
+use bspc::selectors::{DesktopSelector, MonitorSelector, NodeSelector};
+use bspc::Id;
+use bspc_rs as bspc;
 
 use i3ipc::I3Connection;
 
@@ -82,11 +84,11 @@ impl WMConnection for I3Connection {
 
 impl WMConnection for BspwmConnection {
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
-        let query_result = Bspc::query_desktops(
+        let query_result = bspc::query_desktops(
             false,
             None,
-            Some(monitor_name),
-            Some("focused"),
+            Some(MonitorSelector(monitor_name)),
+            Some(DesktopSelector("focused")),
             None,
         );
 
@@ -95,22 +97,22 @@ impl WMConnection for BspwmConnection {
 
     fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
         let desk_id = desktop_id.to_string();
-        let query_result = Bspc::query_nodes(
+        let query_result = bspc::query_nodes(
             None,
             None,
-            Some(&desk_id),
-            Some(".window.!hidden"),
+            Some(DesktopSelector(&desk_id)),
+            Some(NodeSelector(".window.!hidden")),
         );
 
         from_query_result_to_id(query_result).is_none()
     }
 
     fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32> {
-        let query_result = Bspc::query_nodes(
+        let query_result = bspc::query_nodes(
             None,
-            Some(monitor_name),
+            Some(MonitorSelector(monitor_name)),
             None,
-            Some("focused.window"),
+            Some(NodeSelector("focused.window")),
         );
 
         from_query_result_to_id(query_result)
@@ -118,11 +120,11 @@ impl WMConnection for BspwmConnection {
 
     fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32> {
         let desk_id = desktop_id.to_string();
-        let query_result = Bspc::query_nodes(
+        let query_result = bspc::query_nodes(
             None,
             None,
-            Some(&desk_id),
-            Some(".fullscreen.window"),
+            Some(DesktopSelector(&desk_id)),
+            Some(NodeSelector(".fullscreen.window")),
         );
 
         from_query_result_to_id(query_result)
