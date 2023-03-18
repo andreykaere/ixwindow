@@ -17,8 +17,8 @@ OPTIONS:
         Used for specifying installation directory.
 
     --clean
-        When specified, this script cleans destinational files from previous 
-        installation.
+        When specified, this script cleans directory specified in '--prefix' 
+        option.
 "
 
 exit 1
@@ -30,62 +30,20 @@ init_config_file () {
     cp "examples/ixwindow.toml" "$XDG_CONFIG_HOME/ixwindow/ixwindow.toml"
 }
 
-install_wm () {
-    local wm="$1"
-   
+install () {
     if [ "$CLEAN" -eq 1 ]; then
         rm -r "$PREFIX"
     fi
-
-    case "$wm" in 
-        "bspwm")
-            cp -r "ixwindow/wms/bspwm" "ixwindow_compiled/bspwm"
-
-            local config="$(echo "$XDG_CONFIG_HOME/ixwindow/ixwindow.toml" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
-            sed -i "s/\$\$BSPWM_CONFIG/\"$config\"/g" ixwindow_compiled/ixwindow-convert
-
-            cd ixwindow_compiled/bspwm/polybar-ixwindow-icon && cargo build --release
-            cd ../ixwindow && cargo build --release
-
-            cd ../ 
-            cp polybar-ixwindow-icon/target/release/polybar-ixwindow-icon ./temp
-            cp ixwindow/target/release/ixwindow ./temp-main
-
-            rm -r polybar-ixwindow-icon
-            rm -r ixwindow
-
-            mv temp polybar-ixwindow-icon
-            mv temp-main ixwindow
-            cd ../../
-
-            rm -r "$PREFIX/bspwm" 2> /dev/null
-            ;;
-
-        "i3")
-            cp -r "ixwindow/wms/i3" "ixwindow_compiled/i3"
             
-            local config="$(echo "$config_dir/$config_file" | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g')" 
-            sed -i "s/\$\$I3_CONFIG/\"$config\"/g" ixwindow_compiled/ixwindow-convert
+    # Remove ixwindow file from previous installation
+    rm -r "$PREFIX/ixwindow" 2> /dev/null
 
-            cd ixwindow_compiled/i3 && cargo build --release  
-            cd ../ && cp i3/target/release/ixwindow_i3 ./
-
-            rm -r i3/*
-            mv ixwindow_i3 i3/ixwindow
-            cd ../
-
-            rm -r "$PREFIX/i3" 2> /dev/null
-            ;;
-    esac
-    
-    mkdir -p "$PREFIX" && cp -r ixwindow_compiled/* "$PREFIX"
+    cargo build --release
+   
+    mkdir -p "$PREFIX"
+    cp -r target/release/ixwindow "$PREFIX" 
 }
 
-WINDOW_MANAGES=()
-
-if [ $# -eq 0 ]; then
-    usage
-fi
 
 CLEAN=0
 PREFIX="$HOME/.config/polybar/scripts/ixwindow"
@@ -105,25 +63,12 @@ do
             shift 2
             ;;
         *)
-            while [ $# -gt 0 ]; 
-            do
-                WINDOW_MANAGES+=("$1")
-                shift
-            done
-
             ;;
     esac
 done
 
-cp -r ixwindow ixwindow_compiled
-rm -r ixwindow_compiled/wms
 
-for wm in "${WINDOW_MANAGES[@]}"
-do
-    install_wm "$wm"
-done
-
+install
 
 init_config_file 
 
-rm -r ixwindow_compiled
