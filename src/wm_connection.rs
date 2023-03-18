@@ -11,25 +11,25 @@ use crate::bspwm::BspwmConnection;
 use crate::{i3_utils, x11_utils};
 
 pub trait WMConnection {
-    fn is_window_fullscreen(&mut self, window_id: i32) -> bool {
+    fn is_window_fullscreen(&mut self, window_id: u32) -> bool {
         // We can't just use unwrap here, because some apps (at least Discord
         // and Zoom) that are changing its window_id as it is running.
         // Probably there are more apps like that
         x11_utils::is_window_fullscreen(window_id).unwrap_or(false)
     }
 
-    fn get_icon_name(&mut self, window_id: i32) -> Option<String> {
+    fn get_icon_name(&mut self, window_id: u32) -> Option<String> {
         Some(x11_utils::get_wm_class(window_id).ok()?.replace(' ', "-"))
     }
 
-    fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32>;
-    fn is_desk_empty(&mut self, desktop_id: i32) -> bool;
-    fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32>;
-    fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32>;
+    fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<u32>;
+    fn is_desk_empty(&mut self, desktop_id: u32) -> bool;
+    fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<u32>;
+    fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32>;
 }
 
 impl WMConnection for I3Connection {
-    fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
+    fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<u32> {
         let desktops = self
             .get_workspaces()
             .expect("Couldn't read information about tree")
@@ -37,7 +37,7 @@ impl WMConnection for I3Connection {
 
         for desktop in desktops {
             if desktop.focused && monitor_name == desktop.output {
-                return Some(desktop.num);
+                return Some(desktop.num as u32);
             }
         }
 
@@ -46,18 +46,18 @@ impl WMConnection for I3Connection {
         None
     }
 
-    fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
-        let node = i3_utils::convert_desk_id_to_node(self, desktop_id);
+    fn is_desk_empty(&mut self, desktop_id: u32) -> bool {
+        let node = i3_utils::convert_desk_id_to_node(self, desktop_id as i32);
 
         node.nodes.is_empty()
     }
 
-    fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32> {
+    fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<u32> {
         let nodes = i3_utils::get_all_nodes_on_mon(self, monitor_name);
 
         for node in nodes {
             if node.focused {
-                return node.window;
+                return node.window.map(|x| x as u32);
             }
         }
 
@@ -65,13 +65,13 @@ impl WMConnection for I3Connection {
         None
     }
 
-    fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32> {
-        let nodes = i3_utils::get_desktop_windows(self, desktop_id);
+    fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32> {
+        let nodes = i3_utils::get_desktop_windows(self, desktop_id as i32);
 
         for node in nodes {
             if let Some(id) = node.window {
-                if self.is_window_fullscreen(id) {
-                    return Some(id);
+                if self.is_window_fullscreen(id as u32) {
+                    return Some(id as u32);
                 }
             }
         }
@@ -82,7 +82,7 @@ impl WMConnection for I3Connection {
 }
 
 impl WMConnection for BspwmConnection {
-    fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<i32> {
+    fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<u32> {
         let query_result = bspc::query_desktops(
             false,
             None,
@@ -94,7 +94,7 @@ impl WMConnection for BspwmConnection {
         from_query_result_to_id(query_result)
     }
 
-    fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
+    fn is_desk_empty(&mut self, desktop_id: u32) -> bool {
         let desk_id = desktop_id.to_string();
         let query_result = bspc::query_nodes(
             None,
@@ -106,7 +106,7 @@ impl WMConnection for BspwmConnection {
         from_query_result_to_id(query_result).is_none()
     }
 
-    fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<i32> {
+    fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<u32> {
         let query_result = bspc::query_nodes(
             None,
             Some(MonitorSelector(monitor_name)),
@@ -117,7 +117,7 @@ impl WMConnection for BspwmConnection {
         from_query_result_to_id(query_result)
     }
 
-    fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32> {
+    fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32> {
         let desk_id = desktop_id.to_string();
         let query_result = bspc::query_nodes(
             None,
@@ -132,9 +132,9 @@ impl WMConnection for BspwmConnection {
 
 fn from_query_result_to_id(
     query_result: Result<Vec<Id>, ReplyError>,
-) -> Option<i32> {
+) -> Option<u32> {
     match query_result {
-        Ok(ids) => Some(ids[0].try_into().unwrap()),
+        Ok(ids) => Some(ids[0]),
 
         Err(ReplyError::RequestFailed(err)) => {
             if err.is_empty() {

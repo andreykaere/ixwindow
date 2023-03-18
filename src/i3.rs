@@ -51,7 +51,7 @@ impl Core<I3Connection, I3Config> {
     fn handle_window_event(&mut self, event_info: WindowEventInfo) {
         let node = event_info.container;
         let id = match node.window {
-            Some(x) => x,
+            Some(x) => x as u32,
 
             // It means, the window was sent to scratchpad desktop
             None => {

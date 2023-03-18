@@ -163,7 +163,7 @@ where
         }
     }
 
-    fn generate_icon(&self, window_id: i32) -> Result<(), Box<dyn Error>> {
+    fn generate_icon(&self, window_id: u32) -> Result<(), Box<dyn Error>> {
         let config = &self.config;
 
         if !Path::new(config.cache_dir()).is_dir() {
@@ -233,7 +233,7 @@ where
         // true
     }
 
-    fn process_icon(&mut self, window_id: i32) {
+    fn process_icon(&mut self, window_id: u32) {
         if !self.show_icon() {
             return;
         }
@@ -306,12 +306,12 @@ where
         }
     }
 
-    pub fn process_focused_window(&mut self, window_id: i32) {
+    pub fn process_focused_window(&mut self, window_id: u32) {
         // let icon_name = self.wm_connection.get_icon_name(window_id).unwrap();
         let mut timeout_name = 1000;
         while timeout_name > 0 {
             if let Some(name) = self.wm_connection.get_icon_name(window_id) {
-                if name.len() > 0 {
+                if !name.is_empty() {
                     break;
                 }
             }
@@ -347,27 +347,30 @@ where
         self.print_info();
     }
 
-    pub fn get_focused_desktop_id(&mut self) -> Option<i32> {
+    pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
         self.wm_connection
             .get_focused_desktop_id(&self.monitor.name)
     }
 
-    pub fn get_focused_window_id(&mut self) -> Option<i32> {
+    pub fn get_focused_window_id(&mut self) -> Option<u32> {
         self.wm_connection.get_focused_window_id(&self.monitor.name)
     }
 
     pub fn is_curr_desk_empty(&mut self) -> bool {
         match self.get_focused_desktop_id() {
-            Some(curr_desk) => self.wm_connection.is_desk_empty(curr_desk),
+            Some(curr_desk) => {
+                self.wm_connection.is_desk_empty(curr_desk)
+            }
             None => panic!("Can't know if non-existing desktop empty or not"),
         }
     }
 
-    pub fn get_fullscreen_window_id(&mut self, desktop_id: i32) -> Option<i32> {
-        self.wm_connection.get_fullscreen_window_id(desktop_id)
+    pub fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32> {
+        self.wm_connection
+            .get_fullscreen_window_id(desktop_id)
     }
 
-    pub fn is_desk_empty(&mut self, desktop_id: i32) -> bool {
+    pub fn is_desk_empty(&mut self, desktop_id: u32) -> bool {
         self.wm_connection.is_desk_empty(desktop_id)
     }
 }

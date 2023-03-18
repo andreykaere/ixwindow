@@ -56,14 +56,11 @@ impl Core<BspwmConnection, BspwmConfig> {
     fn handle_node_event(&mut self, event: NodeEvent) {
         match event {
             NodeEvent::NodeFocus(node_info) => {
-                self.process_focused_window(
-                    node_info.node_id.try_into().unwrap(),
-                );
+                self.process_focused_window(node_info.node_id);
             }
 
             NodeEvent::NodeRemove(node_info) => {
-                if self.is_desk_empty(node_info.desktop_id.try_into().unwrap())
-                {
+                if self.is_desk_empty(node_info.desktop_id) {
                     self.process_empty_desktop();
                 }
             }
@@ -72,16 +69,13 @@ impl Core<BspwmConnection, BspwmConfig> {
                 // NodeFlag event can in particular mean, that node can become
                 // hidden and we need to check if that was the only visible
                 // node on that desktop
-                if self.is_desk_empty(node_info.desktop_id.try_into().unwrap())
-                {
+                if self.is_desk_empty(node_info.desktop_id) {
                     self.process_empty_desktop();
                 }
             }
 
             NodeEvent::NodeState(node_info) => {
-                self.process_focused_window(
-                    node_info.node_id.try_into().unwrap(),
-                );
+                self.process_focused_window(node_info.node_id);
             }
             _ => {
                 unreachable!();
@@ -92,7 +86,7 @@ impl Core<BspwmConnection, BspwmConfig> {
     fn handle_desktop_event(&mut self, event: DesktopEvent) {
         match event {
             DesktopEvent::DesktopFocus(event_info) => {
-                let current_desktop = event_info.desktop_id.try_into().unwrap();
+                let current_desktop = event_info.desktop_id;
 
                 if self.is_desk_empty(current_desktop) {
                     self.process_empty_desktop();

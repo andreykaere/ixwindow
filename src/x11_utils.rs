@@ -191,13 +191,13 @@ pub fn get_current_wm() -> Result<String, Box<dyn std::error::Error>> {
     Ok(wm_name)
 }
 
-pub fn get_wm_class(wid: i32) -> Result<String, Box<dyn Error>> {
+pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
     let (conn, _) = x11rb::connect(None)?;
 
     let property = conn
         .get_property(
             false,
-            wid.try_into()?,
+            wid,
             AtomEnum::WM_CLASS,
             AtomEnum::STRING,
             0,
@@ -221,7 +221,7 @@ pub fn get_wm_class(wid: i32) -> Result<String, Box<dyn Error>> {
     Ok(String::new())
 }
 
-pub fn is_window_fullscreen(window_id: i32) -> Result<bool, Box<dyn Error>> {
+pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
     let (conn, _) = x11rb::connect(None)?;
 
     let atoms = AtomCollection::new(&conn)?;
@@ -230,7 +230,7 @@ pub fn is_window_fullscreen(window_id: i32) -> Result<bool, Box<dyn Error>> {
     let property = conn
         .get_property(
             false,
-            window_id.try_into()?,
+            window_id,
             atoms._NET_WM_STATE,
             AtomEnum::ATOM,
             0,
@@ -323,7 +323,7 @@ pub fn generate_icon(
     icon_name: &str,
     cache_dir: &str,
     color: &str,
-    window_id: i32,
+    window_id: u32,
 ) -> Result<(), Box<dyn Error>> {
     let (conn, _) = x11rb::connect(None)?;
 
@@ -333,7 +333,7 @@ pub fn generate_icon(
     let property = conn
         .get_property(
             false,
-            window_id.try_into()?,
+            window_id,
             atoms._NET_WM_ICON,
             AtomEnum::CARDINAL,
             0,
@@ -394,12 +394,15 @@ fn composite_manager_running(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bspc::selectors::NodeSelector;
+    use bspc_rs as bspc;
+    use std::env;
 
     #[test]
-    #[ignore]
     fn test_get_wm_class() {
-        // let id = 69206018;
-        let id = 123731974;
+        let id =
+            bspc::query_nodes(None, None, None, Some(NodeSelector("focused")))
+                .unwrap()[0];
         let wm_class = get_wm_class(id).unwrap();
 
         println!("{wm_class}");
@@ -407,47 +410,37 @@ mod tests {
 
     #[test]
     fn test_get_current_wm() {
-        // let id = 69206018;
         let wm = get_current_wm().unwrap();
 
         println!("wm: {wm}");
     }
 
     #[test]
-    #[ignore]
     fn test_is_window_fullscreen() {
-        // let id = 69206018;
-        let id = 20971522;
+        let id =
+            bspc::query_nodes(None, None, None, Some(NodeSelector("focused")))
+                .unwrap()[0];
         let flag = is_window_fullscreen(id).unwrap();
 
         println!("flag: {flag}");
     }
 
     #[test]
+    #[ignore]
     fn test_generate_icon() {
         let id = 27262978;
         generate_icon("foo.jpg", "/home/andrey", "#252737", id).unwrap();
     }
 
-    // fn get_icon_path() -> String {
-    //     env::current_dir().unwrap().to_str().unwrap().to_owned()
-    //         + "/tests/alacritty.png"
-    // }
+    fn get_icon_path() -> String {
+        env::current_dir().unwrap().to_str().unwrap().to_owned()
+            + "/tests/alacritty.png"
+    }
 
-    // fn display(monitor_name: &str) {
-    //     display_icon(
-    //         &get_icon_path(),
-    //         270,
-    //         6,
-    //         24,
-    //         monitor_name,
-    //         Arc::new(AtomicBool::new(true)),
-    //     );
-    // }
-
-    // #[test]
-    // fn display_icon_test() {
-    //     let monitor_name = "eDP-1";
-    //     display(monitor_name);
-    // }
+    #[test]
+    fn display_icon_test() {
+        let (conn, _) = x11rb::connect(None).unwrap();
+        let monitor_name = "eDP-1";
+        display_icon(&conn, &get_icon_path(), 270, 6, 24, monitor_name);
+    }
 }
