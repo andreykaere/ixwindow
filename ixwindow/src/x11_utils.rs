@@ -249,7 +249,7 @@ pub fn is_window_fullscreen(window_id: i32) -> Result<bool, Box<dyn Error>> {
     Ok(data.chunks_exact(4).fold(false, |acc, chunk| {
         let net_wm_state_atom = u32::from_le_bytes(chunk.try_into().unwrap());
 
-        acc && (net_wm_state_atom == atoms._NET_WM_STATE_FULLSCREEN)
+        acc || (net_wm_state_atom == atoms._NET_WM_STATE_FULLSCREEN)
     }))
 }
 
