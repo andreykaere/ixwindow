@@ -312,10 +312,10 @@ where
             timeout -= 100;
         }
 
-        let icon_name = match self.wm_connection.get_icon_name(window_id) {
-            Some(name) => name,
-            None => String::new(),
-        };
+        let icon_name = self
+            .wm_connection
+            .get_icon_name(window_id)
+            .unwrap_or(String::new());
 
         self.monitor.state.update_icon(Some(&icon_name));
         self.print_info();
