@@ -265,10 +265,10 @@ where
         self.display_icon(&icon_path);
     }
 
-    fn print_info(&mut self) {
+    fn print_info(&mut self, update_force: bool) {
         let state = &self.monitor.state;
 
-        if state.prev_icon == state.curr_icon {
+        if state.prev_icon == state.curr_icon && !update_force {
             return;
         }
 
@@ -334,7 +334,7 @@ where
             .unwrap_or(String::new());
 
         self.monitor.state.update_icon_name(Some(&icon_name));
-        self.print_info();
+        self.print_info(false);
 
         if self.wm_connection.is_window_fullscreen(window_id) {
             self.monitor.update_fullscreen(true);
@@ -352,7 +352,7 @@ where
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
         self.monitor.state.update_icon_name(None);
-        self.print_info();
+        self.print_info(true);
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
