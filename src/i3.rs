@@ -73,7 +73,6 @@ impl Core<I3Connection, I3Config> {
 
             WindowChange::Close => {
                 let window_id = self.get_focused_window_id();
-                self.update_x();
 
                 if let Some(id) = window_id {
                     self.process_focused_window(id, true);
@@ -118,7 +117,5 @@ impl Core<I3Connection, I3Config> {
 
             _ => {}
         }
-
-        self.update_x();
     }
 }

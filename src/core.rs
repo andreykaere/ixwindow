@@ -239,6 +239,7 @@ where
         }
 
         self.destroy_prev_icon();
+        self.update_x();
 
         let state = &self.monitor.state;
 
