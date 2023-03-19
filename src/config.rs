@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn parse_config_works() {
-        let config = load_i3();
+        let config = load_i3(None);
 
         assert_eq!(config.size(), 24);
         assert_eq!(
@@ -158,16 +158,11 @@ mod tests {
 
     #[test]
     fn expand_filename_works() {
-        let config = load_i3();
+        let config = load_i3(None);
 
         assert_eq!(
             expand_filename(config.cache_dir()),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
         );
-    }
-
-    #[test]
-    fn process_config_as_option_works() {
-        process_config_as_option();
     }
 }

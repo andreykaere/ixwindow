@@ -428,19 +428,23 @@ mod tests {
     #[test]
     #[ignore]
     fn test_generate_icon() {
-        let id = 27262978;
+        let id =
+            bspc::query_nodes(None, None, None, Some(NodeSelector("focused")))
+                .unwrap()[0];
+
         generate_icon("foo.jpg", "/home/andrey", "#252737", id).unwrap();
     }
 
     fn get_icon_path() -> String {
         env::current_dir().unwrap().to_str().unwrap().to_owned()
-            + "/tests/alacritty.png"
+            + "/tests_files/alacritty.png"
     }
 
     #[test]
     fn display_icon_test() {
         let (conn, _) = x11rb::connect(None).unwrap();
         let monitor_name = "eDP-1";
-        display_icon(&conn, &get_icon_path(), 270, 6, 24, monitor_name);
+        display_icon(&conn, &get_icon_path(), 270, 6, 24, monitor_name)
+            .unwrap();
     }
 }
