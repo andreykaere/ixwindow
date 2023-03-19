@@ -27,20 +27,12 @@ as polybar's `tail = true`.
 - Flexible configuration of what gets printed
 - Native support for `bspwm` via
   [`bspc-rs`](https://github.com/andreykaere/bspc-rs) library, which was
-  started with the need for this project.
+  started with the need for this project
 
 ## Dependencies
-
-### Common 
 - [`cargo`](https://github.com/rust-lang/cargo)
+
 For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
-
-### For bspwm
-- `bspwm`
-
-### For i3
-- `i3`
-
 
 ## Downloading
 
