@@ -111,7 +111,6 @@ somewhere else, you should specify that in environmental variable
 In config file, there are various options, that can be modified (example of
 configuration file can be found in `examples/ixwindow.toml`), such as:
 ```toml
-
 # Path to folder for the cached icons 
 # Note: it makes sense to keep it around `.config/polybar` folder, so you won't
 # lose your custom icons, if you have them
@@ -136,15 +135,15 @@ gap = "<spaces>"
 
 
 # For i3 (but if there will be request, can be easily added for bspwm as
-well). 
+# well). 
 #
 # This variable is used for calculation of the position of the icon, when the number 
 # of active desktops is dynamic, i.e. is not constant and can be changed when
 # new nodes are added. This setting is optional and if it is not set, it
-means, that the icon position will be static.
+# means, that the icon position will be static.
 # 
 # For more accurate configuration, floating numbers are acceptable. For
-example:
+# example:
 gap_per_desk = 24.0
 ```
 To change your configuration, just edit your config file. For new settings to
