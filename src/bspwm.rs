@@ -12,8 +12,8 @@ impl BspwmConnection {
     }
 }
 
-pub fn exec(monitor_name: Option<String>) {
-    let mut core = Core::init(monitor_name);
+pub fn exec(monitor_name: Option<String>, config_option: Option<&str>) {
+    let mut core = Core::init(monitor_name, config_option);
     core.process_start();
 
     let subscriptions = [

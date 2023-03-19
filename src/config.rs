@@ -68,17 +68,14 @@ impl Config for BspwmConfig {
     }
 }
 
-pub fn read_to_table() -> toml::Table {
-    let config_filename = match locate_config_file() {
-        Some(config_file) => config_file,
-        None => {
-            if let Some(config_opt) = process_config_as_option() {
-                config_opt
-            } else {
-                panic!("Couldn't find config file");
-            }
-        }
+pub fn read_to_table(config_option: Option<&str>) -> toml::Table {
+    let config_filename = if let Some(name) = config_option {
+        name.to_string()
+    } else {
+        locate_config_file().expect("Couldn't find config file")
     };
+
+    let config_filename = expand_filename(&config_filename);
 
     let mut config_file =
         File::open(config_filename).expect("Failed to open config file");
@@ -88,8 +85,8 @@ pub fn read_to_table() -> toml::Table {
     config_str.parse().unwrap()
 }
 
-pub fn load_i3() -> I3Config {
-    let mut table = read_to_table();
+pub fn load_i3(config_option: Option<&str>) -> I3Config {
+    let mut table = read_to_table(config_option);
 
     // We use remove here, because we need ownership for try_into
     let config_table = table.remove("i3").unwrap();
@@ -101,8 +98,8 @@ pub fn load_i3() -> I3Config {
     i3_config
 }
 
-pub fn load_bspwm() -> BspwmConfig {
-    let mut table = read_to_table();
+pub fn load_bspwm(config_option: Option<&str>) -> BspwmConfig {
+    let mut table = read_to_table(config_option);
 
     // We use remove here, because we need ownership for try_into
     let config_table = table.remove("bspwm").unwrap();
@@ -112,20 +109,6 @@ pub fn load_bspwm() -> BspwmConfig {
         expand_filename(&bspwm_config.essential_config.cache_dir);
 
     bspwm_config
-}
-
-fn process_config_as_option() -> Option<String> {
-    let args = env::args();
-
-    for arg in args {
-        let parse: Vec<_> = arg.split("--config=").collect();
-
-        if parse.len() == 2 {
-            return Some(parse[1].to_string());
-        }
-    }
-
-    None
 }
 
 fn locate_config_file() -> Option<String> {
