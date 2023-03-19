@@ -68,21 +68,22 @@ impl Core<I3Connection, I3Config> {
 
         match event_info.change {
             WindowChange::Focus => {
-                self.process_focused_window(id);
+                self.process_focused_window(id, false);
             }
 
             WindowChange::Close => {
                 let window_id = self.get_focused_window_id();
+                self.update_x();
 
                 if let Some(id) = window_id {
-                    self.process_focused_window(id);
+                    self.process_focused_window(id, true);
                 } else {
                     self.process_empty_desktop();
                 }
             }
 
             WindowChange::FullscreenMode => {
-                self.process_focused_window(id);
+                self.process_focused_window(id, false);
             }
 
             _ => {}

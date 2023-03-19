@@ -32,7 +32,7 @@ impl State {
         Self::default()
     }
 
-    fn update_icon(&mut self, icon_name: Option<&str>) {
+    fn update_icon_name(&mut self, icon_name: Option<&str>) {
         self.prev_icon = self.curr_icon.take();
         self.curr_icon = icon_name.map(|x| x.to_string());
     }
@@ -157,7 +157,7 @@ where
         self.update_x();
 
         if let Some(window_id) = self.get_focused_window_id() {
-            self.process_focused_window(window_id);
+            self.process_focused_window(window_id, false);
         } else {
             self.process_empty_desktop();
         }
@@ -233,8 +233,8 @@ where
         // true
     }
 
-    fn process_icon(&mut self, window_id: u32) {
-        if !self.show_icon() {
+    fn process_icon(&mut self, window_id: u32, update_force: bool) {
+        if !self.show_icon() && !update_force {
             return;
         }
 
@@ -306,7 +306,11 @@ where
         }
     }
 
-    pub fn process_focused_window(&mut self, window_id: u32) {
+    pub fn process_focused_window(
+        &mut self,
+        window_id: u32,
+        update_force: bool,
+    ) {
         // let icon_name = self.wm_connection.get_icon_name(window_id).unwrap();
         let mut timeout_name = 1000;
         while timeout_name > 0 {
@@ -325,7 +329,7 @@ where
             .get_icon_name(window_id)
             .unwrap_or(String::new());
 
-        self.monitor.state.update_icon(Some(&icon_name));
+        self.monitor.state.update_icon_name(Some(&icon_name));
         self.print_info();
 
         if self.wm_connection.is_window_fullscreen(window_id) {
@@ -333,7 +337,7 @@ where
             self.process_fullscreen_window();
         } else {
             self.monitor.update_fullscreen(false);
-            self.process_icon(window_id);
+            self.process_icon(window_id, update_force);
         }
     }
 
@@ -343,7 +347,7 @@ where
 
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
-        self.monitor.state.update_icon(None);
+        self.monitor.state.update_icon_name(None);
         self.print_info();
     }
 

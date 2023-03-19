@@ -56,14 +56,15 @@ impl Core<BspwmConnection, BspwmConfig> {
     fn handle_node_event(&mut self, event: NodeEvent) {
         match event {
             NodeEvent::NodeFocus(node_info) => {
-                self.process_focused_window(node_info.node_id);
+                self.process_focused_window(node_info.node_id, false);
             }
 
             NodeEvent::NodeRemove(_) => {
                 let window_id = self.get_focused_window_id();
+                self.update_x();
 
                 if let Some(id) = window_id {
-                    self.process_focused_window(id);
+                    self.process_focused_window(id, true);
                 } else {
                     self.process_empty_desktop();
                 }
@@ -79,7 +80,7 @@ impl Core<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeState(node_info) => {
-                self.process_focused_window(node_info.node_id);
+                self.process_focused_window(node_info.node_id, false);
             }
             _ => {
                 unreachable!();
