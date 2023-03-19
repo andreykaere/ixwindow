@@ -185,6 +185,13 @@ solution to any of the issues, stated above.
 
 - Add png support (maybe make it an option, if user doesn't use compositor)
 
+- Rewrite `ixwindow-convert` in Rust. It was removed for now, because with
+  Rust implementation there is no much need in it. However I think it would be
+  nice to have it anyway
+
+- Add options for `print_info` function, i.e. print different information.
+  Maybe add support for `xwindow` options (in polybar).
+
 ## Thanks
 
 ### Inspired by
