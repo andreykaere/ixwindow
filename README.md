@@ -4,16 +4,12 @@
 Ixwindow is an improved version of the standard `xwindow` polybar module. The
 main feature is that `ixwindow` displays not only info about active window,
 but also an icon for it. It also allows you more customization of printing
-window info. Below is represented an example of what `ixwindow` looks like in
-action:
+window info, than regular `xwindow` polybar module. Below is represented a 
+demonstration of what `ixwindow` looks like in action:
 
-### Bspwm
-
-[bspwm_demo.webm](https://user-images.githubusercontent.com/32775308/223551520-a605d964-29f6-4602-874d-2b1b254d432c.webm)
-
-### I3
-
-[i3_demo.webm](https://user-images.githubusercontent.com/32775308/223551794-b1300ef6-f65a-4d05-89d3-9af3be25765f.webm)
+<p align="center">
+  <img src="assets/demo.gif" alt="animated" />
+</p>
 
 
 **Note:** basically, it doesn't really depend on polybar itself, it can be used 
