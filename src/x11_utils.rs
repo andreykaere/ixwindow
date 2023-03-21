@@ -375,7 +375,17 @@ pub fn generate_icon(
 
     let icon_path = format!("{cache_dir}/{icon_name}.jpg");
 
-    match icons.last() {
+    let mut max_size = 0;
+    let mut max_icon = None;
+
+    for icon in icons.iter() {
+        if icon.width > max_size {
+            max_size = icon.width;
+            max_icon = Some(icon);
+        }
+    }
+
+    match max_icon {
         Some(icon) => save_filled_image(icon, &icon_path, color),
         None => Err("No icon was found for this window".into()),
     }
