@@ -220,24 +220,26 @@ where
         false
     }
 
-    fn show_icon(&mut self) -> bool {
-        !self.curr_desk_contains_fullscreen()
-            && (self.monitor.state.prev_icon != self.monitor.state.curr_icon
-                || self.monitor.prev_window_fullscreen)
+    fn show_icon(&mut self, update_force: bool) -> bool {
+        if self.curr_desk_contains_fullscreen() {
+            return false;
+        }
 
-        // if self.curr_desk_contains_fullscreen() {
-        //     return false;
-        // } else if self.monitor.state.prev_icon == self.monitor.state.curr_icon
-        //     && !self.monitor.prev_window_fullscreen
-        // {
-        //     return false;
-        // }
+        if update_force {
+            return true;
+        }
 
-        // true
+        if self.monitor.state.prev_icon == self.monitor.state.curr_icon
+            && !self.monitor.prev_window_fullscreen
+        {
+            return false;
+        }
+
+        true
     }
 
     fn process_icon(&mut self, window_id: u32, update_force: bool) {
-        if !self.show_icon() && !update_force {
+        if !self.show_icon(update_force) {
             return;
         }
 
