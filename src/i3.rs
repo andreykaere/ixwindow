@@ -6,7 +6,7 @@ use i3ipc::event::{
 use i3ipc::{self, I3Connection, I3EventListener, Subscription};
 
 use crate::config::I3Config;
-use crate::core::{ConfigFeatures as _, Core};
+use crate::core::{Core, CoreFeatures as _};
 
 pub fn exec(monitor_name: Option<String>, config_option: Option<&str>) {
     let mut listener =
@@ -68,21 +68,21 @@ impl Core<I3Connection, I3Config> {
 
         match event_info.change {
             WindowChange::Focus => {
-                self.process_focused_window(id, false);
+                self.process_focused_window(id);
             }
 
             WindowChange::Close => {
                 let window_id = self.get_focused_window_id();
 
                 if let Some(id) = window_id {
-                    self.process_focused_window(id, true);
+                    self.process_focused_window(id);
                 } else {
                     self.process_empty_desktop();
                 }
             }
 
             WindowChange::FullscreenMode => {
-                self.process_focused_window(id, false);
+                self.process_focused_window(id);
             }
 
             _ => {}

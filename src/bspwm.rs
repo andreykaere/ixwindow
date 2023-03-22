@@ -2,7 +2,7 @@ use bspc::events::{DesktopEvent, Event, NodeEvent, Subscription};
 use bspc_rs as bspc;
 
 use crate::config::BspwmConfig;
-use crate::core::{ConfigFeatures as _, Core};
+use crate::core::{Core, CoreFeatures as _};
 
 pub struct BspwmConnection;
 
@@ -56,14 +56,14 @@ impl Core<BspwmConnection, BspwmConfig> {
     fn handle_node_event(&mut self, event: NodeEvent) {
         match event {
             NodeEvent::NodeFocus(node_info) => {
-                self.process_focused_window(node_info.node_id, false);
+                self.process_focused_window(node_info.node_id);
             }
 
             NodeEvent::NodeRemove(_) => {
                 let window_id = self.get_focused_window_id();
 
                 if let Some(id) = window_id {
-                    self.process_focused_window(id, true);
+                    self.process_focused_window(id);
                 } else {
                     self.process_empty_desktop();
                 }
@@ -79,7 +79,7 @@ impl Core<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeState(node_info) => {
-                self.process_focused_window(node_info.node_id, false);
+                self.process_focused_window(node_info.node_id);
             }
             _ => {
                 unreachable!();

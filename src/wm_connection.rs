@@ -26,6 +26,7 @@ pub trait WMConnection {
     fn is_desk_empty(&mut self, desktop_id: u32) -> bool;
     fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<u32>;
     fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32>;
+    fn desktops_number(&mut self, monitor_name: &str) -> u32;
 }
 
 impl WMConnection for I3Connection {
@@ -79,6 +80,12 @@ impl WMConnection for I3Connection {
         // If no fullscreen window is found in this desktop
         None
     }
+
+    fn desktops_number(&mut self, monitor_name: &str) -> u32 {
+        let desktops = i3_utils::get_desks_on_mon(self, monitor_name);
+
+        desktops.len() as u32
+    }
 }
 
 impl WMConnection for BspwmConnection {
@@ -127,6 +134,23 @@ impl WMConnection for BspwmConnection {
         );
 
         from_query_result_to_id(query_result)
+    }
+
+    fn desktops_number(&mut self, monitor_name: &str) -> u32 {
+        let query_result = bspc::query_desktops(
+            false,
+            None,
+            Some(MonitorSelector(monitor_name)),
+            None,
+            None,
+        );
+
+        match query_result {
+            Ok(ids) => ids.len() as u32,
+            Err(err) => {
+                panic!("Query request failed with error {err}");
+            }
+        }
     }
 }
 

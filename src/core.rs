@@ -18,33 +18,47 @@ use crate::i3_utils;
 use crate::wm_connection::WMConnection;
 use crate::x11_utils;
 
+#[derive(Debug, PartialEq)]
+enum IconName {
+    Empty, // For empty desktop, it's not a real icon, just empty space
+    Name(String),
+}
+
 #[derive(Debug, Default)]
 struct State {
-    curr_icon: Option<String>,
-    prev_icon: Option<String>,
+    curr_icon_name: Option<IconName>,
+    prev_icon_name: Option<IconName>,
     curr_x: i16,
 }
 
 impl State {
     fn init() -> Self {
-        // We don't care about `curr_x` value, because it will be set to real
-        // one in `process_start`
+        // We don't care about `curr_x` value here, because it will be set to
+        // real one in `process_start`
         Self::default()
     }
 
-    fn update_icon_name(&mut self, icon_name: Option<&str>) {
-        self.prev_icon = self.curr_icon.take();
-        self.curr_icon = icon_name.map(|x| x.to_string());
+    fn update_icon_name(&mut self, icon_name: IconName) {
+        self.prev_icon_name = self.curr_icon_name.take();
+        self.curr_icon_name = Some(icon_name);
+    }
+
+    fn get_curr_icon_name(&self) -> &str {
+        match self.curr_icon_name.as_ref().unwrap() {
+            IconName::Empty => panic!("No icon name, it is set to Empty"),
+            IconName::Name(name) => name,
+        }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Monitor {
     state: State,
     name: String,
     prev_icon_id: Option<u32>,
-    prev_window_fullscreen: bool,
-    curr_window_fullscreen: bool,
+    prev_window_fullscreen: Option<bool>,
+    curr_window_fullscreen: Option<bool>,
+    desktops_number: u32,
 }
 
 impl Monitor {
@@ -56,22 +70,17 @@ impl Monitor {
         };
 
         let state = State::init();
-        let prev_icon_id = None;
-        let prev_window_fullscreen = false;
-        let curr_window_fullscreen = false;
 
         Self {
             name,
             state,
-            prev_icon_id,
-            prev_window_fullscreen,
-            curr_window_fullscreen,
+            ..Default::default()
         }
     }
 
-    fn update_fullscreen(&mut self, flag: bool) {
+    fn update_fullscreen_status(&mut self, flag: bool) {
         self.prev_window_fullscreen = self.curr_window_fullscreen;
-        self.curr_window_fullscreen = flag;
+        self.curr_window_fullscreen = Some(flag);
     }
 }
 
@@ -86,7 +95,7 @@ where
     monitor: Monitor,
 }
 
-pub trait ConfigFeatures<W, C>
+pub trait CoreFeatures<W, C>
 where
     W: WMConnection,
     C: Config,
@@ -98,7 +107,7 @@ where
     fn update_x(&mut self);
 }
 
-impl ConfigFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
+impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
     fn init(monitor_name: Option<String>, config_option: Option<&str>) -> Self {
         let wm_connection =
             I3Connection::connect().expect("Failed to connect to i3");
@@ -128,7 +137,7 @@ impl ConfigFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
     }
 }
 
-impl ConfigFeatures<BspwmConnection, BspwmConfig>
+impl CoreFeatures<BspwmConnection, BspwmConfig>
     for Core<BspwmConnection, BspwmConfig>
 {
     fn init(monitor_name: Option<String>, config_option: Option<&str>) -> Self {
@@ -154,13 +163,13 @@ impl<W, C> Core<W, C>
 where
     W: WMConnection,
     C: Config,
-    Core<W, C>: ConfigFeatures<W, C>,
+    Core<W, C>: CoreFeatures<W, C>,
 {
     pub fn process_start(&mut self) {
         self.update_x();
 
         if let Some(window_id) = self.get_focused_window_id() {
-            self.process_focused_window(window_id, false);
+            self.process_focused_window(window_id);
         } else {
             self.process_empty_desktop();
         }
@@ -175,7 +184,7 @@ where
         }
 
         x11_utils::generate_icon(
-            self.monitor.state.curr_icon.as_ref().unwrap(),
+            self.monitor.state.get_curr_icon_name(),
             config.cache_dir(),
             config.color(),
             window_id,
@@ -220,39 +229,36 @@ where
         false
     }
 
-    fn show_icon(&mut self, update_force: bool) -> bool {
-        if self.curr_desk_contains_fullscreen() {
-            return false;
-        }
+    fn update_desktops_number(&mut self) {
+        self.monitor.desktops_number =
+            self.wm_connection.desktops_number(&self.monitor.name);
+    }
 
-        if update_force {
+    fn show_icon(&mut self) -> bool {
+        !self.curr_desk_contains_fullscreen()
+    }
+
+    fn need_update_icon(&mut self) -> bool {
+        if self.monitor.prev_window_fullscreen == Some(true)
+            && self.monitor.curr_window_fullscreen == Some(false)
+        {
             return true;
         }
 
-        if self.monitor.state.prev_icon == self.monitor.state.curr_icon
-            && !self.monitor.prev_window_fullscreen
-        {
-            return false;
+        let old_desk_count = self.monitor.desktops_number;
+        self.update_desktops_number();
+
+        if old_desk_count != self.monitor.desktops_number {
+            return true;
         }
 
-        true
+        self.monitor.state.prev_icon_name != self.monitor.state.curr_icon_name
     }
 
-    fn process_icon(&mut self, window_id: u32, update_force: bool) {
-        if !self.show_icon(update_force) {
-            return;
-        }
-
-        self.destroy_prev_icon();
-        self.update_x();
-
+    fn update_icon(&mut self, window_id: u32) {
         let state = &self.monitor.state;
-
-        // curr_icon is not `None`, because we put the current icon name before
-        // calling `process_icon`
-        let icon_name = state.curr_icon.as_ref().unwrap();
-
         let config = &self.config;
+        let icon_name = state.get_curr_icon_name();
         let icon_path = format!("{}/{}.jpg", &config.cache_dir(), icon_name);
 
         if !Path::new(&icon_path).exists() {
@@ -264,13 +270,20 @@ where
             }
         }
 
+        self.destroy_prev_icon();
+        self.update_x();
         self.display_icon(&icon_path);
     }
 
-    fn print_info(&mut self, update_force: bool) {
+    fn print_info(&mut self) {
         let state = &self.monitor.state;
 
-        if state.prev_icon == state.curr_icon && !update_force {
+        if state.curr_icon_name.is_none() {
+            println!("Empty");
+            return;
+        }
+
+        if state.prev_icon_name == state.curr_icon_name {
             return;
         }
 
@@ -289,10 +302,10 @@ where
         print!("{}", self.config.gap());
         io::stdout().flush().unwrap();
 
-        match &state.curr_icon {
-            None => println!("Empty"),
+        match state.curr_icon_name.as_ref().unwrap() {
+            IconName::Empty => println!("Empty"),
 
-            Some(icon_name) => match icon_name.as_str() {
+            IconName::Name(icon_name) => match icon_name.as_str() {
                 "Brave-browser" => println!("Brave"),
                 "TelegramDesktop" => println!("Telegram"),
                 _ => println!("{}", capitalize_first(icon_name)),
@@ -312,12 +325,7 @@ where
         }
     }
 
-    pub fn process_focused_window(
-        &mut self,
-        window_id: u32,
-        update_force: bool,
-    ) {
-        // let icon_name = self.wm_connection.get_icon_name(window_id).unwrap();
+    pub fn process_focused_window(&mut self, window_id: u32) {
         let mut timeout_name = 1000;
         while timeout_name > 0 {
             if let Some(name) = self.wm_connection.get_icon_name(window_id) {
@@ -335,15 +343,21 @@ where
             .get_icon_name(window_id)
             .unwrap_or(String::new());
 
-        self.monitor.state.update_icon_name(Some(&icon_name));
-        self.print_info(false);
+        self.monitor
+            .state
+            .update_icon_name(IconName::Name(icon_name));
+
+        self.print_info();
 
         if self.wm_connection.is_window_fullscreen(window_id) {
-            self.monitor.update_fullscreen(true);
+            self.monitor.update_fullscreen_status(true);
             self.process_fullscreen_window();
         } else {
-            self.monitor.update_fullscreen(false);
-            self.process_icon(window_id, update_force);
+            self.monitor.update_fullscreen_status(false);
+
+            if self.show_icon() && self.need_update_icon() {
+                self.update_icon(window_id);
+            }
         }
     }
 
@@ -353,8 +367,8 @@ where
 
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
-        self.monitor.state.update_icon_name(None);
-        self.print_info(true);
+        self.monitor.state.update_icon_name(IconName::Empty);
+        self.print_info();
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
