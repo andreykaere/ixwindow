@@ -125,11 +125,10 @@ impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
 
     fn update_x(&mut self) {
         let config = &self.config;
-        let desks_num = i3_utils::get_desks_on_mon(
+        let desks_num = i3_utils::get_desktops_number(
             &mut self.wm_connection,
             &self.monitor.name,
-        )
-        .len();
+        );
 
         self.monitor.state.curr_x = ((config.x() as f32)
             + config.gap_per_desk * (desks_num as f32))
@@ -231,7 +230,7 @@ where
 
     fn update_desktops_number(&mut self) {
         self.monitor.desktops_number =
-            self.wm_connection.desktops_number(&self.monitor.name);
+            self.wm_connection.get_desktops_number(&self.monitor.name);
     }
 
     fn show_icon(&mut self) -> bool {

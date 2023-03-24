@@ -45,10 +45,7 @@ pub fn get_all_nodes_on_mon(
     nodes
 }
 
-pub fn get_desks_on_mon(
-    conn: &mut I3Connection,
-    monitor_name: &str,
-) -> Vec<Node> {
+fn get_desks_on_mon(conn: &mut I3Connection, monitor_name: &str) -> Vec<Node> {
     let tree = conn
         .get_tree()
         .expect("Couldn't read information about tree");
@@ -64,6 +61,10 @@ pub fn get_desks_on_mon(
     }
 
     vec![]
+}
+
+pub fn get_desktops_number(conn: &mut I3Connection, monitor_name: &str) -> u32 {
+    get_desks_on_mon(conn, monitor_name).len() as u32
 }
 
 // Returns subnodes of the given node, which type is desktop (workspace)
