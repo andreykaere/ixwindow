@@ -260,8 +260,13 @@ where
         let icon_name = state.get_curr_icon_name();
         let icon_path = format!("{}/{}.jpg", &config.cache_dir(), icon_name);
 
+        // Destroy icon first, before trying to extract it. Fixes the icon
+        // still showing, when switching from window that has icon to the
+        // widow that doens't.
+        self.destroy_prev_icon();
+
         if !Path::new(&icon_path).exists() {
-            // Repeatedly try to retrieve and generate_icon
+            // Repeatedly try to retrieve icon and save it
             let mut timeout_icon = 1000;
             while self.generate_icon(window_id).is_err() && timeout_icon > 0 {
                 thread::sleep(Duration::from_millis(100));
@@ -269,7 +274,6 @@ where
             }
         }
 
-        self.destroy_prev_icon();
         self.update_x();
         self.display_icon(&icon_path);
     }
