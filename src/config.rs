@@ -1,3 +1,4 @@
+#![allow(clippy::enum_variant_names)]
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs::File;
@@ -14,18 +15,34 @@ pub struct EssentialConfig {
     pub color: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Default, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PrintInfo {
+    #[default]
+    WmInstance,
+
+    WmClass,
+    WmName,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct I3Config {
     #[serde(flatten)]
     pub essential_config: EssentialConfig,
 
     pub gap_per_desk: f32,
+
+    #[serde(default)]
+    pub print_info: PrintInfo,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BspwmConfig {
     #[serde(flatten)]
     pub essential_config: EssentialConfig,
+
+    #[serde(default)]
+    pub print_info: PrintInfo,
 }
 
 pub trait Config {
@@ -150,6 +167,7 @@ mod tests {
         let config = load_i3(None);
 
         assert_eq!(config.size(), 24);
+        assert_eq!(config.print_info, PrintInfo::WmInstance);
         assert_eq!(
             config.cache_dir(),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"

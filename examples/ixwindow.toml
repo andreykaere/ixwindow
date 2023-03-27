@@ -17,6 +17,9 @@ y = 6
 # best result
 gap = "         "
 
+# Type of info of the window, that will be printed on the bar
+print_info = "WM_CLASS"
+
 
 [i3]
 # Folder for cached icons
@@ -40,3 +43,6 @@ gap = "         "
 # Gap per desk is needed for "shifting" the icon and is approximately equal to
 # size of the icon, because new desktop icon occupies around this space
 gap_per_desk = 24
+
+# Type of info of the window, that will be printed on the bar
+print_info = "WM_CLASS"
