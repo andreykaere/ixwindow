@@ -13,7 +13,7 @@ use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::rust_connection::RustConnection;
 
 use crate::bspwm::BspwmConnection;
-use crate::config::{self, BspwmConfig, Config, I3Config};
+use crate::config::{self, BspwmConfig, Config, I3Config, PrintInfo};
 use crate::i3_utils;
 use crate::wm_connection::WMConnection;
 use crate::x11_utils;
@@ -25,13 +25,14 @@ enum IconName {
 }
 
 #[derive(Debug, Default)]
-struct State {
+struct IconState {
     curr_icon_name: Option<IconName>,
     prev_icon_name: Option<IconName>,
+    prev_icon_id: Option<u32>,
     curr_x: i16,
 }
 
-impl State {
+impl IconState {
     fn init() -> Self {
         // We don't care about `curr_x` value here, because it will be set to
         // real one in `process_start`
@@ -53,12 +54,12 @@ impl State {
 
 #[derive(Debug, Default)]
 struct Monitor {
-    state: State,
+    icon_state: IconState,
     name: String,
-    prev_icon_id: Option<u32>,
     prev_window_fullscreen: Option<bool>,
     curr_window_fullscreen: Option<bool>,
     desktops_number: u32,
+    curr_window_info: Option<PrintInfo>,
 }
 
 impl Monitor {
@@ -69,11 +70,11 @@ impl Monitor {
                 .expect("Couldn't get name of primary monitor"),
         };
 
-        let state = State::init();
+        let icon_state = IconState::init();
 
         Self {
             name,
-            state,
+            icon_state,
             ..Default::default()
         }
     }
@@ -130,7 +131,7 @@ impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
             &self.monitor.name,
         );
 
-        self.monitor.state.curr_x = ((config.x() as f32)
+        self.monitor.icon_state.curr_x = ((config.x() as f32)
             + config.gap_per_desk * (desks_num as f32))
             as i16;
     }
@@ -154,7 +155,7 @@ impl CoreFeatures<BspwmConnection, BspwmConfig>
     }
 
     fn update_x(&mut self) {
-        self.monitor.state.curr_x = self.config.x();
+        self.monitor.icon_state.curr_x = self.config.x();
     }
 }
 
@@ -183,7 +184,7 @@ where
         }
 
         x11_utils::generate_icon(
-            self.monitor.state.get_curr_icon_name(),
+            self.monitor.icon_state.get_curr_icon_name(),
             config.cache_dir(),
             config.color(),
             window_id,
@@ -194,7 +195,7 @@ where
         let config = &self.config;
 
         let (curr_x, y, size, monitor_name) = (
-            self.monitor.state.curr_x,
+            self.monitor.icon_state.curr_x,
             config.y(),
             config.size(),
             &self.monitor.name,
@@ -210,7 +211,7 @@ where
         )
         .ok();
 
-        self.monitor.prev_icon_id = icon_id;
+        self.monitor.icon_state.prev_icon_id = icon_id;
     }
 
     fn curr_desk_contains_fullscreen(&mut self) -> bool {
@@ -251,13 +252,14 @@ where
             return true;
         }
 
-        self.monitor.state.prev_icon_name != self.monitor.state.curr_icon_name
+        self.monitor.icon_state.prev_icon_name
+            != self.monitor.icon_state.curr_icon_name
     }
 
     fn update_icon(&mut self, window_id: u32) {
-        let state = &self.monitor.state;
+        let icon_state = &self.monitor.icon_state;
         let config = &self.config;
-        let icon_name = state.get_curr_icon_name();
+        let icon_name = icon_state.get_curr_icon_name();
         let icon_path = format!("{}/{}.jpg", &config.cache_dir(), icon_name);
 
         // Destroy icon first, before trying to extract it. Fixes the icon
@@ -279,14 +281,14 @@ where
     }
 
     fn print_info(&mut self) {
-        let state = &self.monitor.state;
+        let icon_state = &self.monitor.icon_state;
 
-        if state.curr_icon_name.is_none() {
+        if icon_state.curr_icon_name.is_none() {
             println!("Empty");
             return;
         }
 
-        if state.prev_icon_name == state.curr_icon_name {
+        if icon_state.prev_icon_name == icon_state.curr_icon_name {
             return;
         }
 
@@ -305,7 +307,7 @@ where
         print!("{}", self.config.gap());
         io::stdout().flush().unwrap();
 
-        match state.curr_icon_name.as_ref().unwrap() {
+        match icon_state.curr_icon_name.as_ref().unwrap() {
             IconName::Empty => println!("Empty"),
 
             IconName::Name(icon_name) => match icon_name.as_str() {
@@ -319,12 +321,12 @@ where
     fn destroy_prev_icon(&mut self) {
         let conn = &self.x11rb_connection;
 
-        if let Some(id) = self.monitor.prev_icon_id {
+        if let Some(id) = self.monitor.icon_state.prev_icon_id {
             conn.destroy_window(id)
                 .expect("Failed to destroy previous icon");
             conn.flush().unwrap();
 
-            self.monitor.prev_icon_id = None;
+            self.monitor.icon_state.prev_icon_id = None;
         }
     }
 
@@ -347,7 +349,7 @@ where
             .unwrap_or(String::new());
 
         self.monitor
-            .state
+            .icon_state
             .update_icon_name(IconName::Name(icon_name));
 
         self.print_info();
@@ -370,7 +372,7 @@ where
 
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
-        self.monitor.state.update_icon_name(IconName::Empty);
+        self.monitor.icon_state.update_icon_name(IconName::Empty);
         self.print_info();
     }
 
