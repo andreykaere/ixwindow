@@ -6,13 +6,16 @@ use std::io::Read;
 use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct EssentialConfig {
+pub struct CommonConfig {
     pub gap: String,
     pub x: i16,
     pub y: i16,
     pub size: u16,
     pub cache_dir: String,
     pub color: String,
+
+    #[serde(default)]
+    pub print_info: PrintInfo,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, PartialEq)]
@@ -28,60 +31,54 @@ pub enum PrintInfo {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct I3Config {
     #[serde(flatten)]
-    pub essential_config: EssentialConfig,
+    pub common_config: CommonConfig,
 
     pub gap_per_desk: f32,
-
-    #[serde(default)]
-    pub print_info: PrintInfo,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BspwmConfig {
     #[serde(flatten)]
-    pub essential_config: EssentialConfig,
-
-    #[serde(default)]
-    pub print_info: PrintInfo,
+    pub common_config: CommonConfig,
 }
 
 pub trait Config {
-    fn essential_config(&self) -> &EssentialConfig;
+    fn common_config(&self) -> &CommonConfig;
 
     fn gap(&self) -> &str {
-        &self.essential_config().gap
+        &self.common_config().gap
     }
 
     fn color(&self) -> &str {
-        &self.essential_config().color
+        &self.common_config().color
     }
 
     fn cache_dir(&self) -> &str {
-        &self.essential_config().cache_dir
+        &self.common_config().cache_dir
     }
 
     fn x(&self) -> i16 {
-        self.essential_config().x
+        self.common_config().x
     }
 
     fn y(&self) -> i16 {
-        self.essential_config().y
+        self.common_config().y
     }
 
     fn size(&self) -> u16 {
-        self.essential_config().size
+        self.common_config().size
     }
 }
 
 impl Config for I3Config {
-    fn essential_config(&self) -> &EssentialConfig {
-        &self.essential_config
+    fn common_config(&self) -> &CommonConfig {
+        &self.common_config
     }
 }
 
 impl Config for BspwmConfig {
-    fn essential_config(&self) -> &EssentialConfig {
-        &self.essential_config
+    fn common_config(&self) -> &CommonConfig {
+        &self.common_config
     }
 }
 
@@ -109,8 +106,8 @@ pub fn load_i3(config_option: Option<&str>) -> I3Config {
     let config_table = table.remove("i3").unwrap();
 
     let mut i3_config: I3Config = config_table.try_into().unwrap();
-    i3_config.essential_config.cache_dir =
-        expand_filename(&i3_config.essential_config.cache_dir);
+    i3_config.common_config.cache_dir =
+        expand_filename(&i3_config.common_config.cache_dir);
 
     i3_config
 }
@@ -122,8 +119,8 @@ pub fn load_bspwm(config_option: Option<&str>) -> BspwmConfig {
     let config_table = table.remove("bspwm").unwrap();
 
     let mut bspwm_config: BspwmConfig = config_table.try_into().unwrap();
-    bspwm_config.essential_config.cache_dir =
-        expand_filename(&bspwm_config.essential_config.cache_dir);
+    bspwm_config.common_config.cache_dir =
+        expand_filename(&bspwm_config.common_config.cache_dir);
 
     bspwm_config
 }
