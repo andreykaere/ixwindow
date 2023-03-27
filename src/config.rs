@@ -18,7 +18,7 @@ pub struct CommonConfig {
     pub print_info: PrintInfo,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PrintInfo {
     #[default]
@@ -67,6 +67,10 @@ pub trait Config {
 
     fn size(&self) -> u16 {
         self.common_config().size
+    }
+
+    fn print_info(&self) -> PrintInfo {
+        self.common_config().print_info
     }
 }
 
@@ -164,7 +168,7 @@ mod tests {
         let config = load_i3(None);
 
         assert_eq!(config.size(), 24);
-        assert_eq!(config.print_info, PrintInfo::WmInstance);
+        assert_eq!(config.print_info(), PrintInfo::WmInstance);
         assert_eq!(
             config.cache_dir(),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
