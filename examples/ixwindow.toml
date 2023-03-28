@@ -17,8 +17,10 @@ y = 6
 # best result
 gap = "         "
 
-# Type of info of the window, that will be printed on the bar
-print_info = "WM_CLASS"
+  # Type of info of the window, that will be printed on the bar
+  [bspwm.print_info]
+  type = "WM_INSTANCE"
+  max_len = 90
 
 
 [i3]
@@ -44,5 +46,7 @@ gap = "         "
 # size of the icon, because new desktop icon occupies around this space
 gap_per_desk = 24
 
-# Type of info of the window, that will be printed on the bar
-print_info = "WM_CLASS"
+  # Type of info of the window, that will be printed on the bar
+  [i3.print_info]
+  type = "WM_INSTANCE"
+  max_len = 90
