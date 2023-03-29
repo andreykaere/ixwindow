@@ -5,7 +5,7 @@ use std::string::String;
 use image::imageops::FilterType;
 use image::io::Reader as ImageReader;
 
-use image::{GenericImageView, RgbaImage};
+use image::GenericImageView;
 
 use x11rb::atom_manager;
 use x11rb::connection::Connection;
@@ -253,22 +253,6 @@ pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
     }))
 }
 
-fn save_transparent_image(
-    image_data: &ImageData,
-    icon_path: &str,
-) -> Result<(), Box<dyn Error>> {
-    let img = RgbaImage::from_raw(
-        image_data.width,
-        image_data.height,
-        image_data.buf.to_vec(),
-    )
-    .unwrap();
-
-    img.save(icon_path)?;
-
-    Ok(())
-}
-
 fn save_filled_image(
     image_data: &ImageData,
     icon_path: &str,
@@ -389,16 +373,6 @@ pub fn generate_icon(
         Some(icon) => save_filled_image(icon, &icon_path, color),
         None => Err("No icon was found for this window".into()),
     }
-}
-
-fn composite_manager_running(
-    conn: &impl Connection,
-    screen_num: usize,
-) -> Result<bool, Box<dyn Error>> {
-    let atom = format!("_NET_WM_CM_S{}", screen_num);
-    let atom = conn.intern_atom(false, atom.as_bytes())?.reply()?.atom;
-    let owner = conn.get_selection_owner(atom)?.reply()?;
-    Ok(owner.owner != x11rb::NONE)
 }
 
 #[cfg(test)]
