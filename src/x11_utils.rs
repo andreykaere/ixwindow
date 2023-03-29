@@ -161,7 +161,6 @@ pub fn display_icon<Conn: Connection>(
 pub fn get_current_wm() -> Result<String, Box<dyn std::error::Error>> {
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
-
     let atoms = AtomCollection::new(&conn)?.reply()?;
 
     let property = conn
@@ -227,24 +226,21 @@ pub fn get_window_info(
     info_type: PrintInfoType,
 ) -> Result<String, Box<dyn Error>> {
     let (conn, _) = x11rb::connect(None)?;
+    let atoms = AtomCollection::new(&conn)?.reply()?;
 
-    let get_property =
-        |atom: AtomEnum| -> Result<GetPropertyReply, Box<dyn Error>> {
-            Ok(conn
+    let info_bytes = match info_type {
+        PrintInfoType::WmClass => {
+            let property = conn
                 .get_property(
                     false,
                     window_id,
-                    atom,
+                    AtomEnum::WM_CLASS,
                     AtomEnum::STRING,
                     0,
                     1024,
                 )?
-                .reply()?)
-        };
+                .reply()?;
 
-    let info_bytes = match info_type {
-        PrintInfoType::WmClass => {
-            let property = get_property(AtomEnum::WM_CLASS)?;
             let mut iter = property.value.split(|x| *x == 0);
             let wm_class = iter.next();
 
@@ -252,7 +248,17 @@ pub fn get_window_info(
         }
 
         PrintInfoType::WmInstance => {
-            let property = get_property(AtomEnum::WM_CLASS)?;
+            let property = conn
+                .get_property(
+                    false,
+                    window_id,
+                    AtomEnum::WM_CLASS,
+                    AtomEnum::STRING,
+                    0,
+                    1024,
+                )?
+                .reply()?;
+
             let mut iter = property.value.split(|x| *x == 0);
             let wm_instance = iter.nth(1);
 
@@ -260,11 +266,22 @@ pub fn get_window_info(
         }
 
         PrintInfoType::WmName => {
-            let wm_name = get_property(AtomEnum::WM_NAME)?;
+            let property = conn
+                .get_property(
+                    false,
+                    window_id,
+                    atoms._NET_WM_NAME,
+                    atoms.UTF8_STRING,
+                    0,
+                    1024,
+                )?
+                .reply()?;
+
+            let wm_name = property.value;
             // let mut iter = property.value.split(|x| *x == 0);
             // let wm_class = iter.next();
 
-            Some(wm_name.value)
+            Some(wm_name)
         }
     };
 
@@ -273,9 +290,7 @@ pub fn get_window_info(
 
 pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
     let (conn, _) = x11rb::connect(None)?;
-
-    let atoms = AtomCollection::new(&conn)?;
-    let atoms = atoms.reply()?;
+    let atoms = AtomCollection::new(&conn)?.reply()?;
 
     let property = conn
         .get_property(
@@ -376,9 +391,7 @@ pub fn generate_icon(
     window_id: u32,
 ) -> Result<(), Box<dyn Error>> {
     let (conn, _) = x11rb::connect(None)?;
-
-    let atoms = AtomCollection::new(&conn)?;
-    let atoms = atoms.reply()?;
+    let atoms = AtomCollection::new(&conn)?.reply()?;
 
     let property = conn
         .get_property(

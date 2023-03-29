@@ -28,7 +28,7 @@ pub trait WMConnection {
         window_id: u32,
         print_info_type: PrintInfoType,
     ) -> Option<String> {
-        Some(x11_utils::get_window_info(window_id, print_info_type).ok()?)
+        x11_utils::get_window_info(window_id, print_info_type).ok()
     }
 
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<u32>;

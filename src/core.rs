@@ -295,6 +295,7 @@ where
         let monitor = &self.monitor;
         let icon_state = &monitor.icon_state;
         let window_info = &monitor.curr_window_info;
+        let max_len = self.config.print_info().max_len;
 
         if icon_state.curr_icon_name.is_none() {
             println!("{}Empty", self.config.gap());
@@ -305,31 +306,17 @@ where
             return;
         }
 
-        // Capitalizes first letter of the string, i.e. converts foo to Foo
-        let capitalize_first = |s: &str| {
-            let mut c = s.chars();
-
-            match c.next() {
-                None => String::new(),
-                Some(f) => f.to_uppercase().chain(c).collect(),
-            }
-        };
-
         // Don't add '\n' at the end, so that it will appear in front of icon
         // name, printed after it
         print!("{}", self.config.gap());
         io::stdout().flush().unwrap();
 
-        match icon_state.curr_icon_name.as_ref().unwrap() {
-            IconName::Empty => println!("Empty"),
+        let info = match icon_state.curr_icon_name.as_ref().unwrap() {
+            IconName::Empty => "Empty",
+            IconName::Name(_) => window_info.as_deref().unwrap_or(""),
+        };
 
-            IconName::Name(_) => match window_info.as_deref() {
-                Some("Brave-browser") => println!("Brave"),
-                Some("TelegramDesktop") => println!("Telegram"),
-                Some(info) => println!("{}", capitalize_first(info)),
-                None => println!(""),
-            },
-        }
+        println!("{}", self.config.print_info().format_info(info));
     }
 
     fn destroy_prev_icon(&mut self) {

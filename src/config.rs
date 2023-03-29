@@ -1,5 +1,8 @@
 #![allow(clippy::enum_variant_names)]
+
 use serde::{Deserialize, Serialize};
+
+use std::cmp::min;
 use std::env;
 use std::fs::File;
 use std::io::Read;
@@ -38,7 +41,38 @@ pub enum PrintInfoType {
 pub struct PrintInfo {
     #[serde(rename = "type")]
     pub info_type: PrintInfoType,
-    pub max_len: u32,
+    pub max_len: usize,
+}
+
+impl PrintInfo {
+    pub fn format_info(&self, window_info: &str) -> String {
+        // Capitalizes first letter of the string, i.e. converts foo to Foo
+        let capitalize_first = |s: &str| {
+            let mut c = s.chars();
+
+            match c.next() {
+                None => String::new(),
+                Some(f) => f.to_uppercase().chain(c).collect(),
+            }
+        };
+
+        let corrected_info = match window_info {
+            "Brave-browser" => "Brave",
+            "TelegramDesktop" => "Telegram",
+            x => x,
+        };
+        let mut corrected_info = corrected_info.to_string();
+
+        if let PrintInfoType::WmInstance | PrintInfoType::WmClass =
+            self.info_type
+        {
+            corrected_info = capitalize_first(&corrected_info);
+        }
+
+        let cut_len = min(self.max_len, corrected_info.len());
+
+        (&corrected_info[..cut_len]).to_string()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
