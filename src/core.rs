@@ -236,7 +236,7 @@ where
     }
 
     fn update_curr_window_info(&mut self, window_id: u32) {
-        let print_info_type = self.config.print_info().info_type;
+        let print_info_type = self.config.window_info_settings().info_type;
         let window_info = self
             .wm_connection
             .get_window_info(window_id, print_info_type);
@@ -295,7 +295,7 @@ where
         let monitor = &self.monitor;
         let icon_state = &monitor.icon_state;
         let window_info = &monitor.curr_window_info;
-        let max_len = self.config.print_info().max_len;
+        let max_len = self.config.window_info_settings().max_len;
 
         if icon_state.curr_icon_name.is_none() {
             println!("{}Empty", self.config.gap());
@@ -316,7 +316,7 @@ where
             IconName::Name(_) => window_info.as_deref().unwrap_or(""),
         };
 
-        println!("{}", self.config.print_info().format_info(info));
+        println!("{}", self.config.window_info_settings().format_info(info));
     }
 
     fn destroy_prev_icon(&mut self) {

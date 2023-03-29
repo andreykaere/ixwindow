@@ -23,13 +23,14 @@ pub struct CommonConfig {
     #[serde(flatten)]
     essential_config: EssentialConfig,
 
+    #[serde(rename = "print_info")]
     #[serde(default)]
-    pub print_info: PrintInfo,
+    pub window_info_settings: WindowInfoSettings,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum PrintInfoType {
+pub enum WindowInfoType {
     #[default]
     WmInstance,
 
@@ -38,13 +39,13 @@ pub enum PrintInfoType {
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
-pub struct PrintInfo {
+pub struct WindowInfoSettings {
     #[serde(rename = "type")]
-    pub info_type: PrintInfoType,
+    pub info_type: WindowInfoType,
     pub max_len: usize,
 }
 
-impl PrintInfo {
+impl WindowInfoSettings {
     pub fn format_info(&self, window_info: &str) -> String {
         // Capitalizes first letter of the string, i.e. converts foo to Foo
         let capitalize_first = |s: &str| {
@@ -63,7 +64,7 @@ impl PrintInfo {
         };
         let mut corrected_info = corrected_info.to_string();
 
-        if let PrintInfoType::WmInstance | PrintInfoType::WmClass =
+        if let WindowInfoType::WmInstance | WindowInfoType::WmClass =
             self.info_type
         {
             corrected_info = capitalize_first(&corrected_info);
@@ -116,8 +117,8 @@ pub trait Config {
         self.common_config().essential_config.size
     }
 
-    fn print_info(&self) -> PrintInfo {
-        self.common_config().print_info
+    fn window_info_settings(&self) -> WindowInfoSettings {
+        self.common_config().window_info_settings
     }
 }
 
@@ -217,7 +218,7 @@ mod tests {
         let config = load_i3(Some(CONFIG_PATH));
 
         assert_eq!(config.size(), 24);
-        assert_eq!(config.print_info().info_type, PrintInfoType::WmInstance);
+        assert_eq!(config.window_info().info_type, WindowInfoType::WmInstance);
         assert_eq!(
             config.cache_dir(),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"

@@ -6,7 +6,7 @@ use image::imageops::FilterType;
 use image::io::Reader as ImageReader;
 use image::{GenericImageView, RgbaImage};
 
-use crate::config::PrintInfoType;
+use crate::config::WindowInfoType;
 
 use x11rb::atom_manager;
 use x11rb::connection::Connection;
@@ -223,13 +223,13 @@ pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
 
 pub fn get_window_info(
     window_id: u32,
-    info_type: PrintInfoType,
+    info_type: WindowInfoType,
 ) -> Result<String, Box<dyn Error>> {
     let (conn, _) = x11rb::connect(None)?;
     let atoms = AtomCollection::new(&conn)?.reply()?;
 
     let info_bytes = match info_type {
-        PrintInfoType::WmClass => {
+        WindowInfoType::WmClass => {
             let property = conn
                 .get_property(
                     false,
@@ -247,7 +247,7 @@ pub fn get_window_info(
             wm_class.map(|x| x.to_vec())
         }
 
-        PrintInfoType::WmInstance => {
+        WindowInfoType::WmInstance => {
             let property = conn
                 .get_property(
                     false,
@@ -265,7 +265,7 @@ pub fn get_window_info(
             wm_instance.map(|x| x.to_vec())
         }
 
-        PrintInfoType::WmName => {
+        WindowInfoType::WmName => {
             let property = conn
                 .get_property(
                     false,
