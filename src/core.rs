@@ -295,7 +295,6 @@ where
         let monitor = &self.monitor;
         let icon_state = &monitor.icon_state;
         let window_info = &monitor.curr_window_info;
-        let max_len = self.config.window_info_settings().max_len;
 
         if icon_state.curr_icon_name.is_none() {
             println!("{}Empty", self.config.gap());

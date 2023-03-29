@@ -42,7 +42,9 @@ pub enum WindowInfoType {
 pub struct WindowInfoSettings {
     #[serde(rename = "type")]
     pub info_type: WindowInfoType,
-    pub max_len: usize,
+
+    #[serde(default)]
+    pub max_len: Option<usize>,
 }
 
 impl WindowInfoSettings {
@@ -70,7 +72,13 @@ impl WindowInfoSettings {
             corrected_info = capitalize_first(&corrected_info);
         }
 
-        let cut_len = min(self.max_len, corrected_info.len());
+        // If max_len is not specified, then we don't bound the length of the
+        // output info
+        let cut_len = if let Some(max_len) = self.max_len {
+            min(max_len, corrected_info.len())
+        } else {
+            corrected_info.len()
+        };
 
         (&corrected_info[..cut_len]).to_string()
     }
