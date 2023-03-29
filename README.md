@@ -25,28 +25,42 @@ as polybar's `tail = true`.
   [`bspc-rs`](https://github.com/andreykaere/bspc-rs) library, which was
   started with the need for this project
 
-## Downloading
+## Installation
 
-If you want to install stable version, then you should download the source code 
-from the `master` branch using the following command:
-```bash
+### Cargo Installation
+
+You can install it using `cargo install` as such:
+```sh
+cargo install ixwindow
+```
+But in this case you will have to create config file yourself (see
+`examples/ixwindow.toml` for example configuration).
+
+### Install Script
+
+Another way to install `ixwindow` is from github repository. First you have to
+clone it:
+```sh
 git clone git@github.com:andreykaere/ixwindow.git && cd ixwindow
 ```
 If you want the bleeding edge version, switch to `dev` branch.
 
-### Installation
+To install it to your system you just have to run `./install`. To see
+installation options run `./install --help`. 
 
-To install it to your system you just have to run `./install` . 
-To see installation options run `./install --help`. 
-You will also need to add the following to your polybar `config` file:
+## Setting up polybar
+
+After you have installed `ixwindow` on your system and created a config file
+for it, you need to set up `ixwindow` module in your polybar config. To do
+that, you have to add the following to your polybar `config` file:
 ```dosini
 [module/ixwindow]
 type = custom/script
 exec = /path/to/ixwindow
 tail = true
 ```
-and put it somewhere on bar, for example, add it right next to your window
-manager: `modules-left = <wm> ixwindow`. 
+Now you have to put it somewhere on bar: for example, you can add it right
+next to your window manager module like that: `modules-left = <wm> ixwindow`. 
 
 If you have multi monitors setup, then you need to have distinct bar for
 each of them and create modules like this:
