@@ -1,4 +1,6 @@
 # Ixwindow – iconized xwindow 
+ 
+[![crate](https://img.shields.io/crates/v/ixwindow.svg)](https://crates.io/crates/ixwindow)
 
 ## About
 Ixwindow is an improved version of the standard `xwindow` polybar module. The

@@ -7,6 +7,7 @@ license = "MIT"
 authors = ["Andrey Vladimirov"]
 description = "Iconized xwindow module for Polybar (for bspwm and i3wm)"
 keywords = ["polybar", "wms", "bspwm", "i3wm", "xwindow"]
+exclude = ["assets/*.webm"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
