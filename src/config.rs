@@ -6,19 +6,19 @@ use std::io::Read;
 use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct EssentialConfig {
-    pub gap: String,
-    pub x: i16,
-    pub y: i16,
-    pub size: u16,
-    pub cache_dir: String,
-    pub color: String,
+struct EssentialConfig {
+    gap: String,
+    x: i16,
+    y: i16,
+    size: u16,
+    cache_dir: String,
+    color: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CommonConfig {
     #[serde(flatten)]
-    pub essential_config: EssentialConfig,
+    essential_config: EssentialConfig,
 
     #[serde(default)]
     pub print_info: PrintInfo,
@@ -37,8 +37,8 @@ pub enum PrintInfoType {
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
 pub struct PrintInfo {
     #[serde(rename = "type")]
-    info_type: PrintInfoType,
-    max_len: u32,
+    pub info_type: PrintInfoType,
+    pub max_len: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -124,7 +124,7 @@ pub fn load_i3(config_option: Option<&str>) -> I3Config {
 
     let mut i3_config: I3Config = config_table.try_into().unwrap();
     i3_config.common_config.essential_config.cache_dir =
-        expand_filename(&i3_config.cache_dir());
+        expand_filename(i3_config.cache_dir());
 
     i3_config
 }
@@ -137,7 +137,7 @@ pub fn load_bspwm(config_option: Option<&str>) -> BspwmConfig {
 
     let mut bspwm_config: BspwmConfig = config_table.try_into().unwrap();
     bspwm_config.common_config.essential_config.cache_dir =
-        expand_filename(&bspwm_config.cache_dir());
+        expand_filename(bspwm_config.cache_dir());
 
     bspwm_config
 }
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn expand_filename_works() {
-        let config = load_i3(None);
+        let config = load_i3(Some(CONFIG_PATH));
 
         assert_eq!(
             expand_filename(config.cache_dir()),

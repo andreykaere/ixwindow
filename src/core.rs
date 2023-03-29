@@ -13,7 +13,7 @@ use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::rust_connection::RustConnection;
 
 use crate::bspwm::BspwmConnection;
-use crate::config::{self, BspwmConfig, Config, I3Config, PrintInfo};
+use crate::config::{self, BspwmConfig, Config, I3Config};
 use crate::i3_utils;
 use crate::wm_connection::WMConnection;
 use crate::x11_utils;
@@ -59,7 +59,8 @@ struct Monitor {
     prev_window_fullscreen: Option<bool>,
     curr_window_fullscreen: Option<bool>,
     desktops_number: u32,
-    curr_window_info: Option<PrintInfo>,
+    curr_window_info: Option<String>,
+    prev_window_info: Option<String>,
 }
 
 impl Monitor {
@@ -234,6 +235,16 @@ where
             self.wm_connection.get_desktops_number(&self.monitor.name);
     }
 
+    fn update_curr_window_info(&mut self, window_id: u32) {
+        let print_info_type = self.config.print_info().info_type;
+        let window_info = self
+            .wm_connection
+            .get_window_info(window_id, print_info_type);
+
+        self.monitor.prev_window_info = self.monitor.curr_window_info.take();
+        self.monitor.curr_window_info = window_info;
+    }
+
     fn show_icon(&mut self) -> bool {
         !self.curr_desk_contains_fullscreen()
     }
@@ -281,14 +292,16 @@ where
     }
 
     fn print_info(&mut self) {
-        let icon_state = &self.monitor.icon_state;
+        let monitor = &self.monitor;
+        let icon_state = &monitor.icon_state;
+        let window_info = &monitor.curr_window_info;
 
         if icon_state.curr_icon_name.is_none() {
-            println!("Empty");
+            println!("{}Empty", self.config.gap());
             return;
         }
 
-        if icon_state.prev_icon_name == icon_state.curr_icon_name {
+        if monitor.curr_window_info == monitor.prev_window_info {
             return;
         }
 
@@ -310,10 +323,11 @@ where
         match icon_state.curr_icon_name.as_ref().unwrap() {
             IconName::Empty => println!("Empty"),
 
-            IconName::Name(icon_name) => match icon_name.as_str() {
-                "Brave-browser" => println!("Brave"),
-                "TelegramDesktop" => println!("Telegram"),
-                _ => println!("{}", capitalize_first(icon_name)),
+            IconName::Name(_) => match window_info.as_deref() {
+                Some("Brave-browser") => println!("Brave"),
+                Some("TelegramDesktop") => println!("Telegram"),
+                Some(info) => println!("{}", capitalize_first(info)),
+                None => println!(""),
             },
         }
     }
@@ -352,6 +366,7 @@ where
             .icon_state
             .update_icon_name(IconName::Name(icon_name));
 
+        self.update_curr_window_info(window_id);
         self.print_info();
 
         if self.wm_connection.is_window_fullscreen(window_id) {

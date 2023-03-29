@@ -8,6 +8,7 @@ use i3ipc::I3Connection;
 use std::str;
 
 use crate::bspwm::BspwmConnection;
+use crate::config::PrintInfoType;
 use crate::{i3_utils, x11_utils};
 
 pub trait WMConnection {
@@ -20,6 +21,14 @@ pub trait WMConnection {
 
     fn get_icon_name(&mut self, window_id: u32) -> Option<String> {
         Some(x11_utils::get_wm_class(window_id).ok()?.replace(' ', "-"))
+    }
+
+    fn get_window_info(
+        &mut self,
+        window_id: u32,
+        print_info_type: PrintInfoType,
+    ) -> Option<String> {
+        Some(x11_utils::get_window_info(window_id, print_info_type).ok()?)
     }
 
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<u32>;

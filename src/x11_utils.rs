@@ -4,8 +4,9 @@ use std::string::String;
 
 use image::imageops::FilterType;
 use image::io::Reader as ImageReader;
-
 use image::{GenericImageView, RgbaImage};
+
+use crate::config::PrintInfoType;
 
 use x11rb::atom_manager;
 use x11rb::connection::Connection;
@@ -17,6 +18,7 @@ atom_manager! {
         WM_PROTOCOLS,
         WM_DELETE_WINDOW,
         _NET_WM_NAME,
+        WM_NAME,
         _NET_WM_STATE,
         _NET_WM_STATE_FULLSCREEN,
         _NET_WM_ICON,
@@ -206,7 +208,6 @@ pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
         .reply()?;
 
     let mut iter = property.value.split(|x| *x == 0);
-
     let wm_class = iter.next();
     let wm_instance = iter.next();
 
@@ -219,6 +220,55 @@ pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
     }
 
     Ok(String::new())
+}
+
+pub fn get_window_info(
+    window_id: u32,
+    info_type: PrintInfoType,
+) -> Result<String, Box<dyn Error>> {
+    let (conn, _) = x11rb::connect(None)?;
+
+    let get_property =
+        |atom: AtomEnum| -> Result<GetPropertyReply, Box<dyn Error>> {
+            Ok(conn
+                .get_property(
+                    false,
+                    window_id,
+                    atom,
+                    AtomEnum::STRING,
+                    0,
+                    1024,
+                )?
+                .reply()?)
+        };
+
+    let info_bytes = match info_type {
+        PrintInfoType::WmClass => {
+            let property = get_property(AtomEnum::WM_CLASS)?;
+            let mut iter = property.value.split(|x| *x == 0);
+            let wm_class = iter.next();
+
+            wm_class.map(|x| x.to_vec())
+        }
+
+        PrintInfoType::WmInstance => {
+            let property = get_property(AtomEnum::WM_CLASS)?;
+            let mut iter = property.value.split(|x| *x == 0);
+            let wm_instance = iter.nth(1);
+
+            wm_instance.map(|x| x.to_vec())
+        }
+
+        PrintInfoType::WmName => {
+            let wm_name = get_property(AtomEnum::WM_NAME)?;
+            // let mut iter = property.value.split(|x| *x == 0);
+            // let wm_class = iter.next();
+
+            Some(wm_name.value)
+        }
+    };
+
+    Ok(String::from_utf8(info_bytes.unwrap_or(vec![]))?)
 }
 
 pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
