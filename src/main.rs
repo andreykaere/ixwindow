@@ -8,6 +8,7 @@ mod i3_utils;
 mod wm_connection;
 mod x11_utils;
 
+#[derive(Debug)]
 struct IxwindowOptions {
     monitor_name: Option<String>,
     config_option: Option<String>,
@@ -15,15 +16,14 @@ struct IxwindowOptions {
 
 impl IxwindowOptions {
     fn init() -> Self {
-        let mut args = env::args();
-        args.next();
-
+        let args = env::args().skip(1);
         let mut monitor_name = None;
         let mut config_option = None;
 
         for arg in args {
             if arg.contains("--config=") {
-                config_option = arg.split(' ').nth(1).map(|x| x.to_string());
+                config_option =
+                    arg.split("--config=").nth(1).map(|x| x.to_string());
             } else {
                 monitor_name = Some(arg);
             }
