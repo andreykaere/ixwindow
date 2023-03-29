@@ -25,11 +25,6 @@ as polybar's `tail = true`.
   [`bspc-rs`](https://github.com/andreykaere/bspc-rs) library, which was
   started with the need for this project
 
-## Dependencies
-- [`cargo`](https://github.com/rust-lang/cargo)
-
-For cargo installation instructions, see [here](https://github.com/rust-lang/cargo).
-
 ## Downloading
 
 If you want to install stable version, then you should download the source code 
