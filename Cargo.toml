@@ -2,6 +2,11 @@
 name = "ixwindow"
 version = "0.1.0"
 edition = "2021"
+readme = "README.md"
+license = "MIT"
+authors = ["Andrey Vladimirov"]
+description = "Iconized xwindow module for Polybar (for bspwm and i3wm)"
+keywords = ["polybar", "wms", "bspwm", "i3wm", "xwindow"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,7 +14,7 @@ edition = "2021"
 i3ipc = "0.10.1"
 bspc-rs = "0.1.0"
 image = "0.24.5"
-serde = { version = "1.0.152", features = [ "derive" ] }
+serde = { version = "1.0.152", features = ["derive"] }
 shellexpand = "3.0.0"
 toml = "0.7.2"
-x11rb = { version = "0.11.1", features = [ "randr" ] }
+x11rb = { version = "0.11.1", features = ["randr"] }
