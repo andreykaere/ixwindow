@@ -80,7 +80,9 @@ impl WindowInfoSettings {
             corrected_info.len()
         };
 
-        (&corrected_info[..cut_len]).to_string()
+        corrected_info.chars().take(cut_len).collect()
+
+        // (&corrected_info[..cut_len]).to_string()
     }
 }
 
