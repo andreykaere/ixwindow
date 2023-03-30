@@ -1,5 +1,4 @@
-use bspc::events::{DesktopEvent, Event, NodeEvent, Subscription};
-use bspc_rs as bspc;
+use bspc_rs::events::{self, DesktopEvent, Event, NodeEvent, Subscription};
 
 use crate::config::BspwmConfig;
 use crate::core::{Core, CoreFeatures as _};
@@ -24,12 +23,10 @@ pub fn exec(monitor_name: Option<String>, config_option: Option<&str>) {
         Subscription::DesktopFocus,
     ];
 
-    let subscriber = bspc::subscribe(&subscriptions, false, None)
+    let mut subscriber = events::subscribe(false, None, &subscriptions)
         .expect("Couldn't subscribe to events");
 
-    for raw_event in subscriber {
-        // println!("{raw_event:#?}");
-
+    for raw_event in subscriber.events() {
         match raw_event {
             Ok(event) => {
                 core.handle_event(event);

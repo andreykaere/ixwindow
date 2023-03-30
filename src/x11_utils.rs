@@ -378,14 +378,14 @@ pub fn generate_icon(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bspc::selectors::NodeSelector;
-    use bspc_rs as bspc;
+    use bspc_rs::query;
+    use bspc_rs::selectors::NodeSelector;
     use std::env;
 
     #[test]
     fn test_get_wm_class() {
         let id =
-            bspc::query_nodes(None, None, None, Some(NodeSelector("focused")))
+            query::query_nodes(None, None, None, Some(NodeSelector("focused")))
                 .unwrap()[0];
         let wm_class = get_wm_class(id).unwrap();
 
@@ -402,7 +402,7 @@ mod tests {
     #[test]
     fn test_is_window_fullscreen() {
         let id =
-            bspc::query_nodes(None, None, None, Some(NodeSelector("focused")))
+            query::query_nodes(None, None, None, Some(NodeSelector("focused")))
                 .unwrap()[0];
         let flag = is_window_fullscreen(id).unwrap();
 
@@ -413,7 +413,7 @@ mod tests {
     #[ignore]
     fn test_generate_icon() {
         let id =
-            bspc::query_nodes(None, None, None, Some(NodeSelector("focused")))
+            query::query_nodes(None, None, None, Some(NodeSelector("focused")))
                 .unwrap()[0];
 
         generate_icon("foo.jpg", "/home/andrey", "#252737", id).unwrap();

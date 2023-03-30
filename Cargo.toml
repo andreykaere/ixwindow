@@ -17,7 +17,7 @@ exclude = ["assets/*", "tests_files/*", "examples/*", "install"]
 
 [dependencies]
 i3ipc = "0.10.1"
-bspc-rs = "0.1.0"
+bspc-rs = "0.1.1"
 image = "0.24.5"
 serde = { version = "1.0.152", features = ["derive"] }
 shellexpand = "3.0.0"

@@ -1,7 +1,7 @@
-use bspc::errors::ReplyError;
-use bspc::selectors::{DesktopSelector, MonitorSelector, NodeSelector};
-use bspc::Id;
-use bspc_rs as bspc;
+use bspc_rs::errors::ReplyError;
+use bspc_rs::query;
+use bspc_rs::selectors::{DesktopSelector, MonitorSelector, NodeSelector};
+use bspc_rs::Id;
 
 use i3ipc::I3Connection;
 
@@ -88,7 +88,7 @@ impl WMConnection for I3Connection {
 
 impl WMConnection for BspwmConnection {
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<u32> {
-        let query_result = bspc::query_desktops(
+        let query_result = query::query_desktops(
             false,
             None,
             Some(MonitorSelector(monitor_name)),
@@ -101,7 +101,7 @@ impl WMConnection for BspwmConnection {
 
     fn is_desk_empty(&mut self, desktop_id: u32) -> bool {
         let desk_id = desktop_id.to_string();
-        let query_result = bspc::query_nodes(
+        let query_result = query::query_nodes(
             None,
             None,
             Some(DesktopSelector(&desk_id)),
@@ -112,7 +112,7 @@ impl WMConnection for BspwmConnection {
     }
 
     fn get_focused_window_id(&mut self, monitor_name: &str) -> Option<u32> {
-        let query_result = bspc::query_nodes(
+        let query_result = query::query_nodes(
             None,
             Some(MonitorSelector(monitor_name)),
             None,
@@ -124,7 +124,7 @@ impl WMConnection for BspwmConnection {
 
     fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32> {
         let desk_id = desktop_id.to_string();
-        let query_result = bspc::query_nodes(
+        let query_result = query::query_nodes(
             None,
             None,
             Some(DesktopSelector(&desk_id)),
@@ -135,7 +135,7 @@ impl WMConnection for BspwmConnection {
     }
 
     fn get_desktops_number(&mut self, monitor_name: &str) -> u32 {
-        let query_result = bspc::query_desktops(
+        let query_result = query::query_desktops(
             false,
             None,
             Some(MonitorSelector(monitor_name)),

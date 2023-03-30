@@ -28,9 +28,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bspc-rs"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "279ff96178e78cc6982ec22a0d978fb75ee1be6f7e4fc14769f443fa8535e4ef"
+checksum = "bad1c0b6fbf9b6e46a30f4a15ad10867a0482a78cfd9ab61b38196607bd6c3aa"
 dependencies = [
  "serde",
  "serde_json",
