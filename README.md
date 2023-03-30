@@ -1,5 +1,6 @@
 # Ixwindow – iconized xwindow 
  
+[![CI](https://github.com/andreykaere/ixwindow/workflows/CI/badge.svg)](https://github.com/andreykaere/ixwindow/actions)
 [![crate](https://img.shields.io/crates/v/ixwindow.svg)](https://crates.io/crates/ixwindow)
 
 ## About
