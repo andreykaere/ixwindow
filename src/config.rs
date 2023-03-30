@@ -48,7 +48,7 @@ pub struct WindowInfoSettings {
 }
 
 impl WindowInfoSettings {
-    pub fn format_info(&self, window_info: &str) -> String {
+    pub fn format_info(&self, mut window_info: &str) -> String {
         // Capitalizes first letter of the string, i.e. converts foo to Foo
         let capitalize_first = |s: &str| {
             let mut c = s.chars();
@@ -59,17 +59,17 @@ impl WindowInfoSettings {
             }
         };
 
-        let corrected_info = match window_info {
-            "Brave-browser" => "Brave",
-            "TelegramDesktop" => "Telegram",
-            x => x,
-        };
-        let mut corrected_info = corrected_info.to_string();
+        let mut corrected_info = window_info.to_string();
 
         if let WindowInfoType::WmInstance | WindowInfoType::WmClass =
             self.info_type
         {
-            corrected_info = capitalize_first(&corrected_info);
+            window_info = match window_info {
+                "Brave-browser" => "Brave",
+                "TelegramDesktop" => "Telegram",
+                x => x,
+            };
+            corrected_info = capitalize_first(window_info);
         }
 
         // If max_len is not specified, then we don't bound the length of the
