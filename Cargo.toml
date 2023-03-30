@@ -1,13 +1,17 @@
 [package]
 name = "ixwindow"
-version = "0.1.1"
-edition = "2021"
-readme = "README.md"
-license = "MIT"
+version = "0.1.2"
 authors = ["Andrey Vladimirov"]
 description = "Iconized xwindow module for Polybar (for bspwm and i3wm)"
 keywords = ["polybar", "wms", "bspwm", "i3wm", "xwindow"]
-exclude = ["assets/*.webm"]
+
+homepage = "https://github.com/andreykaere/ixwindow"
+repository = "https://github.com/andreykaere/ixwindow"
+readme = "README.md"
+license = "MIT"
+edition = "2021"
+
+exclude = ["assets/*", "test_files/*", "examples/*", "install"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
