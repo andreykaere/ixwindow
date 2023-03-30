@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Update rustup
+      run: rustup update stable && rustup default stable
+
+    - name: Build
+      run: cargo build --verbose
+  
+    - name: Build tests
+      run: cargo test --no-run --verbose
+
+    - name: Run tests
+      run: cargo test --no-fail-fast --verbose -- --test-threads=1
+
+    - name: Run clippy
+      run: cargo clippy
+
+    - name: Run formatter
+      run: cargo fmt --check
