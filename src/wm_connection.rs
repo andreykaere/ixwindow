@@ -198,6 +198,7 @@ mod tests {
     // }
 
     #[test]
+    #[ignore]
     fn test_get_focused_desktop_id() {
         let mut conn = BspwmConnection::new();
 

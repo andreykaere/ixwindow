@@ -152,7 +152,9 @@ mod tests {
         assert_eq!(config.size(), 24);
         assert_eq!(
             config.cache_dir(),
-            "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+            shellexpand::tilde(
+                "~/.config/polybar/scripts/ixwindow/polybar-icons"
+            )
         );
     }
 
@@ -162,7 +164,9 @@ mod tests {
 
         assert_eq!(
             expand_filename(config.cache_dir()),
-            "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+            shellexpand::tilde(
+                "~/.config/polybar/scripts/ixwindow/polybar-icons"
+            )
         );
     }
 }

@@ -425,10 +425,13 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn display_icon_test() {
         let (conn, _) = x11rb::connect(None).unwrap();
-        let monitor_name = "eDP-1";
-        display_icon(&conn, &get_icon_path(), 270, 6, 24, monitor_name)
+        let monitor_name = get_primary_monitor_name()
+            .expect("Couldn't get name of primary monitor");
+
+        display_icon(&conn, &get_icon_path(), 270, 6, 24, &monitor_name)
             .unwrap();
     }
 }

@@ -10,9 +10,38 @@ env:
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
-
+    
     steps:
     - uses: actions/checkout@v3
+    
+    - name: Install everything that is needed
+      run: |
+        sudo apt-get update 
+        sudo apt-get upgrade
+        sudo apt-get install -y xserver-xorg-core xserver-xorg xorg xvfb bspwm 
+        sudo apt-get install zathura
+
+    - name: Add config for bspwm and sxhkd
+      run: |
+        mkdir -p $HOME/.config/bspwm
+        mkdir -p $HOME/.config/sxhkd
+        sudo cp /usr/share/doc/bspwm/examples/bspwmrc $HOME/.config/bspwm/bspwmrc
+        sudo cp /usr/share/doc/bspwm/examples/sxhkdrc $HOME/.config/sxhkd/sxhkdrc
+        sudo chmod 755 $HOME/.config/bspwm/bspwmrc
+        sudo chmod 755 $HOME/.config/sxhkd/sxhkdrc
+    
+    - name: Start xserver and run bspwm
+      run: |
+        # https://stackoverflow.com/questions/63125480/running-a-gui-application-on-a-ci-service-without-x11
+        sudo xvfb-run -a --server-num=99 --auth-file=$HOME/.Xauthority bspwm &
+        sleep 5
+        sudo chmod 777 $HOME/.Xauthority
+
+    - name: Open window
+      run: |
+        export DISPLAY=:99
+        zathura &
+    
 
     - name: Update rustup
       run: rustup update stable && rustup default stable
@@ -24,7 +53,13 @@ jobs:
       run: cargo test --no-run --verbose
 
     - name: Run tests
-      run: cargo test --no-fail-fast --verbose -- --test-threads=1
+      run: |
+        sleep 3
+        sudo chmod 777 /tmp/bspwm*
+        sleep 1
+        export DISPLAY=:99
+        export IXWINDOW_CONFIG_PATH=$PWD/examples/ixwindow.toml
+        cargo test --no-fail-fast --verbose -- --test-threads=1
 
     - name: Run clippy
       run: cargo clippy
