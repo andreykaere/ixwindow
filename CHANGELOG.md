@@ -12,3 +12,6 @@ Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add CHANGELOG file for tracking relevant user-facing changes
 
+### Changed
+- Bump version of `bspc_rs` from `v0.1.0` to `v0.1.1`
+
