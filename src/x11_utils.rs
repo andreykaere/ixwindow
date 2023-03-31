@@ -266,16 +266,29 @@ pub fn get_window_info(
         }
 
         WindowInfoType::WmName => {
-            let property = conn
+            let mut property = conn
                 .get_property(
                     false,
                     window_id,
-                    atoms._NET_WM_NAME,
+                    AtomEnum::WM_NAME,
                     atoms.UTF8_STRING,
                     0,
                     1024,
                 )?
                 .reply()?;
+
+            if property.value.is_empty() {
+                property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        AtomEnum::WM_NAME,
+                        AtomEnum::STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?
+            }
 
             let wm_name = property.value;
             // let mut iter = property.value.split(|x| *x == 0);
