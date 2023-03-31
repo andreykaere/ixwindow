@@ -67,6 +67,7 @@ struct Monitor {
     desktops_number: u32,
     curr_window_info: Option<WindowInfo>,
     prev_window_info: Option<WindowInfo>,
+    curr_window_id: Option<u32>,
 }
 
 impl Monitor {
@@ -89,6 +90,10 @@ impl Monitor {
     fn update_fullscreen_status(&mut self, flag: bool) {
         self.prev_window_fullscreen = self.curr_window_fullscreen;
         self.curr_window_fullscreen = Some(flag);
+    }
+
+    fn update_curr_window_id(&mut self, window_id: Option<u32>) {
+        self.curr_window_id = window_id;
     }
 }
 
@@ -168,11 +173,15 @@ impl CoreFeatures<BspwmConnection, BspwmConfig>
 
 impl<W, C> Core<W, C>
 where
-    W: WMConnection,
-    C: Config,
+    W: WMConnection + std::marker::Send,
+    C: Config + std::marker::Send,
     Core<W, C>: CoreFeatures<W, C>,
 {
     pub fn process_start(&mut self) {
+        // Run process for watching for window's info change and printing info
+        // to the bar
+        self.update_and_print_info();
+
         self.update_x();
 
         if let Some(window_id) = self.get_focused_window_id() {
@@ -345,7 +354,33 @@ where
         }
     }
 
-    pub fn process_focused_window(&mut self, window_id: u32) {
+    async fn async_update_and_print_info(&mut self) {
+        match self.monitor.curr_window_id {
+            Some(window_id) => {
+                self.update_curr_window_info(window_id);
+                self.print_info();
+            }
+
+            None => {
+                self.update_window_info_status(WindowInfo::Empty);
+                self.print_info();
+            }
+        }
+    }
+
+    // This function prints info of the window and watches for update in the
+    // info of window
+    fn update_and_print_info(&mut self) {
+        // TODO: Change loop to actual checking for get_property
+        // thread::spawn(|| loop {
+        loop {
+            self.update_and_print_info();
+
+            thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    pub async fn process_focused_window(&mut self, window_id: u32) {
         let mut timeout_name = 1000;
         while timeout_name > 0 {
             if let Some(name) = self.wm_connection.get_icon_name(window_id) {
@@ -367,8 +402,7 @@ where
             .icon_state
             .update_icon_name(IconName::Name(icon_name));
 
-        self.update_curr_window_info(window_id);
-        self.print_info();
+        self.monitor.update_curr_window_id(Some(window_id));
 
         if self.wm_connection.is_window_fullscreen(window_id) {
             self.monitor.update_fullscreen_status(true);
@@ -386,11 +420,11 @@ where
         self.destroy_prev_icon();
     }
 
-    pub fn process_empty_desktop(&mut self) {
+    pub async fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
         self.monitor.icon_state.update_icon_name(IconName::Empty);
-        self.update_window_info_status(WindowInfo::Empty);
-        self.print_info();
+
+        self.monitor.update_curr_window_id(None);
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
