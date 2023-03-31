@@ -19,6 +19,12 @@ use crate::wm_connection::WMConnection;
 use crate::x11_utils;
 
 #[derive(Debug, PartialEq)]
+enum WindowInfo {
+    Empty, // For empty desktop, it's not a real info, just empty space
+    Info(String),
+}
+
+#[derive(Debug, PartialEq)]
 enum IconName {
     Empty, // For empty desktop, it's not a real icon, just empty space
     Name(String),
@@ -59,8 +65,8 @@ struct Monitor {
     prev_window_fullscreen: Option<bool>,
     curr_window_fullscreen: Option<bool>,
     desktops_number: u32,
-    curr_window_info: Option<String>,
-    prev_window_info: Option<String>,
+    curr_window_info: Option<WindowInfo>,
+    prev_window_info: Option<WindowInfo>,
 }
 
 impl Monitor {
@@ -239,10 +245,15 @@ where
         let print_info_type = self.config.window_info_settings().info_type;
         let window_info = self
             .wm_connection
-            .get_window_info(window_id, print_info_type);
+            .get_window_info(window_id, print_info_type)
+            .unwrap_or(String::new());
 
+        self.update_window_info_status(WindowInfo::Info(window_info));
+    }
+
+    fn update_window_info_status(&mut self, window_info: WindowInfo) {
         self.monitor.prev_window_info = self.monitor.curr_window_info.take();
-        self.monitor.curr_window_info = window_info;
+        self.monitor.curr_window_info = Some(window_info);
     }
 
     fn show_icon(&mut self) -> bool {
@@ -312,7 +323,11 @@ where
 
         let info = match icon_state.curr_icon_name.as_ref().unwrap() {
             IconName::Empty => "Empty",
-            IconName::Name(_) => window_info.as_deref().unwrap_or(""),
+            IconName::Name(_) => match window_info {
+                Some(WindowInfo::Info(x)) => &x,
+                None => "",
+                _ => unreachable!(),
+            },
         };
 
         println!("{}", self.config.window_info_settings().format_info(info));
@@ -374,6 +389,7 @@ where
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
         self.monitor.icon_state.update_icon_name(IconName::Empty);
+        self.update_window_info_status(WindowInfo::Empty);
         self.print_info();
     }
 
