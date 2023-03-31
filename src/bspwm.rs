@@ -47,9 +47,7 @@ impl Core<BspwmConnection, BspwmConfig> {
         match event {
             Event::NodeEvent(e) => self.handle_node_event(e),
             Event::DesktopEvent(e) => self.handle_desktop_event(e),
-            _ => {
-                unreachable!();
-            }
+            _ => unreachable!(),
         }
     }
 
