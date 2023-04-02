@@ -511,8 +511,8 @@ where
 
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
-        self.update_window(None);
         self.print_info(None);
+        self.update_window(None);
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
