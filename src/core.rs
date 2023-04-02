@@ -321,9 +321,6 @@ where
                 *win = WindowOrEmpty::Empty;
             }
         }
-
-        // TODO
-        // self.update_window_info_status(WindowInfo::Info(window_info));
     }
 
     fn show_icon(&mut self) -> bool {
@@ -391,47 +388,44 @@ where
         self.display_icon(&icon_path);
     }
 
-    fn print_info(&mut self) {
+    fn print_info(&mut self, window_id: Option<u32>) {
         let win = self.monitor.window.lock().unwrap();
         let info = match *win {
             WindowOrEmpty::Empty => "Empty",
             WindowOrEmpty::Window(ref window) => &window.info,
         };
 
-        println!(
-            "{}{}",
-            self.config.gap(),
-            self.config.window_info_settings().format_info(info)
-        );
+        let window_info = if let Some(win_id) = window_id {
+            get_window_info(
+                win_id,
+                self.config.window_info_settings().info_type,
+            )
+            .unwrap()
+        } else {
+            "Empty".to_string()
+        };
+
+        if info != window_info {
+            println!(
+                "{}{}",
+                self.config.gap(),
+                self.config.window_info_settings().format_info(&window_info)
+            );
+        }
     }
 
     // This function prints info of the window and watches over the info of
     // window and prints it if it changes.
     //
-    // If there is no window focused, then it just prints "Empty" and returns.
+    // If there is no window focused, then it is repeatedly waiting for new
+    // window, doing nothing.
     fn watch_and_print_info(&mut self) {
-        // let win = match self.monitor.window.as_ref() {
-        //     Some(x) => x,
-        //     None => {
-        //         let info = "Empty";
-        //         println!(
-        //             "{}",
-        //             self.config.window_info_settings().format_info(info)
-        //         );
-        //         return;
-        //     }
-        // };
-
         let window = Arc::clone(&self.monitor.window);
         let gap = self.config.gap().to_string();
         let window_info_settings = self.config.window_info_settings();
 
-        let (conn, _) = x11rb::connect(None).unwrap();
-
-        // TODO: Change loop to actual checking for get_property
         thread::spawn(move || loop {
             {
-                // TODO:
                 let mut win_lock = window.lock().unwrap();
 
                 let win = match *win_lock {
@@ -454,34 +448,6 @@ where
 
                     win.info = window_info
                 }
-
-                // let event = conn.wait_for_event().unwrap();
-                // println!("{:#?}", event);
-
-                // let event_option = conn.poll_for_event().unwrap();
-                // println!("{:#?}", event_option);
-
-                // if let Some(PropertyNotify(event_info)) = event_option {
-                //     println!("property has changed");
-
-                //     let window_id = win.id;
-
-                //     if event_info.window == window_id {
-                //         let window_info = get_window_info(
-                //             window_id,
-                //             window_info_settings.info_type,
-                //         )
-                //         .unwrap();
-
-                //         win.info = window_info;
-
-                //         println!(
-                //             "{}{}",
-                //             gap,
-                //             window_info_settings.format_info(&win.info)
-                //         );
-                //     }
-                // }
             }
 
             thread::sleep(Duration::from_millis(100));
@@ -516,8 +482,8 @@ where
             timeout_name -= 100;
         }
 
+        self.print_info(Some(window_id));
         self.update_window(Some(window_id));
-        self.print_info();
 
         if self.wm_connection.is_window_fullscreen(window_id) {
             self.monitor.update_fullscreen_status(true);
@@ -538,7 +504,7 @@ where
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
         self.update_window(None);
-        self.print_info();
+        self.print_info(None);
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
