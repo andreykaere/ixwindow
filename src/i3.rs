@@ -8,7 +8,7 @@ use i3ipc::{self, I3Connection, I3EventListener, Subscription};
 use crate::config::I3Config;
 use crate::core::{Core, CoreFeatures as _};
 
-pub fn exec(monitor_name: Option<String>, config_option: Option<&str>) {
+pub fn exec(monitor_name: Option<&str>, config_option: Option<&str>) {
     let mut listener =
         I3EventListener::connect().expect("Couldn't connect to event listener");
     let mut core = Core::init(monitor_name, config_option);

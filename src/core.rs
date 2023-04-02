@@ -5,19 +5,21 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
 use std::str;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::ConnectionExt;
+use x11rb::protocol::xproto::AtomEnum;
+use x11rb::protocol::xproto::{ConnectionExt, PropertyNotifyEvent};
+use x11rb::protocol::Event::PropertyNotify;
 use x11rb::rust_connection::RustConnection;
 
 use crate::bspwm::BspwmConnection;
-use crate::config::{self, BspwmConfig, Config, I3Config};
+use crate::config::{self, BspwmConfig, Config, I3Config, WindowInfoType};
 use crate::i3_utils;
 use crate::wm_connection::WMConnection;
-use crate::x11_utils;
+use crate::x11_utils::{self, get_window_info};
 
 #[derive(Debug, Default)]
 struct IconState {
@@ -57,6 +59,14 @@ impl FullscreenState {
 struct Window {
     icon: IconState,
     info: String,
+    id: u32,
+}
+
+#[derive(Debug, Default)]
+enum WindowOrEmpty {
+    #[default]
+    Empty,
+    Window(Window),
 }
 
 #[derive(Debug, Default)]
@@ -64,14 +74,14 @@ struct Monitor {
     name: String,
     desktops_number: u32,
     fullscreen_state: FullscreenState,
-    window: Option<Window>,
+    window: Arc<Mutex<WindowOrEmpty>>,
     // window: Mutex<Window>,
 }
 
 impl Monitor {
-    fn init(monitor_name: Option<String>) -> Self {
+    fn init(monitor_name: Option<&str>) -> Self {
         let name = match monitor_name {
-            Some(x) => x,
+            Some(x) => x.to_string(),
             None => x11_utils::get_primary_monitor_name()
                 .expect("Couldn't get name of primary monitor"),
         };
@@ -86,26 +96,36 @@ impl Monitor {
         self.fullscreen_state.update_fullscreen_state(flag);
     }
 
-    fn update_window(&mut self, icon_name: &str, window_info: &str) {
-        if let Some(window) = self.window.as_mut() {
+    fn update_window(
+        &mut self,
+        win_id: u32,
+        icon_name: &str,
+        window_info: &str,
+    ) {
+        let mut win = self.window.lock().unwrap();
+
+        if let WindowOrEmpty::Window(ref mut window) = *win {
             window.info = window_info.to_string();
+            window.id = win_id;
             window.icon.update_name(icon_name);
         } else {
             let mut window = Window {
+                icon: IconState::default(),
                 info: window_info.to_string(),
-                ..Default::default()
+                id: win_id,
             };
             window.icon.update_name(icon_name);
 
-            self.window = Some(window);
+            *win = WindowOrEmpty::Window(window);
         }
     }
 
-    fn update_window_info(&mut self, window_info: &str) {
-        if let Some(window) = self.window.as_mut() {
-            window.info = window_info.to_string();
-        }
-    }
+    // fn update_window_info(&mut self, window_info: &str) {
+    //     if let Some(win) = self.window.as_ref() {
+    //         let mut window = win.lock().unwrap();
+    //         window.info = window_info.to_string();
+    //     }
+    // }
 }
 
 pub struct Core<W, C>
@@ -125,14 +145,14 @@ where
     C: Config,
 {
     fn init(
-        monitor_name: Option<String>,
+        monitor_name: Option<&str>,
         config_option: Option<&str>,
     ) -> Core<W, C>;
     fn update_x(&mut self);
 }
 
 impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
-    fn init(monitor_name: Option<String>, config_option: Option<&str>) -> Self {
+    fn init(monitor_name: Option<&str>, config_option: Option<&str>) -> Self {
         let wm_connection =
             I3Connection::connect().expect("Failed to connect to i3");
         let config = config::load_i3(config_option);
@@ -148,7 +168,9 @@ impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
     }
 
     fn update_x(&mut self) {
-        if let Some(window) = self.monitor.window.as_mut() {
+        let mut win = self.monitor.window.lock().unwrap();
+
+        if let WindowOrEmpty::Window(ref mut window) = *win {
             let config = &self.config;
             let desks_num = i3_utils::get_desktops_number(
                 &mut self.wm_connection,
@@ -165,7 +187,7 @@ impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
 impl CoreFeatures<BspwmConnection, BspwmConfig>
     for Core<BspwmConnection, BspwmConfig>
 {
-    fn init(monitor_name: Option<String>, config_option: Option<&str>) -> Self {
+    fn init(monitor_name: Option<&str>, config_option: Option<&str>) -> Self {
         let wm_connection = BspwmConnection::new();
         let config = config::load_bspwm(config_option);
         let monitor = Monitor::init(monitor_name);
@@ -180,7 +202,9 @@ impl CoreFeatures<BspwmConnection, BspwmConfig>
     }
 
     fn update_x(&mut self) {
-        if let Some(window) = self.monitor.window.as_mut() {
+        let mut win = self.monitor.window.lock().unwrap();
+
+        if let WindowOrEmpty::Window(ref mut window) = *win {
             window.icon.curr_x = self.config.x();
         }
     }
@@ -188,69 +212,68 @@ impl CoreFeatures<BspwmConnection, BspwmConfig>
 
 impl<W, C> Core<W, C>
 where
-    W: WMConnection + std::marker::Send,
-    C: Config + std::marker::Send,
+    W: WMConnection,
+    C: Config,
     Core<W, C>: CoreFeatures<W, C>,
 {
     pub fn process_start(&mut self) {
-        // Run process for watching for window's info change and printing info
-        // to the bar
-        self.update_and_print_info();
-
         if let Some(window_id) = self.get_focused_window_id() {
             self.process_focused_window(window_id);
         } else {
             self.process_empty_desktop();
         }
+
+        // Run process for watching for window's info change and printing info
+        // to the bar
+        self.watch_and_print_info();
     }
 
     fn generate_icon(&self, window_id: u32) -> Result<(), Box<dyn Error>> {
         let config = &self.config;
-        let window = self
-            .monitor
-            .window
-            .as_ref()
-            .expect("Don't generate icon for not window");
+        let win = self.monitor.window.lock().unwrap();
 
-        if !Path::new(config.cache_dir()).is_dir() {
-            fs::create_dir(config.cache_dir())
-                .expect("No cache folder was detected and couldn't create it");
+        if let WindowOrEmpty::Window(ref window) = *win {
+            if !Path::new(config.cache_dir()).is_dir() {
+                fs::create_dir(config.cache_dir()).expect(
+                    "No cache folder was detected and couldn't create it",
+                );
+            }
+
+            x11_utils::generate_icon(
+                window.icon.get_curr_name(),
+                config.cache_dir(),
+                config.color(),
+                window_id,
+            )
+        } else {
+            panic!("Don't generate icon for empty desktop");
         }
-
-        x11_utils::generate_icon(
-            window.icon.get_curr_name(),
-            config.cache_dir(),
-            config.color(),
-            window_id,
-        )
     }
 
     fn display_icon(&mut self, icon_path: &str) {
         let config = &self.config;
-        let window = self
-            .monitor
-            .window
-            .as_mut()
-            .expect("Don't display icon for not window");
+        let mut win = self.monitor.window.lock().unwrap();
 
-        let (curr_x, y, size, monitor_name) = (
-            window.icon.curr_x,
-            config.y(),
-            config.size(),
-            &self.monitor.name,
-        );
+        if let WindowOrEmpty::Window(ref mut window) = *win {
+            let (curr_x, y, size, monitor_name) = (
+                window.icon.curr_x,
+                config.y(),
+                config.size(),
+                &self.monitor.name,
+            );
 
-        let icon_id = x11_utils::display_icon(
-            &self.x11rb_connection,
-            icon_path,
-            curr_x,
-            y,
-            size,
-            monitor_name,
-        )
-        .ok();
+            let icon_id = x11_utils::display_icon(
+                &self.x11rb_connection,
+                icon_path,
+                curr_x,
+                y,
+                size,
+                monitor_name,
+            )
+            .ok();
 
-        window.icon.prev_id = icon_id;
+            window.icon.prev_id = icon_id;
+        }
     }
 
     fn curr_desk_contains_fullscreen(&mut self) -> bool {
@@ -289,11 +312,13 @@ where
                     .get_icon_name(win_id)
                     .unwrap_or(String::new());
 
-                self.monitor.update_window(&icon_name, &window_info);
+                self.monitor.update_window(win_id, &icon_name, &window_info);
             }
 
             None => {
-                self.monitor.window = None;
+                let mut win = self.monitor.window.lock().unwrap();
+
+                *win = WindowOrEmpty::Empty;
             }
         }
 
@@ -319,7 +344,9 @@ where
             return true;
         }
 
-        if let Some(window) = self.monitor.window.as_ref() {
+        let win = self.monitor.window.lock().unwrap();
+
+        if let WindowOrEmpty::Window(ref window) = *win {
             window.icon.prev_name != window.icon.curr_name
         } else {
             false
@@ -328,15 +355,23 @@ where
 
     fn update_icon(&mut self, window_id: u32) {
         let config = &self.config;
-        let icon_name = match self.monitor.window.as_ref() {
-            Some(window) => window.icon.get_curr_name(),
+        let icon_name;
 
-            None => {
-                return;
-            }
-        };
+        {
+            let win = self.monitor.window.lock().unwrap();
 
-        let icon_path = format!("{}/{}.jpg", &config.cache_dir(), icon_name);
+            icon_name = match *win {
+                WindowOrEmpty::Window(ref window) => {
+                    window.icon.get_curr_name().to_string()
+                }
+
+                WindowOrEmpty::Empty => {
+                    return;
+                }
+            };
+        }
+
+        let icon_path = format!("{}/{}.jpg", &config.cache_dir(), &icon_name);
 
         // Destroy icon first, before trying to extract it. Fixes the icon
         // still showing, when switching from window that has icon to the
@@ -357,47 +392,115 @@ where
     }
 
     fn print_info(&mut self) {
-        let window = &self.monitor.window;
-
-        // Don't add '\n' at the end, so that it will appear in front of icon
-        // name, printed after it
-        print!("{}", self.config.gap());
-        io::stdout().flush().unwrap();
-
-        let info = match window {
-            None => "Empty",
-            Some(win) => &win.info,
+        let win = self.monitor.window.lock().unwrap();
+        let info = match *win {
+            WindowOrEmpty::Empty => "Empty",
+            WindowOrEmpty::Window(ref window) => &window.info,
         };
 
-        println!("{}", self.config.window_info_settings().format_info(info));
+        println!(
+            "{}{}",
+            self.config.gap(),
+            self.config.window_info_settings().format_info(info)
+        );
+    }
+
+    // This function prints info of the window and watches over the info of
+    // window and prints it if it changes.
+    //
+    // If there is no window focused, then it just prints "Empty" and returns.
+    fn watch_and_print_info(&mut self) {
+        // let win = match self.monitor.window.as_ref() {
+        //     Some(x) => x,
+        //     None => {
+        //         let info = "Empty";
+        //         println!(
+        //             "{}",
+        //             self.config.window_info_settings().format_info(info)
+        //         );
+        //         return;
+        //     }
+        // };
+
+        let window = Arc::clone(&self.monitor.window);
+        let gap = self.config.gap().to_string();
+        let window_info_settings = self.config.window_info_settings();
+
+        let (conn, _) = x11rb::connect(None).unwrap();
+
+        // TODO: Change loop to actual checking for get_property
+        thread::spawn(move || loop {
+            {
+                // TODO:
+                let mut win_lock = window.lock().unwrap();
+
+                let win = match *win_lock {
+                    WindowOrEmpty::Window(ref mut x) => x,
+                    WindowOrEmpty::Empty => continue,
+                };
+
+                let window_id = win.id;
+
+                let window_info =
+                    get_window_info(window_id, window_info_settings.info_type)
+                        .unwrap();
+
+                if win.info != window_info {
+                    println!(
+                        "{}{}",
+                        gap,
+                        window_info_settings.format_info(&window_info)
+                    );
+
+                    win.info = window_info
+                }
+
+                // let event = conn.wait_for_event().unwrap();
+                // println!("{:#?}", event);
+
+                // let event_option = conn.poll_for_event().unwrap();
+                // println!("{:#?}", event_option);
+
+                // if let Some(PropertyNotify(event_info)) = event_option {
+                //     println!("property has changed");
+
+                //     let window_id = win.id;
+
+                //     if event_info.window == window_id {
+                //         let window_info = get_window_info(
+                //             window_id,
+                //             window_info_settings.info_type,
+                //         )
+                //         .unwrap();
+
+                //         win.info = window_info;
+
+                //         println!(
+                //             "{}{}",
+                //             gap,
+                //             window_info_settings.format_info(&win.info)
+                //         );
+                //     }
+                // }
+            }
+
+            thread::sleep(Duration::from_millis(100));
+        });
     }
 
     fn destroy_prev_icon(&mut self) {
         let conn = &self.x11rb_connection;
-        let window = self
-            .monitor
-            .window
-            .as_mut()
-            .expect("Don't destroy previous icon for not window");
+        let mut win = self.monitor.window.lock().unwrap();
 
-        if let Some(id) = window.icon.prev_id {
-            conn.destroy_window(id)
-                .expect("Failed to destroy previous icon");
-            conn.flush().unwrap();
+        if let WindowOrEmpty::Window(ref mut window) = *win {
+            if let Some(id) = window.icon.prev_id {
+                conn.destroy_window(id)
+                    .expect("Failed to destroy previous icon");
+                conn.flush().unwrap();
 
-            window.icon.prev_id = None;
+                window.icon.prev_id = None;
+            }
         }
-    }
-
-    // This function prints info of the window and watches for update in the
-    // info of window
-    fn update_and_print_info(&mut self) {
-        // TODO: Change loop to actual checking for get_property
-        // thread::spawn(move || loop {
-        //     self.print_info();
-
-        //     thread::sleep(Duration::from_millis(100));
-        // });
     }
 
     pub fn process_focused_window(&mut self, window_id: u32) {
@@ -412,11 +515,6 @@ where
             thread::sleep(Duration::from_millis(100));
             timeout_name -= 100;
         }
-
-        let icon_name = self
-            .wm_connection
-            .get_icon_name(window_id)
-            .unwrap_or(String::new());
 
         self.update_window(Some(window_id));
         self.print_info();

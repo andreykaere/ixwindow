@@ -39,7 +39,7 @@ impl IxwindowOptions {
 fn main() {
     let options = IxwindowOptions::init();
     let config_option = options.config_option.as_deref();
-    let monitor_name = options.monitor_name;
+    let monitor_name = options.monitor_name.as_deref();
 
     let wm_name = x11_utils::get_current_wm()
         .expect("Couldn't get current window manager name");

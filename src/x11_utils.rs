@@ -221,6 +221,32 @@ pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
     Ok(String::new())
 }
 
+//fn get_window_info<Conn: Connection>(
+//    conn: &Conn,
+//    event_info: PropertyNotifyEvent,
+//    info_type: WindowInfoType,
+//) -> Result<String, Box<dyn Error>> {
+//    match info_type {
+//        WindowInfoType::WmClass => {
+//            if event_info.atom == Into::<u32>::into(AtomEnum::WM_CLASS) {
+//                //
+//            }
+//        }
+
+//        WindowInfoType::WmInstance => {
+//            if event_info.atom == Into::<u32>::into(AtomEnum::WM_CLASS) {
+//                //
+//            }
+//        }
+
+//        WindowInfoType::WmName => {
+//            if event_info.atom == Into::<u32>::into(AtomEnum::WM_NAME) {
+//                //
+//            }
+//        }
+//    }
+//}
+
 pub fn get_window_info(
     window_id: u32,
     info_type: WindowInfoType,
