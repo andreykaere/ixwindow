@@ -435,9 +435,17 @@ where
 
                 let window_id = win.id;
 
-                let window_info =
-                    get_window_info(window_id, window_info_settings.info_type)
-                        .unwrap();
+                let window_info = match get_window_info(
+                    window_id,
+                    window_info_settings.info_type,
+                ) {
+                    Ok(x) => x,
+
+                    // If this is error, then it is because window was removed
+                    // while program was waiting. So we just have to continue
+                    // and recognize new focused window on new iteration
+                    Err(_) => continue,
+                };
 
                 if win.info != window_info {
                     println!(
