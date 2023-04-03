@@ -25,7 +25,7 @@ pub struct CommonConfig {
 
     #[serde(rename = "print_info")]
     #[serde(default)]
-    pub window_info_settings: WindowInfoSettings,
+    pub window_info_settings: Option<WindowInfoSettings>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
@@ -36,21 +36,27 @@ pub enum WindowInfoType {
 
     WmClass,
     WmName,
-    #[serde(rename = "_NET_WM_NAME")]
     NetWmName,
+    NetWmVisibleName,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
-pub struct WindowInfoSettings {
-    #[serde(rename = "type")]
+#[derive(Clone, Debug)]
+pub struct WindowInfo {
+    pub info: String,
     pub info_type: WindowInfoType,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+pub struct WindowInfoSettings {
+    #[serde(rename = "types")]
+    pub info_types: Vec<WindowInfoType>,
 
     #[serde(default)]
     pub max_len: Option<usize>,
 }
 
 impl WindowInfoSettings {
-    pub fn format_info(&self, mut window_info: &str) -> String {
+    pub fn format_info(&self, window_info: &WindowInfo) -> String {
         // Capitalizes first letter of the string, i.e. converts foo to Foo
         let capitalize_first = |s: &str| {
             let mut c = s.chars();
@@ -61,28 +67,30 @@ impl WindowInfoSettings {
             }
         };
 
-        let mut corrected_info = window_info.to_string();
-
-        if let WindowInfoType::WmInstance | WindowInfoType::WmClass =
-            self.info_type
+        let formatted_info = if let WindowInfoType::WmInstance
+        | WindowInfoType::WmClass =
+            window_info.info_type
         {
-            window_info = match window_info {
+            let info = match window_info.info.as_str() {
                 "Brave-browser" => "Brave",
                 "TelegramDesktop" => "Telegram",
                 x => x,
             };
-            corrected_info = capitalize_first(window_info);
-        }
+
+            capitalize_first(&info)
+        } else {
+            window_info.info.to_string()
+        };
 
         // If max_len is not specified, then we don't bound the length of the
         // output info
         let cut_len = if let Some(max_len) = self.max_len {
             min(max_len, corrected_info.len())
         } else {
-            corrected_info.len()
+            formatted_info.len()
         };
 
-        corrected_info.chars().take(cut_len).collect()
+        formatted_info.chars().take(cut_len).collect()
 
         // (&corrected_info[..cut_len]).to_string()
     }
@@ -230,7 +238,7 @@ mod tests {
         let config = load_i3(Some(CONFIG_PATH));
 
         assert_eq!(config.size(), 24);
-        assert_eq!(config.window_info().info_type, WindowInfoType::WmInstance);
+        assert_eq!(config.window_info().info_types, WindowInfoType::WmInstance);
         assert_eq!(
             config.cache_dir(),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"

@@ -17,11 +17,14 @@ y = 6
 # best result
 gap = "         "
 
-# Type of info of the window, that will be printed on the bar
+# This section configures the way information about the window gets printed.
 [bspwm.print_info]
-type = "WM_INSTANCE"
+# Type of the info of the window, that will be printed on the bar. If more
+# than one is specified, then program will print the first not null of them
+# (in the given order)
+types = ["_NET_WM_NAME", "WM_INSTANCE"]
 # When this setting is not present, the whole info will be printed
-max_len = 90
+max_len = 30
 
 
 [i3]
@@ -47,8 +50,12 @@ gap = "         "
 # size of the icon, because new desktop icon occupies around this space
 gap_per_desk = 24
 
-# Type of info of the window, that will be printed on the bar
+
+# This section configures the way information about the window gets printed.
 [i3.print_info]
-type = "WM_INSTANCE"
+# Type of the info of the window, that will be printed on the bar. If more
+# than one is specified, then program will print the first not null of them
+# (in the given order)
+types = ["_NET_WM_NAME", "WM_INSTANCE"]
 # When this setting is not present, the whole info will be printed
-max_len = 90
+max_len = 30

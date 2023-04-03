@@ -299,11 +299,11 @@ where
     fn update_window(&mut self, window_id: Option<u32>) {
         match window_id {
             Some(win_id) => {
-                let print_info_type =
-                    self.config.window_info_settings().info_type;
+                let window_info_type =
+                    self.config.window_info_settings().info_types;
 
                 let window_info =
-                    x11_utils::get_window_info(win_id, print_info_type)
+                    x11_utils::get_window_info(win_id, &window_info_type)
                         .unwrap_or(String::new());
 
                 let icon_name = self
@@ -397,7 +397,7 @@ where
         let window_info = if let Some(win_id) = window_id {
             match x11_utils::get_window_info(
                 win_id,
-                self.config.window_info_settings().info_type,
+                &self.config.window_info_settings().info_types,
             ) {
                 Ok(x) => x,
 
@@ -444,7 +444,7 @@ where
 
                 let window_info = match x11_utils::get_window_info(
                     window_id,
-                    window_info_settings.info_type,
+                    &window_info_settings.info_types,
                 ) {
                     Ok(x) => x,
 

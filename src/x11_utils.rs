@@ -6,6 +6,7 @@ use image::imageops::FilterType;
 use image::io::Reader as ImageReader;
 use image::{GenericImageView, RgbaImage};
 
+use crate::config::WindowInfo;
 use crate::config::WindowInfoType;
 
 use x11rb::atom_manager;
@@ -18,6 +19,7 @@ atom_manager! {
         WM_PROTOCOLS,
         WM_DELETE_WINDOW,
         _NET_WM_NAME,
+        _NET_WM_VISIBLE_NAME,
         WM_NAME,
         _NET_WM_STATE,
         _NET_WM_STATE_FULLSCREEN,
@@ -249,87 +251,115 @@ pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
 
 pub fn get_window_info(
     window_id: u32,
-    info_type: WindowInfoType,
-) -> Result<String, Box<dyn Error>> {
+    info_types: &[WindowInfoType],
+) -> Result<WindowInfo, Box<dyn Error>> {
     let (conn, _) = x11rb::connect(None)?;
     let atoms = AtomCollection::new(&conn)?.reply()?;
 
-    let info_bytes = match info_type {
-        WindowInfoType::WmClass => {
-            let property = conn
-                .get_property(
-                    false,
-                    window_id,
-                    AtomEnum::WM_CLASS,
-                    AtomEnum::STRING,
-                    0,
-                    1024,
-                )?
-                .reply()?;
+    for info_type in info_types {
+        let info_bytes = match info_type {
+            WindowInfoType::WmClass => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        AtomEnum::WM_CLASS,
+                        AtomEnum::STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
 
-            let mut iter = property.value.split(|x| *x == 0);
-            let wm_class = iter.next();
+                let mut iter = property.value.split(|x| *x == 0);
+                let wm_class = iter.next();
 
-            wm_class.map(|x| x.to_vec())
+                wm_class.map(|x| x.to_vec())
+            }
+
+            WindowInfoType::WmInstance => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        AtomEnum::WM_CLASS,
+                        AtomEnum::STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
+
+                let mut iter = property.value.split(|x| *x == 0);
+                let wm_instance = iter.nth(1);
+
+                wm_instance.map(|x| x.to_vec())
+            }
+
+            WindowInfoType::NetWmName => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        atoms._NET_WM_NAME,
+                        atoms.UTF8_STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
+
+                let wm_name = property.value;
+
+                Some(wm_name)
+            }
+
+            WindowInfoType::NetWmVisibleName => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        atoms._NET_WM_VISIBLE_NAME,
+                        atoms.UTF8_STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
+
+                let wm_name = property.value;
+
+                Some(wm_name)
+            }
+
+            WindowInfoType::WmName => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        AtomEnum::WM_NAME,
+                        AtomEnum::STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
+
+                let wm_name = property.value;
+
+                Some(wm_name)
+            }
+        };
+
+        if let Some(bytes) = info_bytes {
+            if !bytes.is_empty() {
+                return Ok(WindowInfo {
+                    info: String::from_utf8_lossy(&bytes).to_string(),
+                    info_type,
+                });
+            }
         }
-
-        WindowInfoType::WmInstance => {
-            let property = conn
-                .get_property(
-                    false,
-                    window_id,
-                    AtomEnum::WM_CLASS,
-                    AtomEnum::STRING,
-                    0,
-                    1024,
-                )?
-                .reply()?;
-
-            let mut iter = property.value.split(|x| *x == 0);
-            let wm_instance = iter.nth(1);
-
-            wm_instance.map(|x| x.to_vec())
-        }
-
-        WindowInfoType::NetWmName => {
-            let property = conn
-                .get_property(
-                    false,
-                    window_id,
-                    atoms._NET_WM_NAME,
-                    atoms.UTF8_STRING,
-                    0,
-                    1024,
-                )?
-                .reply()?;
-
-            let wm_name = property.value;
-
-            Some(wm_name)
-        }
-
-        WindowInfoType::WmName => {
-            let property = conn
-                .get_property(
-                    false,
-                    window_id,
-                    AtomEnum::WM_NAME,
-                    AtomEnum::STRING,
-                    0,
-                    1024,
-                )?
-                .reply()?;
-
-            let wm_name = property.value;
-
-            Some(wm_name)
-        }
-    };
-
-    match info_bytes {
-        Some(bytes) => Ok(String::from_utf8_lossy(&bytes).to_string()),
-        None => Ok(String::new()),
     }
+
+    Ok(WindowInfo {
+        info: String::new(),
+        info_type: info_types.last().unwrap(),
+    })
 }
 
 pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
