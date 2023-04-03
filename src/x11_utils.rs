@@ -313,18 +313,25 @@ pub fn get_window_info(
                         0,
                         1024,
                     )?
-                    .reply()?
+                    .reply()?;
             }
 
             let wm_name = property.value;
-            // let mut iter = property.value.split(|x| *x == 0);
-            // let wm_class = iter.next();
 
             Some(wm_name)
         }
     };
 
-    Ok(String::from_utf8(info_bytes.unwrap_or(vec![]))?)
+    match info_bytes {
+        Some(bytes) => {
+            let bytes_utf16: Vec<u16> =
+                bytes.into_iter().map(|x| x as u16).collect();
+
+            Ok(String::from_utf16_lossy(&bytes_utf16))
+        }
+
+        None => Ok(String::new()),
+    }
 }
 
 pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
