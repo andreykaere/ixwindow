@@ -19,7 +19,7 @@ use crate::bspwm::BspwmConnection;
 use crate::config::{self, BspwmConfig, Config, I3Config, WindowInfoType};
 use crate::i3_utils;
 use crate::wm_connection::WMConnection;
-use crate::x11_utils::{self, get_window_info};
+use crate::x11_utils;
 
 #[derive(Debug, Default)]
 struct IconState {
@@ -217,15 +217,15 @@ where
     Core<W, C>: CoreFeatures<W, C>,
 {
     pub fn process_start(&mut self) {
+        // Run process for watching for window's info change and printing info
+        // to the bar.
+        self.watch_and_print_info();
+
         if let Some(window_id) = self.get_focused_window_id() {
             self.process_focused_window(window_id);
         } else {
             self.process_empty_desktop();
         }
-
-        // Run process for watching for window's info change and printing info
-        // to the bar
-        self.watch_and_print_info();
     }
 
     fn generate_icon(&self, window_id: u32) -> Result<(), Box<dyn Error>> {
@@ -302,10 +302,9 @@ where
                 let print_info_type =
                     self.config.window_info_settings().info_type;
 
-                let window_info = self
-                    .wm_connection
-                    .get_window_info(win_id, print_info_type)
-                    .unwrap_or(String::new());
+                let window_info =
+                    x11_utils::get_window_info(win_id, print_info_type)
+                        .unwrap_or(String::new());
 
                 let icon_name = self
                     .wm_connection
@@ -396,7 +395,7 @@ where
         };
 
         let window_info = if let Some(win_id) = window_id {
-            get_window_info(
+            x11_utils::get_window_info(
                 win_id,
                 self.config.window_info_settings().info_type,
             )
@@ -425,6 +424,8 @@ where
         let window_info_settings = self.config.window_info_settings();
 
         thread::spawn(move || loop {
+            // This block is needed for unlocking the lock at the end of each
+            // iteration
             {
                 let mut win_lock = window.lock().unwrap();
 
@@ -435,7 +436,7 @@ where
 
                 let window_id = win.id;
 
-                let window_info = match get_window_info(
+                let window_info = match x11_utils::get_window_info(
                     window_id,
                     window_info_settings.info_type,
                 ) {

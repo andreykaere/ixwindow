@@ -14,21 +14,12 @@ use crate::{i3_utils, x11_utils};
 pub trait WMConnection {
     fn is_window_fullscreen(&mut self, window_id: u32) -> bool {
         // We can't just use unwrap here, because some apps (at least Discord
-        // and Zoom) that are changing its window_id as it is running.
-        // Probably there are more apps like that
+        // and Zoom) that are changing its window_id as it is running
         x11_utils::is_window_fullscreen(window_id).unwrap_or(false)
     }
 
     fn get_icon_name(&mut self, window_id: u32) -> Option<String> {
         Some(x11_utils::get_wm_class(window_id).ok()?.replace(' ', "-"))
-    }
-
-    fn get_window_info(
-        &mut self,
-        window_id: u32,
-        window_info_type: WindowInfoType,
-    ) -> Option<String> {
-        x11_utils::get_window_info(window_id, window_info_type).ok()
     }
 
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<u32>;
