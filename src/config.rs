@@ -36,6 +36,8 @@ pub enum WindowInfoType {
 
     WmClass,
     WmName,
+    #[serde(rename = "_NET_WM_NAME")]
+    NetWmName,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]

@@ -395,11 +395,17 @@ where
         };
 
         let window_info = if let Some(win_id) = window_id {
-            x11_utils::get_window_info(
+            match x11_utils::get_window_info(
                 win_id,
                 self.config.window_info_settings().info_type,
-            )
-            .unwrap()
+            ) {
+                Ok(x) => x,
+
+                // If this is error, then it is because window was removed
+                // while program was waiting. So we just have to continue
+                // and recognize new focused window on new iteration
+                Err(_) => return,
+            }
         } else {
             "Empty".to_string()
         };

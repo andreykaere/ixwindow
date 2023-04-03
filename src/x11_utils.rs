@@ -291,30 +291,34 @@ pub fn get_window_info(
             wm_instance.map(|x| x.to_vec())
         }
 
-        WindowInfoType::WmName => {
-            let mut property = conn
+        WindowInfoType::NetWmName => {
+            let property = conn
                 .get_property(
                     false,
                     window_id,
-                    AtomEnum::WM_NAME,
+                    atoms._NET_WM_NAME,
                     atoms.UTF8_STRING,
                     0,
                     1024,
                 )?
                 .reply()?;
 
-            if property.value.is_empty() {
-                property = conn
-                    .get_property(
-                        false,
-                        window_id,
-                        AtomEnum::WM_NAME,
-                        AtomEnum::STRING,
-                        0,
-                        1024,
-                    )?
-                    .reply()?;
-            }
+            let wm_name = property.value;
+
+            Some(wm_name)
+        }
+
+        WindowInfoType::WmName => {
+            let property = conn
+                .get_property(
+                    false,
+                    window_id,
+                    AtomEnum::WM_NAME,
+                    AtomEnum::STRING,
+                    0,
+                    1024,
+                )?
+                .reply()?;
 
             let wm_name = property.value;
 
@@ -323,13 +327,7 @@ pub fn get_window_info(
     };
 
     match info_bytes {
-        Some(bytes) => {
-            let bytes_utf16: Vec<u16> =
-                bytes.into_iter().map(|x| x as u16).collect();
-
-            Ok(String::from_utf16_lossy(&bytes_utf16))
-        }
-
+        Some(bytes) => Ok(String::from_utf8_lossy(&bytes).to_string()),
         None => Ok(String::new()),
     }
 }
