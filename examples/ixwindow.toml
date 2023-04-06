@@ -32,6 +32,13 @@ max_len = 30
 # don't want for any - set list empty.
 capitalize_first = ["WM_INSTANCE"]
 
+# Custom substitude rules
+[bspwm.print_info.substitude_rules.WM_INSTANCE]
+"TelegramDesktop" = "Telegram"
+"Brave-browser" = "Brave"
+
+[bspwm.print_info.substitude_rules._NET_WM_NAME]
+"nsxiv" = "Nsxiv"
 
 [i3]
 # Folder for cached icons

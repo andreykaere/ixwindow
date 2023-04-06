@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use std::cmp::min;
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::Read;
@@ -10,12 +11,12 @@ use std::path::Path;
 
 mod utils {
     // Capitalizes first letter of the string, i.e. converts foo to Foo
-    pub fn capitalize_first(s: &str) -> String {
-        let mut c = s.chars();
+    pub fn capitalize_first(string: &str) -> String {
+        let mut chars = string.chars();
 
-        match c.next() {
+        match chars.next() {
             None => String::new(),
-            Some(f) => f.to_uppercase().chain(c).collect(),
+            Some(first) => first.to_uppercase().chain(chars).collect(),
         }
     }
 }
@@ -40,7 +41,9 @@ pub struct CommonConfig {
     pub print_info_settings: PrintInfoSettings,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
+#[derive(
+    Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Hash, Eq,
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WindowInfoType {
     #[default]
@@ -71,6 +74,9 @@ pub struct PrintInfoSettings {
 
     #[serde(default)]
     pub capitalize_first: Vec<WindowInfoType>,
+
+    #[serde(default)]
+    pub substitude_rules: HashMap<WindowInfoType, HashMap<String, String>>,
 }
 
 impl PrintInfoSettings {
@@ -79,17 +85,13 @@ impl PrintInfoSettings {
         info: &str,
         formatter: Option<WindowInfoType>,
     ) -> String {
-        let formatted_info = match formatter {
-            Some(format) => {
-                if self.capitalize_first.contains(&format) {
-                    utils::capitalize_first(&info)
-                } else {
-                    info.to_string()
-                }
-            }
+        let mut formatted_info = info.to_string();
 
-            None => info.to_string(),
-        };
+        if let Some(info_type) = formatter {
+            formatted_info = self.capitalize_first(&formatted_info, info_type);
+            formatted_info =
+                self.apply_substitude_rules(&formatted_info, info_type);
+        }
 
         // If max_len is not specified, then we don't bound the length of the
         // output info
@@ -100,6 +102,36 @@ impl PrintInfoSettings {
         };
 
         formatted_info.chars().take(cut_len).collect()
+    }
+
+    fn apply_substitude_rules(
+        &self,
+        info: &str,
+        info_type: WindowInfoType,
+    ) -> String {
+        if self.substitude_rules.contains_key(&info_type) {
+            let rules = self.substitude_rules.get(&info_type).unwrap();
+
+            for (old, new) in rules {
+                if info == old {
+                    return new.to_string();
+                }
+            }
+        }
+
+        info.to_string()
+    }
+
+    pub fn capitalize_first(
+        &self,
+        info: &str,
+        info_type: WindowInfoType,
+    ) -> String {
+        if self.capitalize_first.contains(&info_type) {
+            utils::capitalize_first(info)
+        } else {
+            info.to_string()
+        }
     }
 }
 
