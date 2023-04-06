@@ -64,6 +64,11 @@ pub struct WindowInfo {
     pub info_type: WindowInfoType,
 }
 
+#[derive(Clone, Default, Debug)]
+pub struct EmptyInfo {
+    pub info: String,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct PrintInfoSettings {
     #[serde(rename = "types")]
@@ -77,6 +82,10 @@ pub struct PrintInfoSettings {
 
     #[serde(default)]
     pub substitude_rules: HashMap<WindowInfoType, HashMap<String, String>>,
+
+    #[serde(default)]
+    #[serde(rename = "label_empty")]
+    pub empty_info: Option<String>,
 }
 
 impl PrintInfoSettings {
@@ -131,6 +140,13 @@ impl PrintInfoSettings {
             utils::capitalize_first(info)
         } else {
             info.to_string()
+        }
+    }
+
+    pub fn get_empty_desk_info(&self) -> &str {
+        match &self.empty_info {
+            Some(x) => x,
+            None => "Empty",
         }
     }
 }

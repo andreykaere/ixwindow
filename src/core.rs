@@ -13,7 +13,9 @@ use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::rust_connection::RustConnection;
 
 use crate::bspwm::BspwmConnection;
-use crate::config::{self, BspwmConfig, Config, I3Config, WindowInfo};
+use crate::config::{
+    self, BspwmConfig, Config, EmptyInfo, I3Config, WindowInfo,
+};
 use crate::i3_utils;
 use crate::wm_connection::WMConnection;
 use crate::x11_utils;
@@ -59,11 +61,22 @@ struct Window {
     id: u32,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 enum WindowOrEmpty {
-    #[default]
-    Empty,
+    Empty(EmptyInfo),
     Window(Window),
+}
+
+// This is just dummy implementation, because we just need it for Monitor
+// init
+impl Default for WindowOrEmpty {
+    fn default() -> Self {
+        let empty_info = EmptyInfo {
+            info: String::new(),
+        };
+
+        Self::Empty(empty_info)
+    }
 }
 
 #[derive(Debug, Default)]
@@ -72,7 +85,6 @@ struct Monitor {
     desktops_number: u32,
     fullscreen_state: FullscreenState,
     window: Arc<Mutex<WindowOrEmpty>>,
-    // window: Mutex<Window>,
 }
 
 impl Monitor {
@@ -93,7 +105,7 @@ impl Monitor {
         self.fullscreen_state.update_fullscreen_state(flag);
     }
 
-    fn update_window_internal(
+    fn update_window(
         &mut self,
         win_id: u32,
         icon_name: &str,
@@ -293,7 +305,7 @@ where
             self.wm_connection.get_desktops_number(&self.monitor.name);
     }
 
-    fn update_window(&mut self, window_id: Option<u32>) {
+    fn update_window_or_empty(&mut self, window_id: Option<u32>) {
         match window_id {
             Some(win_id) => {
                 let window_info_types =
@@ -308,17 +320,18 @@ where
                     .get_icon_name(win_id)
                     .unwrap_or(String::new());
 
-                self.monitor.update_window_internal(
-                    win_id,
-                    &icon_name,
-                    &window_info,
-                );
+                self.monitor.update_window(win_id, &icon_name, &window_info);
             }
 
             None => {
                 let mut win = self.monitor.window.lock().unwrap();
+                let empty_info = self
+                    .config
+                    .print_info_settings()
+                    .get_empty_desk_info()
+                    .to_string();
 
-                *win = WindowOrEmpty::Empty;
+                *win = WindowOrEmpty::Empty(EmptyInfo { info: empty_info });
             }
         }
     }
@@ -362,7 +375,7 @@ where
                     window.icon.get_curr_name().to_string()
                 }
 
-                WindowOrEmpty::Empty => {
+                WindowOrEmpty::Empty(_) => {
                     return;
                 }
             };
@@ -391,7 +404,7 @@ where
     fn print_info(&mut self, window_id: Option<u32>) {
         let win = self.monitor.window.lock().unwrap();
         let old_info = match *win {
-            WindowOrEmpty::Empty => "Empty",
+            WindowOrEmpty::Empty(ref empty_info) => &empty_info.info,
             WindowOrEmpty::Window(ref window) => &window.info.info,
         };
 
@@ -414,7 +427,7 @@ where
                 Err(_) => return,
             }
         } else {
-            "Empty"
+            self.config.print_info_settings().get_empty_desk_info()
         };
 
         if old_info != new_info {
@@ -461,7 +474,7 @@ where
 
                 let win = match *win_lock {
                     WindowOrEmpty::Window(ref mut x) => x,
-                    WindowOrEmpty::Empty => continue,
+                    WindowOrEmpty::Empty(_) => continue,
                 };
 
                 let window_id = win.id;
@@ -525,7 +538,7 @@ where
         }
 
         self.print_info(Some(window_id));
-        self.update_window(Some(window_id));
+        self.update_window_or_empty(Some(window_id));
 
         if self.wm_connection.is_window_fullscreen(window_id) {
             self.monitor.update_fullscreen_status(true);
@@ -546,7 +559,7 @@ where
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
         self.print_info(None);
-        self.update_window(None);
+        self.update_window_or_empty(None);
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {

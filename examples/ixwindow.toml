@@ -23,14 +23,21 @@ gap = "         "
 # Type of the info of the window, that will be printed on the bar. If more
 # than one is specified, then program will print the first not null of them
 # (in the given order)
+# Default: ["WM_INSTANCE"]
 types = ["_NET_WM_NAME", "WM_INSTANCE"]
 
 # When this setting is not present, the whole info will be printed
+# Default: None
 max_len = 30
 
 # Specify, for which window's info you want first letter to be capital. If you
 # don't want for any - set list empty.
+# Default: []
 capitalize_first = ["WM_INSTANCE"]
+
+# What gets printed, when empty desktop is focused
+# Default: "Empty"
+label_empty = "Empty"
 
 # Custom substitude rules
 [bspwm.print_info.substitude_rules.WM_INSTANCE]
