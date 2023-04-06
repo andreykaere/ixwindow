@@ -19,12 +19,18 @@ gap = "         "
 
 # This section configures the way information about the window gets printed.
 [bspwm.print_info]
+
 # Type of the info of the window, that will be printed on the bar. If more
 # than one is specified, then program will print the first not null of them
 # (in the given order)
 types = ["_NET_WM_NAME", "WM_INSTANCE"]
+
 # When this setting is not present, the whole info will be printed
 max_len = 30
+
+# Specify, for which window's info you want first letter to be capital. If you
+# don't want for any - set list empty.
+capitalize_first = ["WM_INSTANCE"]
 
 
 [i3]

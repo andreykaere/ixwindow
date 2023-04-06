@@ -68,6 +68,9 @@ pub struct PrintInfoSettings {
 
     #[serde(default)]
     pub max_len: Option<usize>,
+
+    #[serde(default)]
+    pub capitalize_first: Vec<WindowInfoType>,
 }
 
 impl PrintInfoSettings {
@@ -77,19 +80,13 @@ impl PrintInfoSettings {
         formatter: Option<WindowInfoType>,
     ) -> String {
         let formatted_info = match formatter {
-            Some(format) => match format {
-                WindowInfoType::WmInstance | WindowInfoType::WmClass => {
-                    let info = match info {
-                        "Brave-browser" => "Brave",
-                        "TelegramDesktop" => "Telegram",
-                        x => x,
-                    };
-
+            Some(format) => {
+                if self.capitalize_first.contains(&format) {
                     utils::capitalize_first(&info)
+                } else {
+                    info.to_string()
                 }
-
-                _ => info.to_string(),
-            },
+            }
 
             None => info.to_string(),
         };

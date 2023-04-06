@@ -8,7 +8,6 @@ use i3ipc::I3Connection;
 use std::str;
 
 use crate::bspwm::BspwmConnection;
-use crate::config::WindowInfoType;
 use crate::{i3_utils, x11_utils};
 
 pub trait WMConnection {
