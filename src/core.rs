@@ -16,7 +16,9 @@ use x11rb::protocol::Event::PropertyNotify;
 use x11rb::rust_connection::RustConnection;
 
 use crate::bspwm::BspwmConnection;
-use crate::config::{self, BspwmConfig, Config, I3Config, WindowInfoType};
+use crate::config::{
+    self, BspwmConfig, Config, I3Config, WindowInfo, WindowInfoType,
+};
 use crate::i3_utils;
 use crate::wm_connection::WMConnection;
 use crate::x11_utils;
@@ -58,7 +60,7 @@ impl FullscreenState {
 #[derive(Debug, Default)]
 struct Window {
     icon: IconState,
-    info: String,
+    info: WindowInfo,
     id: u32,
 }
 
@@ -96,22 +98,22 @@ impl Monitor {
         self.fullscreen_state.update_fullscreen_state(flag);
     }
 
-    fn update_window(
+    fn update_window_internal(
         &mut self,
         win_id: u32,
         icon_name: &str,
-        window_info: &str,
+        window_info: &WindowInfo,
     ) {
         let mut win = self.window.lock().unwrap();
 
         if let WindowOrEmpty::Window(ref mut window) = *win {
-            window.info = window_info.to_string();
+            window.info = window_info.to_owned();
             window.id = win_id;
             window.icon.update_name(icon_name);
         } else {
             let mut window = Window {
                 icon: IconState::default(),
-                info: window_info.to_string(),
+                info: window_info.to_owned(),
                 id: win_id,
             };
             window.icon.update_name(icon_name);
@@ -299,19 +301,23 @@ where
     fn update_window(&mut self, window_id: Option<u32>) {
         match window_id {
             Some(win_id) => {
-                let window_info_type =
-                    self.config.window_info_settings().info_types;
+                let window_info_types =
+                    &self.config.print_info_settings().info_types;
 
                 let window_info =
-                    x11_utils::get_window_info(win_id, &window_info_type)
-                        .unwrap_or(String::new());
+                    x11_utils::get_window_info(win_id, window_info_types)
+                        .unwrap();
 
                 let icon_name = self
                     .wm_connection
                     .get_icon_name(win_id)
                     .unwrap_or(String::new());
 
-                self.monitor.update_window(win_id, &icon_name, &window_info);
+                self.monitor.update_window_internal(
+                    win_id,
+                    &icon_name,
+                    &window_info,
+                );
             }
 
             None => {
@@ -389,17 +395,23 @@ where
 
     fn print_info(&mut self, window_id: Option<u32>) {
         let win = self.monitor.window.lock().unwrap();
-        let info = match *win {
+        let old_info = match *win {
             WindowOrEmpty::Empty => "Empty",
-            WindowOrEmpty::Window(ref window) => &window.info,
+            WindowOrEmpty::Window(ref window) => &window.info.info,
         };
 
-        let window_info = if let Some(win_id) = window_id {
+        let mut new_window_info = None;
+
+        let new_info = if let Some(win_id) = window_id {
             match x11_utils::get_window_info(
                 win_id,
-                &self.config.window_info_settings().info_types,
+                &self.config.print_info_settings().info_types,
             ) {
-                Ok(x) => x,
+                Ok(x) => {
+                    new_window_info = Some(x);
+
+                    &new_window_info.as_ref().unwrap().info
+                }
 
                 // If this is error, then it is because window was removed
                 // while program was waiting. So we just have to continue
@@ -407,15 +419,32 @@ where
                 Err(_) => return,
             }
         } else {
-            "Empty".to_string()
+            "Empty"
         };
 
-        if info != window_info {
-            println!(
-                "{}{}",
-                self.config.gap(),
-                self.config.window_info_settings().format_info(&window_info)
-            );
+        if old_info != new_info {
+            match window_id {
+                Some(_) => {
+                    println!(
+                        "{}{}",
+                        self.config.gap(),
+                        self.config.print_info_settings().format_info(
+                            &new_info,
+                            Some(new_window_info.as_ref().unwrap().info_type)
+                        )
+                    );
+                }
+
+                None => {
+                    println!(
+                        "{}{}",
+                        self.config.gap(),
+                        self.config
+                            .print_info_settings()
+                            .format_info(&new_info, None)
+                    );
+                }
+            }
         }
     }
 
@@ -427,7 +456,7 @@ where
     fn watch_and_print_info(&mut self) {
         let window = Arc::clone(&self.monitor.window);
         let gap = self.config.gap().to_string();
-        let window_info_settings = self.config.window_info_settings();
+        let print_info_settings = self.config.print_info_settings().clone();
 
         thread::spawn(move || loop {
             // This block is needed for unlocking the lock at the end of each
@@ -442,27 +471,30 @@ where
 
                 let window_id = win.id;
 
-                let window_info = match x11_utils::get_window_info(
+                match x11_utils::get_window_info(
                     window_id,
-                    &window_info_settings.info_types,
+                    &print_info_settings.info_types,
                 ) {
-                    Ok(x) => x,
+                    Ok(new_window_info) => {
+                        if win.info.info != new_window_info.info {
+                            println!(
+                                "{}{}",
+                                gap,
+                                print_info_settings.format_info(
+                                    &new_window_info.info,
+                                    Some(new_window_info.info_type)
+                                )
+                            );
+
+                            win.info = new_window_info;
+                        }
+                    }
 
                     // If this is error, then it is because window was removed
                     // while program was waiting. So we just have to continue
                     // and recognize new focused window on new iteration
                     Err(_) => continue,
                 };
-
-                if win.info != window_info {
-                    println!(
-                        "{}{}",
-                        gap,
-                        window_info_settings.format_info(&window_info)
-                    );
-
-                    win.info = window_info
-                }
             }
 
             thread::sleep(Duration::from_millis(100));

@@ -350,7 +350,7 @@ pub fn get_window_info(
             if !bytes.is_empty() {
                 return Ok(WindowInfo {
                     info: String::from_utf8_lossy(&bytes).to_string(),
-                    info_type,
+                    info_type: info_type.to_owned(),
                 });
             }
         }
@@ -358,7 +358,7 @@ pub fn get_window_info(
 
     Ok(WindowInfo {
         info: String::new(),
-        info_type: info_types.last().unwrap(),
+        info_type: info_types.last().unwrap().to_owned(),
     })
 }
 

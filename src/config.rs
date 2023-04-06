@@ -8,6 +8,18 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+mod utils {
+    // Capitalizes first letter of the string, i.e. converts foo to Foo
+    pub fn capitalize_first(s: &str) -> String {
+        let mut c = s.chars();
+
+        match c.next() {
+            None => String::new(),
+            Some(f) => f.to_uppercase().chain(c).collect(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct EssentialConfig {
     gap: String,
@@ -25,7 +37,7 @@ pub struct CommonConfig {
 
     #[serde(rename = "print_info")]
     #[serde(default)]
-    pub window_info_settings: Option<WindowInfoSettings>,
+    pub print_info_settings: PrintInfoSettings,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
@@ -36,18 +48,21 @@ pub enum WindowInfoType {
 
     WmClass,
     WmName,
+
+    #[serde(rename = "_NET_WM_NAME")]
     NetWmName,
+
     NetWmVisibleName,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct WindowInfo {
     pub info: String,
     pub info_type: WindowInfoType,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
-pub struct WindowInfoSettings {
+pub struct PrintInfoSettings {
     #[serde(rename = "types")]
     pub info_types: Vec<WindowInfoType>,
 
@@ -55,44 +70,39 @@ pub struct WindowInfoSettings {
     pub max_len: Option<usize>,
 }
 
-impl WindowInfoSettings {
-    pub fn format_info(&self, window_info: &WindowInfo) -> String {
-        // Capitalizes first letter of the string, i.e. converts foo to Foo
-        let capitalize_first = |s: &str| {
-            let mut c = s.chars();
+impl PrintInfoSettings {
+    pub fn format_info(
+        &self,
+        info: &str,
+        formatter: Option<WindowInfoType>,
+    ) -> String {
+        let formatted_info = match formatter {
+            Some(format) => match format {
+                WindowInfoType::WmInstance | WindowInfoType::WmClass => {
+                    let info = match info {
+                        "Brave-browser" => "Brave",
+                        "TelegramDesktop" => "Telegram",
+                        x => x,
+                    };
 
-            match c.next() {
-                None => String::new(),
-                Some(f) => f.to_uppercase().chain(c).collect(),
-            }
-        };
+                    utils::capitalize_first(&info)
+                }
 
-        let formatted_info = if let WindowInfoType::WmInstance
-        | WindowInfoType::WmClass =
-            window_info.info_type
-        {
-            let info = match window_info.info.as_str() {
-                "Brave-browser" => "Brave",
-                "TelegramDesktop" => "Telegram",
-                x => x,
-            };
+                _ => info.to_string(),
+            },
 
-            capitalize_first(&info)
-        } else {
-            window_info.info.to_string()
+            None => info.to_string(),
         };
 
         // If max_len is not specified, then we don't bound the length of the
         // output info
         let cut_len = if let Some(max_len) = self.max_len {
-            min(max_len, corrected_info.len())
+            min(max_len, formatted_info.len())
         } else {
             formatted_info.len()
         };
 
         formatted_info.chars().take(cut_len).collect()
-
-        // (&corrected_info[..cut_len]).to_string()
     }
 }
 
@@ -137,8 +147,8 @@ pub trait Config {
         self.common_config().essential_config.size
     }
 
-    fn window_info_settings(&self) -> WindowInfoSettings {
-        self.common_config().window_info_settings
+    fn print_info_settings(&self) -> &PrintInfoSettings {
+        &self.common_config().print_info_settings
     }
 }
 
