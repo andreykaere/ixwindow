@@ -35,9 +35,15 @@ max_len = 30
 # Default: []
 capitalize_first = ["WM_INSTANCE"]
 
+# Default: #ffffff
+label_foreground = "#ffffff"
+
 # What gets printed, when empty desktop is focused
 # Default: "Empty"
 label_empty = "Empty"
+
+# Default: #ffffff
+label_empty_foreground = "#707880"
 
 # Custom substitude rules
 [bspwm.print_info.substitude_rules.WM_INSTANCE]
@@ -46,6 +52,7 @@ label_empty = "Empty"
 
 [bspwm.print_info.substitude_rules._NET_WM_NAME]
 "nsxiv" = "Nsxiv"
+
 
 [i3]
 # Folder for cached icons

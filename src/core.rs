@@ -55,14 +55,14 @@ impl FullscreenState {
 }
 
 #[derive(Debug, Default)]
-struct Window {
-    icon: IconState,
-    info: WindowInfo,
-    id: u32,
+pub struct Window {
+    pub icon: IconState,
+    pub info: WindowInfo,
+    pub id: u32,
 }
 
 #[derive(Debug)]
-enum WindowOrEmpty {
+pub enum WindowOrEmpty {
     Empty(EmptyInfo),
     Window(Window),
 }

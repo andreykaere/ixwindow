@@ -9,6 +9,8 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+use crate::core::WindowOrEmpty;
+
 mod utils {
     // Capitalizes first letter of the string, i.e. converts foo to Foo
     pub fn capitalize_first(string: &str) -> String {
@@ -86,14 +88,18 @@ pub struct PrintInfoSettings {
     #[serde(default)]
     #[serde(rename = "label_empty")]
     pub empty_info: Option<String>,
+
+    #[serde(default)]
+    #[serde(rename = "label_empty_foreground")]
+    pub empty_info_color: Option<String>,
+
+    #[serde(default)]
+    #[serde(rename = "label_foreground")]
+    pub window_info_color: Option<String>,
 }
 
 impl PrintInfoSettings {
-    pub fn format_info(
-        &self,
-        info: &str,
-        formatter: Option<WindowInfoType>,
-    ) -> String {
+    pub fn format_info(&self, info: WindowOrEmpty) -> String {
         let mut formatted_info = info.to_string();
 
         if let Some(info_type) = formatter {
