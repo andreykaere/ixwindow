@@ -26,6 +26,12 @@ exit 1
 
 
 init_config_file () {
+    if [ -z "$XDG_CONFIG_HOME" ]; then
+        mkdir --parents "$HOME/.config/ixwindow"
+        cp "examples/ixwindow.toml" "$HOME/.config/ixwindow/ixwindow.toml"
+        return
+    fi
+
     mkdir --parents "$XDG_CONFIG_HOME/ixwindow"
     cp "examples/ixwindow.toml" "$XDG_CONFIG_HOME/ixwindow/ixwindow.toml"
 }
