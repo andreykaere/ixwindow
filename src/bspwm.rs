@@ -28,8 +28,6 @@ pub fn exec(monitor_name: Option<&str>, config_option: Option<&str>) {
         .expect("Couldn't subscribe to events");
 
     for raw_event in subscriber {
-        // println!("{raw_event:#?}");
-
         match raw_event {
             Ok(event) => {
                 core.handle_event(event);
@@ -58,9 +56,6 @@ impl Core<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeRemove(node_info) => {
-                // NodeFlag event can in particular mean, that node can become
-                // hidden and we need to check if that was the only visible
-                // node on that desktop
                 if self.is_desk_empty(node_info.desktop_id) {
                     self.process_empty_desktop();
                 }
