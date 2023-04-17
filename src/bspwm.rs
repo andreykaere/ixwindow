@@ -56,9 +56,7 @@ impl Core<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeRemove(node_info) => {
-                if self.is_desk_empty(node_info.desktop_id) {
-                    self.process_empty_desktop();
-                }
+                self.process_remove_window();
             }
 
             NodeEvent::NodeFlag(node_info) => {

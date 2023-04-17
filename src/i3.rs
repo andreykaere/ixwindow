@@ -72,13 +72,7 @@ impl Core<I3Connection, I3Config> {
             }
 
             WindowChange::Close => {
-                let window_id = self.get_focused_window_id();
-
-                if let Some(id) = window_id {
-                    self.process_focused_window(id);
-                } else {
-                    self.process_empty_desktop();
-                }
+                self.process_remove_window();
             }
 
             WindowChange::FullscreenMode => {

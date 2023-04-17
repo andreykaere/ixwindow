@@ -419,6 +419,18 @@ where
         self.destroy_prev_icon();
     }
 
+    pub fn process_remove_window(&mut self) {
+        let window_id = self.get_focused_window_id();
+
+        if let Some(id) = window_id {
+            if self.is_icon_visible() {
+                self.update_icon(id);
+            }
+        } else {
+            self.process_empty_desktop();
+        }
+    }
+
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
         self.print_info(None);
