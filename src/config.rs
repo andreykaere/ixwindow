@@ -195,6 +195,14 @@ pub trait Config {
     fn print_info_settings(&self) -> &PrintInfoSettings {
         &self.common_config().print_info_settings
     }
+
+    fn print_info_util(&self, info: &str, formatter: Option<WindowInfoType>) {
+        println!(
+            "{}{}",
+            self.gap(),
+            self.print_info_settings().format_info(info, formatter)
+        );
+    }
 }
 
 impl Config for I3Config {
@@ -293,7 +301,10 @@ mod tests {
         let config = load_i3(Some(CONFIG_PATH));
 
         assert_eq!(config.size(), 24);
-        assert_eq!(config.window_info().info_types, WindowInfoType::WmInstance);
+        assert_eq!(
+            config.print_info_settings().info_types,
+            [WindowInfoType::NetWmName, WindowInfoType::WmInstance]
+        );
         assert_eq!(
             config.cache_dir(),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"

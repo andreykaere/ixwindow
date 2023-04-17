@@ -1,15 +1,11 @@
+use bspc_rs::properties::State;
 use i3ipc::I3Connection;
 
-use std::error::Error;
-use std::fs;
-use std::path::Path;
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use x11rb::connection::Connection;
-use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::rust_connection::RustConnection;
 
 use crate::bspwm::BspwmConnection;
@@ -20,26 +16,9 @@ use crate::i3_utils;
 use crate::wm_connection::WMConnection;
 use crate::x11_utils;
 
-#[derive(Debug, Default)]
-struct IconState {
-    curr_name: Option<String>,
-    prev_name: Option<String>,
-    prev_id: Option<u32>,
-    curr_x: i16,
-}
+mod icon;
 
-impl IconState {
-    fn update_name(&mut self, icon_name: &str) {
-        self.prev_name = self.curr_name.take();
-        self.curr_name = Some(icon_name.to_string());
-    }
-
-    fn get_curr_name(&self) -> &str {
-        self.curr_name
-            .as_ref()
-            .expect("No icon name, it is set to Empty")
-    }
-}
+use icon::IconState;
 
 #[derive(Debug, Default)]
 struct FullscreenState {
@@ -62,20 +41,20 @@ struct Window {
 }
 
 #[derive(Debug)]
-enum WindowOrEmpty {
-    Empty(EmptyInfo),
+enum CurrentFocus {
+    EmptyDesk(EmptyInfo),
     Window(Window),
 }
 
 // This is just dummy implementation, because we just need it for Monitor
 // init
-impl Default for WindowOrEmpty {
+impl Default for CurrentFocus {
     fn default() -> Self {
         let empty_info = EmptyInfo {
             info: String::new(),
         };
 
-        Self::Empty(empty_info)
+        Self::EmptyDesk(empty_info)
     }
 }
 
@@ -84,7 +63,7 @@ struct Monitor {
     name: String,
     desktops_number: u32,
     fullscreen_state: FullscreenState,
-    window: Arc<Mutex<WindowOrEmpty>>,
+    current_focus: Arc<Mutex<CurrentFocus>>,
 }
 
 impl Monitor {
@@ -111,9 +90,9 @@ impl Monitor {
         icon_name: &str,
         window_info: &WindowInfo,
     ) {
-        let mut win = self.window.lock().unwrap();
+        let mut current_focus = self.current_focus.lock().unwrap();
 
-        if let WindowOrEmpty::Window(ref mut window) = *win {
+        if let CurrentFocus::Window(ref mut window) = *current_focus {
             window.info = window_info.to_owned();
             window.id = win_id;
             window.icon.update_name(icon_name);
@@ -123,18 +102,12 @@ impl Monitor {
                 info: window_info.to_owned(),
                 id: win_id,
             };
+
             window.icon.update_name(icon_name);
 
-            *win = WindowOrEmpty::Window(window);
+            *current_focus = CurrentFocus::Window(window);
         }
     }
-
-    // fn update_window_info(&mut self, window_info: &str) {
-    //     if let Some(win) = self.window.as_ref() {
-    //         let mut window = win.lock().unwrap();
-    //         window.info = window_info.to_string();
-    //     }
-    // }
 }
 
 pub struct Core<W, C>
@@ -144,7 +117,7 @@ where
 {
     config: C,
     pub wm_connection: W,
-    x11rb_connection: RustConnection,
+    x11rb_connection: Arc<RustConnection>,
     monitor: Monitor,
 }
 
@@ -157,7 +130,7 @@ where
         monitor_name: Option<&str>,
         config_option: Option<&str>,
     ) -> Core<W, C>;
-    fn update_x(&mut self);
+    fn update_icon_coords(&mut self);
 }
 
 impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
@@ -172,14 +145,14 @@ impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
             config,
             wm_connection,
             monitor,
-            x11rb_connection,
+            x11rb_connection: Arc::new(x11rb_connection),
         }
     }
 
-    fn update_x(&mut self) {
-        let mut win = self.monitor.window.lock().unwrap();
+    fn update_icon_coords(&mut self) {
+        let mut current_focus = self.monitor.current_focus.lock().unwrap();
 
-        if let WindowOrEmpty::Window(ref mut window) = *win {
+        if let CurrentFocus::Window(ref mut window) = *current_focus {
             let config = &self.config;
             let desks_num = i3_utils::get_desktops_number(
                 &mut self.wm_connection,
@@ -189,6 +162,18 @@ impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
             window.icon.curr_x = ((config.x() as f32)
                 + config.gap_per_desk * (desks_num as f32))
                 as i16;
+        }
+    }
+}
+
+impl Core<BspwmConnection, BspwmConfig> {
+    pub fn process_state_change(&mut self, window_id: u32, state: State) {
+        // Replace later with normal equality, when State will implement
+        // PartialEq
+        if let State::Fullscreen = state {
+            self.process_fullscreen_window();
+        } else {
+            self.update_icon(window_id);
         }
     }
 }
@@ -206,14 +191,14 @@ impl CoreFeatures<BspwmConnection, BspwmConfig>
             config,
             wm_connection,
             monitor,
-            x11rb_connection,
+            x11rb_connection: Arc::new(x11rb_connection),
         }
     }
 
-    fn update_x(&mut self) {
-        let mut win = self.monitor.window.lock().unwrap();
+    fn update_icon_coords(&mut self) {
+        let mut current_focus = self.monitor.current_focus.lock().unwrap();
 
-        if let WindowOrEmpty::Window(ref mut window) = *win {
+        if let CurrentFocus::Window(ref mut window) = *current_focus {
             window.icon.curr_x = self.config.x();
         }
     }
@@ -226,63 +211,15 @@ where
     Core<W, C>: CoreFeatures<W, C>,
 {
     pub fn process_start(&mut self) {
-        // Run process for watching for window's info change and printing info
-        // to the bar.
-        self.watch_and_print_info();
-
         if let Some(window_id) = self.get_focused_window_id() {
             self.process_focused_window(window_id);
         } else {
             self.process_empty_desktop();
         }
-    }
 
-    fn generate_icon(&self, window_id: u32) -> Result<(), Box<dyn Error>> {
-        let config = &self.config;
-        let win = self.monitor.window.lock().unwrap();
-
-        if let WindowOrEmpty::Window(ref window) = *win {
-            if !Path::new(config.cache_dir()).is_dir() {
-                fs::create_dir(config.cache_dir()).expect(
-                    "No cache folder was detected and couldn't create it",
-                );
-            }
-
-            x11_utils::generate_icon(
-                window.icon.get_curr_name(),
-                config.cache_dir(),
-                config.color(),
-                window_id,
-            )
-        } else {
-            panic!("Don't generate icon for empty desktop");
-        }
-    }
-
-    fn display_icon(&mut self, icon_path: &str) {
-        let config = &self.config;
-        let mut win = self.monitor.window.lock().unwrap();
-
-        if let WindowOrEmpty::Window(ref mut window) = *win {
-            let (curr_x, y, size, monitor_name) = (
-                window.icon.curr_x,
-                config.y(),
-                config.size(),
-                &self.monitor.name,
-            );
-
-            let icon_id = x11_utils::display_icon(
-                &self.x11rb_connection,
-                icon_path,
-                curr_x,
-                y,
-                size,
-                monitor_name,
-            )
-            .ok();
-
-            window.icon.prev_id = icon_id;
-        }
+        // Run process for watching for window's info change and
+        // printing info to the bar
+        self.watch_and_print_info();
     }
 
     fn curr_desk_contains_fullscreen(&mut self) -> bool {
@@ -305,15 +242,22 @@ where
             self.wm_connection.get_desktops_number(&self.monitor.name);
     }
 
-    fn update_window_or_empty(&mut self, window_id: Option<u32>) {
+    fn update_current_focus(&mut self, window_id: Option<u32>) {
         match window_id {
             Some(win_id) => {
                 let window_info_types =
                     &self.config.print_info_settings().info_types;
 
                 let window_info =
-                    x11_utils::get_window_info(win_id, window_info_types)
-                        .unwrap();
+                    match x11_utils::get_window_info(win_id, window_info_types)
+                    {
+                        Ok(x) => x,
+
+                        // If this is error, then it is because window was removed
+                        // while program was waiting. So we just have to continue
+                        // and recognize new focused window on new iteration
+                        Err(_) => return,
+                    };
 
                 let icon_name = self
                     .wm_connection
@@ -324,88 +268,32 @@ where
             }
 
             None => {
-                let mut win = self.monitor.window.lock().unwrap();
+                let mut current_focus =
+                    self.monitor.current_focus.lock().unwrap();
                 let empty_info = self
                     .config
                     .print_info_settings()
                     .get_empty_desk_info()
                     .to_string();
 
-                *win = WindowOrEmpty::Empty(EmptyInfo { info: empty_info });
+                *current_focus =
+                    CurrentFocus::EmptyDesk(EmptyInfo { info: empty_info });
             }
         }
-    }
-
-    fn show_icon(&mut self) -> bool {
-        !self.curr_desk_contains_fullscreen()
-    }
-
-    fn need_update_icon(&mut self) -> bool {
-        if self.monitor.fullscreen_state.prev_window == Some(true)
-            && self.monitor.fullscreen_state.curr_window == Some(false)
-        {
-            return true;
-        }
-
-        let old_desk_count = self.monitor.desktops_number;
-        self.update_desktops_number();
-
-        if old_desk_count != self.monitor.desktops_number {
-            return true;
-        }
-
-        let win = self.monitor.window.lock().unwrap();
-
-        if let WindowOrEmpty::Window(ref window) = *win {
-            window.icon.prev_name != window.icon.curr_name
-        } else {
-            false
-        }
-    }
-
-    fn update_icon(&mut self, window_id: u32) {
-        let config = &self.config;
-        let icon_name;
-
-        {
-            let win = self.monitor.window.lock().unwrap();
-
-            icon_name = match *win {
-                WindowOrEmpty::Window(ref window) => {
-                    window.icon.get_curr_name().to_string()
-                }
-
-                WindowOrEmpty::Empty(_) => {
-                    return;
-                }
-            };
-        }
-
-        let icon_path = format!("{}/{}.jpg", &config.cache_dir(), &icon_name);
-
-        // Destroy icon first, before trying to extract it. Fixes the icon
-        // still showing, when switching from window that has icon to the
-        // widow that doens't.
-        self.destroy_prev_icon();
-
-        if !Path::new(&icon_path).exists() {
-            // Repeatedly try to retrieve icon and save it
-            let mut timeout_icon = 1000;
-            while self.generate_icon(window_id).is_err() && timeout_icon > 0 {
-                thread::sleep(Duration::from_millis(100));
-                timeout_icon -= 100;
-            }
-        }
-
-        self.update_x();
-        self.display_icon(&icon_path);
     }
 
     fn print_info(&mut self, window_id: Option<u32>) {
-        let win = self.monitor.window.lock().unwrap();
-        let old_info = match *win {
-            WindowOrEmpty::Empty(ref empty_info) => &empty_info.info,
-            WindowOrEmpty::Window(ref window) => &window.info.info,
+        let old_info = {
+            let current_focus = self.monitor.current_focus.lock().unwrap();
+
+            match *current_focus {
+                CurrentFocus::EmptyDesk(ref empty_info) => {
+                    empty_info.info.to_string()
+                }
+                CurrentFocus::Window(ref window) => {
+                    window.info.info.to_string()
+                }
+            }
         };
 
         let mut new_window_info = None;
@@ -433,24 +321,19 @@ where
         if old_info != new_info {
             match window_id {
                 Some(_) => {
-                    println!(
-                        "{}{}",
-                        self.config.gap(),
-                        self.config.print_info_settings().format_info(
-                            &new_info,
-                            Some(new_window_info.as_ref().unwrap().info_type)
-                        )
-                    );
+                    let formatter =
+                        Some(new_window_info.as_ref().unwrap().info_type);
+
+                    self.config.print_info_util(new_info, formatter);
+
+                    // TODO
+                    // Run process for watching for window's info change and
+                    // printing info to the bar
+                    // self.watch_and_print_info();
                 }
 
                 None => {
-                    println!(
-                        "{}{}",
-                        self.config.gap(),
-                        self.config
-                            .print_info_settings()
-                            .format_info(&new_info, None)
-                    );
+                    self.config.print_info_util(new_info, None);
                 }
             }
         }
@@ -462,29 +345,30 @@ where
     // If there is no window focused, then it is repeatedly waiting for new
     // window, doing nothing.
     fn watch_and_print_info(&mut self) {
-        let window = Arc::clone(&self.monitor.window);
+        let current_focus = Arc::clone(&self.monitor.current_focus);
         let gap = self.config.gap().to_string();
         let print_info_settings = self.config.print_info_settings().clone();
 
         thread::spawn(move || loop {
+            // println!("watch");
             // This block is needed for unlocking the lock at the end of each
             // iteration
             {
-                let mut win_lock = window.lock().unwrap();
+                let mut current_focus_lock = current_focus.lock().unwrap();
 
-                let win = match *win_lock {
-                    WindowOrEmpty::Window(ref mut x) => x,
-                    WindowOrEmpty::Empty(_) => continue,
+                let window = match *current_focus_lock {
+                    CurrentFocus::Window(ref mut x) => x,
+                    CurrentFocus::EmptyDesk(_) => continue,
                 };
 
-                let window_id = win.id;
+                let window_id = window.id;
 
                 match x11_utils::get_window_info(
                     window_id,
                     &print_info_settings.info_types,
                 ) {
                     Ok(new_window_info) => {
-                        if win.info.info != new_window_info.info {
+                        if window.info.info != new_window_info.info {
                             println!(
                                 "{}{}",
                                 gap,
@@ -494,7 +378,7 @@ where
                                 )
                             );
 
-                            win.info = new_window_info;
+                            window.info = new_window_info;
                         }
                     }
 
@@ -509,57 +393,32 @@ where
         });
     }
 
-    fn destroy_prev_icon(&mut self) {
-        let conn = &self.x11rb_connection;
-        let mut win = self.monitor.window.lock().unwrap();
-
-        if let WindowOrEmpty::Window(ref mut window) = *win {
-            if let Some(id) = window.icon.prev_id {
-                conn.destroy_window(id)
-                    .expect("Failed to destroy previous icon");
-                conn.flush().unwrap();
-
-                window.icon.prev_id = None;
-            }
-        }
-    }
-
     pub fn process_focused_window(&mut self, window_id: u32) {
-        let mut timeout_name = 1000;
-        while timeout_name > 0 {
-            if let Some(name) = self.wm_connection.get_icon_name(window_id) {
-                if !name.is_empty() {
-                    break;
-                }
-            }
-
-            thread::sleep(Duration::from_millis(100));
-            timeout_name -= 100;
-        }
-
         self.print_info(Some(window_id));
-        self.update_window_or_empty(Some(window_id));
+        self.update_current_focus(Some(window_id));
 
         if self.wm_connection.is_window_fullscreen(window_id) {
-            self.monitor.update_fullscreen_status(true);
             self.process_fullscreen_window();
-        } else {
-            self.monitor.update_fullscreen_status(false);
+            return;
+        }
 
-            if self.show_icon() && self.need_update_icon() {
-                self.update_icon(window_id);
-            }
+        self.generate_icon_name(window_id);
+        self.monitor.update_fullscreen_status(false);
+
+        if self.is_icon_visible() && self.need_update_icon() {
+            self.update_icon(window_id);
         }
     }
 
     pub fn process_fullscreen_window(&mut self) {
+        self.monitor.update_fullscreen_status(true);
         self.destroy_prev_icon();
     }
 
     pub fn process_empty_desktop(&mut self) {
         self.destroy_prev_icon();
         self.print_info(None);
-        self.update_window_or_empty(None);
+        self.update_current_focus(None);
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {

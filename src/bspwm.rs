@@ -57,12 +57,11 @@ impl Core<BspwmConnection, BspwmConfig> {
                 self.process_focused_window(node_info.node_id);
             }
 
-            NodeEvent::NodeRemove(_) => {
-                let window_id = self.get_focused_window_id();
-
-                if let Some(id) = window_id {
-                    self.process_focused_window(id);
-                } else {
+            NodeEvent::NodeRemove(node_info) => {
+                // NodeFlag event can in particular mean, that node can become
+                // hidden and we need to check if that was the only visible
+                // node on that desktop
+                if self.is_desk_empty(node_info.desktop_id) {
                     self.process_empty_desktop();
                 }
             }
@@ -77,8 +76,9 @@ impl Core<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeState(node_info) => {
-                self.process_focused_window(node_info.node_id);
+                self.process_state_change(node_info.node_id, node_info.state);
             }
+
             _ => {
                 unreachable!();
             }
