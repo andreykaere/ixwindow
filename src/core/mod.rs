@@ -350,15 +350,19 @@ where
         let print_info_settings = self.config.print_info_settings().clone();
 
         thread::spawn(move || loop {
-            // println!("watch");
-            // This block is needed for unlocking the lock at the end of each
-            // iteration
             {
                 let mut current_focus_lock = current_focus.lock().unwrap();
 
                 let window = match *current_focus_lock {
                     CurrentFocus::Window(ref mut x) => x,
-                    CurrentFocus::EmptyDesk(_) => continue,
+                    CurrentFocus::EmptyDesk(_) => {
+                        {
+                            drop(current_focus_lock);
+                        }
+
+                        thread::sleep(Duration::from_millis(100));
+                        continue;
+                    }
                 };
 
                 let window_id = window.id;
