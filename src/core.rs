@@ -178,7 +178,7 @@ where
         let config = &self.config;
 
         if !Path::new(config.cache_dir()).is_dir() {
-            fs::create_dir(config.cache_dir())
+            fs::create_dir_all(config.cache_dir())
                 .expect("No cache folder was detected and couldn't create it");
         }
 
