@@ -42,8 +42,10 @@ impl Core<I3Connection, I3Config> {
         match event {
             Event::WindowEvent(e) => self.handle_window_event(e),
             Event::WorkspaceEvent(e) => self.handle_workspace_event(e),
-            _ => {
-                unreachable!();
+            // Prevent panic when switching binding mode or hotplugging outputs
+            Event::ModeEvent(_) | Event::OutputEvent(_) => self.handle_general_event(),
+            e => {
+                unreachable!("{:?}", e);
             }
         }
     }
@@ -117,5 +119,15 @@ impl Core<I3Connection, I3Config> {
 
             _ => {}
         }
+    }
+
+    // In a general case, we want to just update the icon name and location
+    fn handle_general_event(&mut self) {
+        let window = self.get_focused_window_id();
+        let id = match window {
+            Some(x) => x,
+            None => { self.process_empty_desktop(); return }
+        };
+        self.process_focused_window(id);
     }
 }
