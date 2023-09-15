@@ -282,7 +282,7 @@ where
         let state = &self.monitor.state;
 
         if state.curr_icon_name.is_none() {
-            println!("Empty");
+            println!("Desktop");
             return;
         }
 
@@ -306,7 +306,7 @@ where
         io::stdout().flush().unwrap();
 
         match state.curr_icon_name.as_ref().unwrap() {
-            IconName::Empty => println!("Empty"),
+            IconName::Empty => println!("Desktop"),
 
             IconName::Name(icon_name) => match icon_name.as_str() {
                 "Brave-browser" => println!("Brave"),
