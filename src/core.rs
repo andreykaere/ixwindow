@@ -302,10 +302,13 @@ where
 
         // Don't add '\n' at the end, so that it will appear in front of icon
         // name, printed after it
-        print!("{}", match state.curr_icon_name.as_ref().unwrap() {
-            IconName::Empty => "",
-            IconName::Name(_) => self.config.gap(),
-        });
+        print!(
+            "{}",
+            match state.curr_icon_name.as_ref().unwrap() {
+                IconName::Empty => "",
+                IconName::Name(_) => self.config.gap(),
+            }
+        );
         io::stdout().flush().unwrap();
 
         match state.curr_icon_name.as_ref().unwrap() {

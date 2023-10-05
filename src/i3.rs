@@ -43,7 +43,9 @@ impl Core<I3Connection, I3Config> {
             Event::WindowEvent(e) => self.handle_window_event(e),
             Event::WorkspaceEvent(e) => self.handle_workspace_event(e),
             // Prevent panic when switching binding mode or hotplugging outputs
-            Event::ModeEvent(_) | Event::OutputEvent(_) => self.handle_general_event(),
+            Event::ModeEvent(_) | Event::OutputEvent(_) => {
+                self.handle_general_event()
+            }
             e => {
                 unreachable!("{:?}", e);
             }
@@ -126,7 +128,10 @@ impl Core<I3Connection, I3Config> {
         let window = self.get_focused_window_id();
         let id = match window {
             Some(x) => x,
-            None => { self.process_empty_desktop(); return }
+            None => {
+                self.process_empty_desktop();
+                return;
+            }
         };
         self.process_focused_window(id);
     }
