@@ -2,7 +2,7 @@ use bspc::events::{DesktopEvent, Event, NodeEvent, Subscription};
 use bspc_rs as bspc;
 
 use crate::config::BspwmConfig;
-use crate::core::{Core, CoreFeatures as _};
+use crate::core::{WmCore, WmCoreFeatures as _};
 
 pub struct BspwmConnection;
 
@@ -13,7 +13,7 @@ impl BspwmConnection {
 }
 
 pub fn exec(monitor_name: Option<&str>, config_option: Option<&str>) {
-    let mut core = Core::init(monitor_name, config_option);
+    let mut core = WmCore::init(monitor_name, config_option);
     core.process_start();
 
     let subscriptions = [
@@ -42,7 +42,7 @@ pub fn exec(monitor_name: Option<&str>, config_option: Option<&str>) {
     }
 }
 
-impl Core<BspwmConnection, BspwmConfig> {
+impl WmCore<BspwmConnection, BspwmConfig> {
     fn handle_event(&mut self, event: Event) {
         match event {
             Event::NodeEvent(e) => self.handle_node_event(e),

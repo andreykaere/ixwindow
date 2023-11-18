@@ -57,6 +57,12 @@ struct Monitor {
     bar: Bar,
 }
 
+impl Monitor {
+    fn init(monitor_name: Option<&str>) -> Self {
+        todo!();
+    }
+}
+
 
 pub struct WmCore<W, C>
 where
@@ -73,91 +79,97 @@ impl<W, C> WmCore<W, C>
 where
     W: WmConnection,
     C: Config,
-    WmCore<W, C>: CoreFeatures<W, C>,
+    WmCore<W, C>: WmCoreFeatures<W, C>,
 {
     pub fn process_start(&mut self) {
         todo!();
     }
 
-    fn generate_icon(&self, window_id: u32) -> anyhow::Result<()> {
-        todo!();
-    }
+    // fn generate_icon(&self, window_id: u32) -> anyhow::Result<()> {
+    //     todo!();
+    // }
 
-    fn display_icon(&mut self, icon_path: &str) {
-        todo!();
-    }
+    // fn display_icon(&mut self, icon_path: &str) {
+    //     todo!();
+    // }
 
-    fn curr_desk_contains_fullscreen(&mut self) -> bool {
-        todo!();
-    }
+    // fn curr_desk_contains_fullscreen(&mut self) -> bool {
+    //     todo!();
+    // }
 
-    fn update_desktops_number(&mut self) {
-        self.monitor.desktops_number =
-            self.wm_connection.get_desktops_number(&self.monitor.name);
-    }
+    // fn update_desktops_number(&mut self) {
+    //     self.monitor.desktops_number =
+    //         self.wm_connection.get_desktops_number(&self.monitor.name);
+    // }
 
-    fn update_window_or_empty(&mut self, window_id: Option<u32>) {
-        todo!();
-    }
+    // fn update_window_or_empty(&mut self, window_id: Option<u32>) {
+    //     todo!();
+    // }
 
-    fn show_icon(&mut self) -> bool {
-        !self.curr_desk_contains_fullscreen()
-    }
+    // fn show_icon(&mut self) -> bool {
+    //     !self.curr_desk_contains_fullscreen()
+    // }
 
-    fn need_update_icon(&mut self) -> bool {
-        todo!();
-    }
+    // fn need_update_icon(&mut self) -> bool {
+    //     todo!();
+    // }
 
-    fn update_icon(&mut self, window_id: u32) {
-        todo!();
-    }
+    // fn update_icon(&mut self, window_id: u32) {
+    //     todo!();
+    // }
 
-    fn print_info(&mut self, window_id: Option<u32>) {
-        todo!();
-    }
+    // fn print_info(&mut self, window_id: Option<u32>) {
+    //     todo!();
+    // }
 
-    fn watch_and_print_info(&mut self) {
-        todo!();
-    }
+    // fn watch_and_print_info(&mut self) {
+    //     todo!();
+    // }
 
-    fn destroy_prev_icon(&mut self) {
-        todo!();
-    }
+    // fn destroy_prev_icon(&mut self) {
+    //     todo!();
+    // }
 
     pub fn process_focused_window(&mut self, window_id: u32) {
         todo!();
     }
 
     pub fn process_fullscreen_window(&mut self) {
-        self.destroy_prev_icon();
+        todo!();
+        // self.destroy_prev_icon();
     }
 
     pub fn process_empty_desktop(&mut self) {
-        self.destroy_prev_icon();
-        self.print_info(None);
-        self.update_window_or_empty(None);
+        todo!();
+        // self.destroy_prev_icon();
+        // self.print_info(None);
+        // self.update_window_or_empty(None);
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
-        self.wm_connection
-            .get_focused_desktop_id(&self.monitor.name)
+        todo!();
+        // self.wm_connection
+        //     .get_focused_desktop_id(&self.monitor.name)
     }
 
     pub fn get_focused_window_id(&mut self) -> Option<u32> {
-        self.wm_connection.get_focused_window_id(&self.monitor.name)
+        // self.wm_connection.get_focused_window_id(&self.monitor.name)
+        todo!();
     }
 
     pub fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32> {
-        self.wm_connection.get_fullscreen_window_id(desktop_id)
+        // self.wm_connection.get_fullscreen_window_id(desktop_id)
+        todo!();
     }
 
     pub fn is_desk_empty(&mut self, desktop_id: u32) -> bool {
-        self.wm_connection.is_desk_empty(desktop_id)
+        // self.wm_connection.is_desk_empty(desktop_id)
+        todo!();
     }
 }
 
 
-pub trait CoreFeatures<W, C>
+pub trait WmCoreFeatures<W, C>
 where
     W: WmConnection,
     C: Config,
@@ -171,7 +183,7 @@ where
     fn update_icon_position(&mut self) {}
 }
 
-impl CoreFeatures<I3Connection, I3Config> for WmCore<I3Connection, I3Config> {
+impl WmCoreFeatures<I3Connection, I3Config> for WmCore<I3Connection, I3Config> {
     fn init(monitor_name: Option<&str>, config_option: Option<&str>) -> Self {
         let wm_connection =
             I3Connection::connect().expect("Failed to connect to i3");
@@ -188,7 +200,7 @@ impl CoreFeatures<I3Connection, I3Config> for WmCore<I3Connection, I3Config> {
     }
 }
 
-impl CoreFeatures<BspwmConnection, BspwmConfig>
+impl WmCoreFeatures<BspwmConnection, BspwmConfig>
     for WmCore<BspwmConnection, BspwmConfig>
 {
     fn init(monitor_name: Option<&str>, config_option: Option<&str>) -> Self {
