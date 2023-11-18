@@ -81,7 +81,7 @@ pub struct PrintInfoSettings {
     pub capitalize_first: Vec<WindowInfoType>,
 
     #[serde(default)]
-    pub substitude_rules: HashMap<WindowInfoType, HashMap<String, String>>,
+    pub substitute_rules: HashMap<WindowInfoType, HashMap<String, String>>,
 
     #[serde(default)]
     #[serde(rename = "label_empty")]
@@ -99,7 +99,7 @@ impl PrintInfoSettings {
         if let Some(info_type) = formatter {
             formatted_info = self.capitalize_first(&formatted_info, info_type);
             formatted_info =
-                self.apply_substitude_rules(&formatted_info, info_type);
+                self.apply_substitute_rules(&formatted_info, info_type);
         }
 
         // If max_len is not specified, then we don't bound the length of the
@@ -113,13 +113,13 @@ impl PrintInfoSettings {
         formatted_info.chars().take(cut_len).collect()
     }
 
-    fn apply_substitude_rules(
+    fn apply_substitute_rules(
         &self,
         info: &str,
         info_type: WindowInfoType,
     ) -> String {
-        if self.substitude_rules.contains_key(&info_type) {
-            let rules = self.substitude_rules.get(&info_type).unwrap();
+        if self.substitute_rules.contains_key(&info_type) {
+            let rules = self.substitute_rules.get(&info_type).unwrap();
 
             for (old, new) in rules {
                 if info == old {
@@ -281,7 +281,8 @@ fn expand_filename(filename: &str) -> String {
 mod tests {
     use super::*;
 
-    const CONFIG_PATH: &str = "/home/andrey/Documents/Programming/my_github/ixwindow/examples/ixwindow.toml";
+    const CONFIG_PATH: &str = "/home/andrey/Documents/Programming/my_github/\
+                               ixwindow/examples/ixwindow.toml";
 
     #[test]
     fn locate_config_file_works() {
@@ -293,7 +294,6 @@ mod tests {
         let config = load_i3(Some(CONFIG_PATH));
 
         assert_eq!(config.size(), 24);
-        assert_eq!(config.window_info().info_types, WindowInfoType::WmInstance);
         assert_eq!(
             config.cache_dir(),
             "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"

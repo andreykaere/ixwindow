@@ -12,7 +12,7 @@ color = "#252737"
 x = 270
 y = 6
 
-# Amound of spaces in the title of the module, before title of the window
+# Amount of spaces in the title of the module, before title of the window
 # This is to be adjusted together with coordinates of the icon to achieve the
 # best result
 gap = "         "
@@ -39,12 +39,12 @@ capitalize_first = ["WM_INSTANCE"]
 # Default: "Empty"
 label_empty = "Empty"
 
-# Custom substitude rules
-[bspwm.print_info.substitude_rules.WM_INSTANCE]
+# Custom substitute rules
+[bspwm.print_info.substitute_rules.WM_INSTANCE]
 "TelegramDesktop" = "Telegram"
 "Brave-browser" = "Brave"
 
-[bspwm.print_info.substitude_rules._NET_WM_NAME]
+[bspwm.print_info.substitute_rules._NET_WM_NAME]
 "nsxiv" = "Nsxiv"
 
 [i3]
@@ -61,7 +61,7 @@ color = "#252737"
 x = 20
 y = 6
 
-# Amound of spaces in the title of the module, before title of the window
+# Amount of spaces in the title of the module, before title of the window
 # This is to be adjusted together with coordinates of the icon to achieve the
 # best result
 gap = "         "

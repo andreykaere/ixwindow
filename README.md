@@ -115,7 +115,7 @@ color = "#RRGGBB"
 x = 270
 y = 6
 
-# Amound of spaces in the output of the `ixwindow`. This is needed to add
+# Amount of spaces in the output of the `ixwindow`. This is needed to add
 # space between previous module and the title of the window
 # It's recommended to be configured together with the coordinates of the icon 
 # to achieve the best result
@@ -154,7 +154,7 @@ have an icon for these applications, you have to add them manually.
 <!-- WM_CLASS` and selecting your app). Then you run the following command -->
 <!-- (requires `imagemagick`): --> 
 <!-- ```bash -->
-<!-- ixwindow-convert --size <size> --color <color> --cache <chache_dir> <icon-name> -->
+<!-- ixwindow-convert --size <size> --color <color> --cache <cache_dir> <icon-name> -->
 <!-- ``` -->
 <!-- where `<icon-name>` is the right name as described above. This will convert -->
 <!-- icon to `jpg` format with appropriate background color and move to your cache --> 
