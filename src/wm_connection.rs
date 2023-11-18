@@ -10,7 +10,7 @@ use std::str;
 use crate::bspwm::BspwmConnection;
 use crate::{i3_utils, x11_utils};
 
-pub trait WMConnection {
+pub trait WmConnection {
     fn is_window_fullscreen(&mut self, window_id: u32) -> bool {
         // We can't just use unwrap here, because some apps (at least Discord
         // and Zoom) that are changing its window_id as it is running
@@ -28,7 +28,7 @@ pub trait WMConnection {
     fn get_desktops_number(&mut self, monitor_name: &str) -> u32;
 }
 
-impl WMConnection for I3Connection {
+impl WmConnection for I3Connection {
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<u32> {
         let desktops = self
             .get_workspaces()
@@ -85,7 +85,7 @@ impl WMConnection for I3Connection {
     }
 }
 
-impl WMConnection for BspwmConnection {
+impl WmConnection for BspwmConnection {
     fn get_focused_desktop_id(&mut self, monitor_name: &str) -> Option<u32> {
         let query_result = bspc::query_desktops(
             false,

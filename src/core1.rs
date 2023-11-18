@@ -13,9 +13,7 @@ use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::rust_connection::RustConnection;
 
 use crate::bspwm::BspwmConnection;
-use crate::config::{
-    self, BspwmConfig, Config, EmptyInfo, I3Config, WindowInfo,
-};
+use crate::config::{self, BspwmConfig, Config, EmptyInfo, I3Config, WindowInfo};
 use crate::i3_utils;
 use crate::wm_connection::WMConnection;
 use crate::x11_utils;
@@ -91,8 +89,9 @@ impl Monitor {
     fn init(monitor_name: Option<&str>) -> Self {
         let name = match monitor_name {
             Some(x) => x.to_string(),
-            None => x11_utils::get_primary_monitor_name()
-                .expect("Couldn't get name of primary monitor"),
+            None => {
+                x11_utils::get_primary_monitor_name().expect("Couldn't get name of primary monitor")
+            }
         };
 
         Self {
@@ -105,12 +104,7 @@ impl Monitor {
         self.fullscreen_state.update_fullscreen_state(flag);
     }
 
-    fn update_window(
-        &mut self,
-        win_id: u32,
-        icon_name: &str,
-        window_info: &WindowInfo,
-    ) {
+    fn update_window(&mut self, win_id: u32, icon_name: &str, window_info: &WindowInfo) {
         let mut win = self.window.lock().unwrap();
 
         if let WindowOrEmpty::Window(ref mut window) = *win {
@@ -153,17 +147,13 @@ where
     W: WMConnection,
     C: Config,
 {
-    fn init(
-        monitor_name: Option<&str>,
-        config_option: Option<&str>,
-    ) -> Core<W, C>;
+    fn init(monitor_name: Option<&str>, config_option: Option<&str>) -> Core<W, C>;
     fn update_x(&mut self);
 }
 
 impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
     fn init(monitor_name: Option<&str>, config_option: Option<&str>) -> Self {
-        let wm_connection =
-            I3Connection::connect().expect("Failed to connect to i3");
+        let wm_connection = I3Connection::connect().expect("Failed to connect to i3");
         let config = config::load_i3(config_option);
         let monitor = Monitor::init(monitor_name);
         let (x11rb_connection, _) = x11rb::connect(None).unwrap();
@@ -181,21 +171,16 @@ impl CoreFeatures<I3Connection, I3Config> for Core<I3Connection, I3Config> {
 
         if let WindowOrEmpty::Window(ref mut window) = *win {
             let config = &self.config;
-            let desks_num = i3_utils::get_desktops_number(
-                &mut self.wm_connection,
-                &self.monitor.name,
-            );
+            let desks_num =
+                i3_utils::get_desktops_number(&mut self.wm_connection, &self.monitor.name);
 
-            window.icon.curr_x = ((config.x() as f32)
-                + config.gap_per_desk * (desks_num as f32))
-                as i16;
+            window.icon.curr_x =
+                ((config.x() as f32) + config.gap_per_desk * (desks_num as f32)) as i16;
         }
     }
 }
 
-impl CoreFeatures<BspwmConnection, BspwmConfig>
-    for Core<BspwmConnection, BspwmConfig>
-{
+impl CoreFeatures<BspwmConnection, BspwmConfig> for Core<BspwmConnection, BspwmConfig> {
     fn init(monitor_name: Option<&str>, config_option: Option<&str>) -> Self {
         let wm_connection = BspwmConnection::new();
         let config = config::load_bspwm(config_option);
@@ -243,9 +228,8 @@ where
 
         if let WindowOrEmpty::Window(ref window) = *win {
             if !Path::new(config.cache_dir()).is_dir() {
-                fs::create_dir(config.cache_dir()).expect(
-                    "No cache folder was detected and couldn't create it",
-                );
+                fs::create_dir(config.cache_dir())
+                    .expect("No cache folder was detected and couldn't create it");
             }
 
             x11_utils::generate_icon(
@@ -301,19 +285,15 @@ where
     }
 
     fn update_desktops_number(&mut self) {
-        self.monitor.desktops_number =
-            self.wm_connection.get_desktops_number(&self.monitor.name);
+        self.monitor.desktops_number = self.wm_connection.get_desktops_number(&self.monitor.name);
     }
 
     fn update_window_or_empty(&mut self, window_id: Option<u32>) {
         match window_id {
             Some(win_id) => {
-                let window_info_types =
-                    &self.config.print_info_settings().info_types;
+                let window_info_types = &self.config.print_info_settings().info_types;
 
-                let window_info =
-                    x11_utils::get_window_info(win_id, window_info_types)
-                        .unwrap();
+                let window_info = x11_utils::get_window_info(win_id, window_info_types).unwrap();
 
                 let icon_name = self
                     .wm_connection
@@ -371,9 +351,7 @@ where
             let win = self.monitor.window.lock().unwrap();
 
             icon_name = match *win {
-                WindowOrEmpty::Window(ref window) => {
-                    window.icon.get_curr_name().to_string()
-                }
+                WindowOrEmpty::Window(ref window) => window.icon.get_curr_name().to_string(),
 
                 WindowOrEmpty::Empty(_) => {
                     return;
@@ -411,10 +389,8 @@ where
         let mut new_window_info = None;
 
         let new_info = if let Some(win_id) = window_id {
-            match x11_utils::get_window_info(
-                win_id,
-                &self.config.print_info_settings().info_types,
-            ) {
+            match x11_utils::get_window_info(win_id, &self.config.print_info_settings().info_types)
+            {
                 Ok(x) => {
                     new_window_info = Some(x);
 
@@ -479,10 +455,7 @@ where
 
                 let window_id = win.id;
 
-                match x11_utils::get_window_info(
-                    window_id,
-                    &print_info_settings.info_types,
-                ) {
+                match x11_utils::get_window_info(window_id, &print_info_settings.info_types) {
                     Ok(new_window_info) => {
                         if win.info.info != new_window_info.info {
                             println!(
