@@ -1,8 +1,9 @@
-use bspc::events::{DesktopEvent, Event, NodeEvent, Subscription};
-use bspc_rs as bspc;
+use std::path::Path;
 
 use crate::config::BspwmConfig;
 use crate::core::{WmCore, WmCoreFeatures as _};
+use bspc::events::{DesktopEvent, Event, NodeEvent, Subscription};
+use bspc_rs as bspc;
 
 pub struct BspwmConnection;
 
@@ -12,8 +13,8 @@ impl BspwmConnection {
     }
 }
 
-pub fn exec(monitor_name: Option<&str>, config_option: Option<&str>) {
-    let mut core = WmCore::init(monitor_name, config_option);
+pub fn exec(monitor_name: Option<&str>, config_file: Option<&Path>) {
+    let mut core = WmCore::init(monitor_name, config_file);
     core.process_start();
 
     let subscriptions = [

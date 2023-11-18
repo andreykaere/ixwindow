@@ -2,8 +2,7 @@ use i3ipc::I3Connection;
 
 use anyhow::bail;
 use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -21,10 +20,10 @@ use crate::i3_utils;
 use crate::wm_connection::WmConnection;
 use crate::x11_utils;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct State {
-    prev_window: Window,
-    curr_window: Window,
+    prev_window: Option<Window>,
+    curr_window: Option<Window>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,13 +43,25 @@ struct Icon {
 }
 
 #[derive(Debug, Clone)]
+enum Info {
+    Text(String),
+    EmptyLabel(String),
+}
+
+impl Default for Info {
+    fn default() -> Self {
+        Self::EmptyLabel("Empty".to_string())
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 struct Bar {
-    icon: Icon,
-    info: String,
+    icon: Option<Icon>,
+    info: Info,
     state: State,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct Monitor {
     name: String,
     desktops_number: u32,
@@ -59,7 +70,16 @@ struct Monitor {
 
 impl Monitor {
     fn init(monitor_name: Option<&str>) -> Self {
-        todo!();
+        let name = match monitor_name {
+            Some(x) => x.to_string(),
+            None => x11_utils::get_primary_monitor_name()
+                .expect("Couldn't get name of the primary monitor"),
+        };
+
+        Self {
+            name,
+            ..Default::default()
+        }
     }
 }
 
@@ -70,7 +90,7 @@ where
     C: Config,
 {
     config: C,
-    pub wm_connection: W,
+    wm_connection: W,
     x11rb_connection: RustConnection,
     monitor: Monitor,
 }
@@ -85,85 +105,31 @@ where
         todo!();
     }
 
-    // fn generate_icon(&self, window_id: u32) -> anyhow::Result<()> {
-    //     todo!();
-    // }
-
-    // fn display_icon(&mut self, icon_path: &str) {
-    //     todo!();
-    // }
-
-    // fn curr_desk_contains_fullscreen(&mut self) -> bool {
-    //     todo!();
-    // }
-
-    // fn update_desktops_number(&mut self) {
-    //     self.monitor.desktops_number =
-    //         self.wm_connection.get_desktops_number(&self.monitor.name);
-    // }
-
-    // fn update_window_or_empty(&mut self, window_id: Option<u32>) {
-    //     todo!();
-    // }
-
-    // fn show_icon(&mut self) -> bool {
-    //     !self.curr_desk_contains_fullscreen()
-    // }
-
-    // fn need_update_icon(&mut self) -> bool {
-    //     todo!();
-    // }
-
-    // fn update_icon(&mut self, window_id: u32) {
-    //     todo!();
-    // }
-
-    // fn print_info(&mut self, window_id: Option<u32>) {
-    //     todo!();
-    // }
-
-    // fn watch_and_print_info(&mut self) {
-    //     todo!();
-    // }
-
-    // fn destroy_prev_icon(&mut self) {
-    //     todo!();
-    // }
-
     pub fn process_focused_window(&mut self, window_id: u32) {
         todo!();
     }
 
     pub fn process_fullscreen_window(&mut self) {
         todo!();
-        // self.destroy_prev_icon();
     }
 
     pub fn process_empty_desktop(&mut self) {
         todo!();
-        // self.destroy_prev_icon();
-        // self.print_info(None);
-        // self.update_window_or_empty(None);
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
         todo!();
-        // self.wm_connection
-        //     .get_focused_desktop_id(&self.monitor.name)
     }
 
     pub fn get_focused_window_id(&mut self) -> Option<u32> {
-        // self.wm_connection.get_focused_window_id(&self.monitor.name)
         todo!();
     }
 
     pub fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32> {
-        // self.wm_connection.get_fullscreen_window_id(desktop_id)
         todo!();
     }
 
     pub fn is_desk_empty(&mut self, desktop_id: u32) -> bool {
-        // self.wm_connection.is_desk_empty(desktop_id)
         todo!();
     }
 }
@@ -174,20 +140,17 @@ where
     W: WmConnection,
     C: Config,
 {
-    fn init(
-        monitor_name: Option<&str>,
-        config_option: Option<&str>,
-    ) -> WmCore<W, C>;
+    fn init(monitor_name: Option<&str>, config: Option<&Path>) -> WmCore<W, C>;
 
     // TODO: remove default blank implementation
     fn update_icon_position(&mut self) {}
 }
 
 impl WmCoreFeatures<I3Connection, I3Config> for WmCore<I3Connection, I3Config> {
-    fn init(monitor_name: Option<&str>, config_option: Option<&str>) -> Self {
+    fn init(monitor_name: Option<&str>, config_file: Option<&Path>) -> Self {
         let wm_connection =
             I3Connection::connect().expect("Failed to connect to i3");
-        let config = config::load_i3(config_option);
+        let config = config::load_i3(config_file);
         let monitor = Monitor::init(monitor_name);
         let (x11rb_connection, _) = x11rb::connect(None).unwrap();
 
@@ -203,9 +166,9 @@ impl WmCoreFeatures<I3Connection, I3Config> for WmCore<I3Connection, I3Config> {
 impl WmCoreFeatures<BspwmConnection, BspwmConfig>
     for WmCore<BspwmConnection, BspwmConfig>
 {
-    fn init(monitor_name: Option<&str>, config_option: Option<&str>) -> Self {
+    fn init(monitor_name: Option<&str>, config_file: Option<&Path>) -> Self {
         let wm_connection = BspwmConnection::new();
-        let config = config::load_bspwm(config_option);
+        let config = config::load_bspwm(config_file);
         let monitor = Monitor::init(monitor_name);
         let (x11rb_connection, _) = x11rb::connect(None).unwrap();
 

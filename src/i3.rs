@@ -5,13 +5,15 @@ use i3ipc::event::{
 
 use i3ipc::{self, I3Connection, I3EventListener, Subscription};
 
+use std::path::Path;
+
 use crate::config::I3Config;
 use crate::core::{WmCore, WmCoreFeatures as _};
 
-pub fn exec(monitor_name: Option<&str>, config_option: Option<&str>) {
+pub fn exec(monitor_name: Option<&str>, config: Option<&Path>) {
     let mut listener =
         I3EventListener::connect().expect("Couldn't connect to event listener");
-    let mut core = WmCore::init(monitor_name, config_option);
+    let mut core = WmCore::init(monitor_name, config);
     core.process_start();
 
     let subscriptions = [

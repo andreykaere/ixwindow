@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 mod utils {
     // Capitalizes first letter of the string, i.e. converts foo to Foo
@@ -22,24 +22,19 @@ mod utils {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct EssentialConfig {
+struct CommonConfig {
     gap: String,
     x: i16,
     y: i16,
     size: u16,
-    cache_dir: String,
+    cache_dir: PathBuf,
     color: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CommonConfig {
-    #[serde(flatten)]
-    essential_config: EssentialConfig,
 
     #[serde(rename = "print_info")]
     #[serde(default)]
-    pub print_info_settings: PrintInfoSettings,
+    print_info_settings: PrintInfoSettings,
 }
+
 
 #[derive(
     Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Hash, Eq,
@@ -78,7 +73,7 @@ pub struct PrintInfoSettings {
     pub max_len: Option<usize>,
 
     #[serde(default)]
-    pub capitalize_first: Vec<WindowInfoType>,
+    pub capitalize_first: Vec<WindowInfoType>, // for which types capitalize first letter
 
     #[serde(default)]
     pub substitute_rules: HashMap<WindowInfoType, HashMap<String, String>>,
@@ -92,11 +87,11 @@ impl PrintInfoSettings {
     pub fn format_info(
         &self,
         info: &str,
-        formatter: Option<WindowInfoType>,
+        info_type_format: Option<WindowInfoType>,
     ) -> String {
         let mut formatted_info = info.to_string();
 
-        if let Some(info_type) = formatter {
+        if let Some(info_type) = info_type_format {
             formatted_info = self.capitalize_first(&formatted_info, info_type);
             formatted_info =
                 self.apply_substitute_rules(&formatted_info, info_type);
@@ -169,27 +164,27 @@ pub trait Config {
     fn common_config(&self) -> &CommonConfig;
 
     fn gap(&self) -> &str {
-        &self.common_config().essential_config.gap
+        &self.common_config().gap
     }
 
     fn color(&self) -> &str {
-        &self.common_config().essential_config.color
+        &self.common_config().color
     }
 
-    fn cache_dir(&self) -> &str {
-        &self.common_config().essential_config.cache_dir
+    fn cache_dir(&self) -> &Path {
+        &self.common_config().cache_dir
     }
 
     fn x(&self) -> i16 {
-        self.common_config().essential_config.x
+        self.common_config().x
     }
 
     fn y(&self) -> i16 {
-        self.common_config().essential_config.y
+        self.common_config().y
     }
 
     fn size(&self) -> u16 {
-        self.common_config().essential_config.size
+        self.common_config().size
     }
 
     fn print_info_settings(&self) -> &PrintInfoSettings {
@@ -209,9 +204,9 @@ impl Config for BspwmConfig {
     }
 }
 
-pub fn read_to_table(config_option: Option<&str>) -> toml::Table {
-    let config_filename = if let Some(name) = config_option {
-        name.to_string()
+pub fn read_to_table(config_file: Option<&Path>) -> toml::Table {
+    let config_filename = if let Some(name) = config_file {
+        name.to_path_buf()
     } else {
         locate_config_file().expect("Couldn't find config file")
     };
@@ -226,63 +221,63 @@ pub fn read_to_table(config_option: Option<&str>) -> toml::Table {
     config_str.parse().unwrap()
 }
 
-pub fn load_i3(config_option: Option<&str>) -> I3Config {
-    let mut table = read_to_table(config_option);
+pub fn load_i3(config_file: Option<&Path>) -> I3Config {
+    let mut table = read_to_table(config_file);
 
     // We use remove here, because we need ownership for try_into
     let config_table = table.remove("i3").unwrap();
 
     let mut i3_config: I3Config = config_table.try_into().unwrap();
-    i3_config.common_config.essential_config.cache_dir =
-        expand_filename(i3_config.cache_dir());
+    i3_config.common_config.cache_dir =
+        expand_filename(&i3_config.common_config.cache_dir);
 
     i3_config
 }
 
-pub fn load_bspwm(config_option: Option<&str>) -> BspwmConfig {
-    let mut table = read_to_table(config_option);
+pub fn load_bspwm(config_file: Option<&Path>) -> BspwmConfig {
+    let mut table = read_to_table(config_file);
 
     // We use remove here, because we need ownership for try_into
     let config_table = table.remove("bspwm").unwrap();
 
     let mut bspwm_config: BspwmConfig = config_table.try_into().unwrap();
-    bspwm_config.common_config.essential_config.cache_dir =
-        expand_filename(bspwm_config.cache_dir());
+    bspwm_config.common_config.cache_dir =
+        expand_filename(&bspwm_config.common_config.cache_dir);
 
     bspwm_config
 }
 
-fn locate_config_file() -> Option<String> {
+fn locate_config_file() -> Option<PathBuf> {
     if let Ok(default_dir) = env::var("XDG_CONFIG_HOME") {
         let default_config = format!("{default_dir}/ixwindow/ixwindow.toml");
 
         if Path::new(&default_config).exists() {
-            return Some(default_config);
+            return Some(PathBuf::from(default_config));
         }
     }
 
     if let Ok(specified_config) = env::var("IXWINDOW_CONFIG_PATH") {
         if Path::new(&specified_config).exists() {
-            return Some(specified_config);
+            return Some(PathBuf::from(specified_config));
         }
     }
 
     None
 }
 
-fn expand_filename(filename: &str) -> String {
-    let filename = &shellexpand::env(filename).unwrap();
-    let filename = shellexpand::tilde(filename).to_string();
+fn expand_filename(file: &Path) -> PathBuf {
+    let filename = file.to_string_lossy().to_string();
+    let filename = &shellexpand::env(&filename).unwrap();
+    let filename = shellexpand::tilde(&filename).to_string();
 
-    filename
+    PathBuf::from(filename)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const CONFIG_PATH: &str = "/home/andrey/Documents/Programming/my_github/\
-                               ixwindow/examples/ixwindow.toml";
+    const CONFIG_PATH: &str = "/home/andrey/Documents/Programming/my_github/ixwindow/examples/ixwindow.toml";
 
     #[test]
     fn locate_config_file_works() {
@@ -291,22 +286,28 @@ mod tests {
 
     #[test]
     fn parse_config_works() {
-        let config = load_i3(Some(CONFIG_PATH));
+        let config_path = PathBuf::from(CONFIG_PATH);
+        let config = load_i3(Some(&config_path));
 
         assert_eq!(config.size(), 24);
         assert_eq!(
             config.cache_dir(),
-            "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+            PathBuf::from(
+                "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+            )
         );
     }
 
     #[test]
     fn expand_filename_works() {
-        let config = load_i3(Some(CONFIG_PATH));
+        let config_path = PathBuf::from(CONFIG_PATH);
+        let config = load_i3(Some(&config_path));
 
         assert_eq!(
             expand_filename(config.cache_dir()),
-            "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+            PathBuf::from(
+                "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+            )
         );
     }
 }

@@ -1,4 +1,5 @@
 use clap::Parser;
+use std::path::PathBuf;
 
 mod bspwm;
 mod config;
@@ -15,20 +16,20 @@ struct Opts {
     monitor_name: Option<String>,
 
     #[arg(long, short)]
-    config_option: Option<String>,
+    config_path: Option<PathBuf>,
 }
 
 fn main() {
     let options = Opts::parse();
-    let config_option = options.config_option.as_deref();
+    let config_path = options.config_path.as_deref();
     let monitor_name = options.monitor_name.as_deref();
 
     let wm_name = x11_utils::get_current_wm()
         .expect("Couldn't get current window manager name");
 
     match wm_name.as_str() {
-        "i3" => i3::exec(monitor_name, config_option),
-        "bspwm" => bspwm::exec(monitor_name, config_option),
+        "i3" => i3::exec(monitor_name, config_path),
+        "bspwm" => bspwm::exec(monitor_name, config_path),
         _ => {}
     }
 }
