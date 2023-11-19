@@ -1,6 +1,7 @@
-use i3ipc::I3Connection;
-
 use anyhow::bail;
+use i3ipc::I3Connection;
+use tokio::sync::mpsc;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str;
@@ -20,11 +21,6 @@ use crate::i3_utils;
 use crate::wm_connection::WmConnection;
 use crate::x11_utils;
 
-#[derive(Debug, Clone, Default)]
-struct State {
-    prev_window: Option<Window>,
-    curr_window: Option<Window>,
-}
 
 #[derive(Debug, Clone)]
 struct Window {
@@ -33,26 +29,59 @@ struct Window {
     name: String,
 }
 
+#[derive(Debug, Clone, Default)]
+struct State {
+    prev_window: Option<Window>,
+    curr_window: Option<Window>,
+}
+
+impl State {
+    fn update_window(&mut self, new_window: &Window) {
+        self.prev_window = self.curr_window.take();
+        self.curr_window = Some(new_window.clone());
+    }
+
+    fn update_empty(&mut self) {
+        self.prev_window = self.curr_window.take();
+        self.curr_window = None;
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Icon {
-    path: Option<PathBuf>,
+    path: PathBuf,
+    id: u32,
     app_name: String,
-    x: u32,
-    y: u32,
+    x: i16,
+    y: i16,
+    size: u16,
     visible: bool,
 }
 
 #[derive(Debug, Clone)]
-enum Info {
-    Text(String),
-    EmptyLabel(String),
+enum InfoRaw {
+    WindowInfo(WindowInfo),
+    EmptyInfo(EmptyInfo),
 }
 
-impl Default for Info {
+impl Default for InfoRaw {
     fn default() -> Self {
-        Self::EmptyLabel("Empty".to_string())
+        Self::EmptyInfo(EmptyInfo::default())
     }
 }
+
+impl InfoRaw {
+    fn print(&self) {
+        println!("{:?}", self);
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct Info {
+    info: InfoRaw,
+    sender: Option<mpsc::Sender<Package<InfoRaw>>>,
+}
+
 
 #[derive(Debug, Clone, Default)]
 struct Bar {
@@ -60,6 +89,14 @@ struct Bar {
     info: Info,
     state: State,
 }
+
+impl Bar {
+    fn set_empty_info(&mut self) {
+        // self.info = InfoRaw::EmptyInfo(EmptyInfo::default());
+        todo!();
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 struct Monitor {
@@ -83,6 +120,10 @@ impl Monitor {
     }
 }
 
+enum Package<T> {
+    Stop,
+    Message(T),
+}
 
 pub struct WmCore<W, C>
 where
@@ -101,12 +142,110 @@ where
     C: Config,
     WmCore<W, C>: WmCoreFeatures<W, C>,
 {
+    fn watch_info(&self, mut watcher: mpsc::Receiver<Package<InfoRaw>>) {
+        tokio::spawn(async move {
+            while let Some(Package::Message(info)) = watcher.recv().await {
+                info.print();
+            }
+        });
+    }
+
+    fn destroy_icon(&mut self) -> anyhow::Result<()> {
+        let conn = &self.x11rb_connection;
+        let bar = &mut self.monitor.bar;
+
+        if let Some(icon) = &bar.icon {
+            conn.destroy_window(icon.id).ok(); // TODO: add logging
+            conn.flush()?;
+
+            bar.icon = None;
+        }
+
+        Ok(())
+    }
+
+    async fn drop_window(&mut self) -> anyhow::Result<()> {
+        self.destroy_icon();
+
+        let info = &self.monitor.bar.info;
+
+        if let Some(sender) = &info.sender {
+            sender.send(Package::Stop).await?;
+        }
+
+        Ok(())
+    }
+
+    fn display_icon(&mut self) -> anyhow::Result<()> {
+        let bar = &mut self.monitor.bar;
+
+        if let Some(icon) = bar.icon.as_mut() {
+            let old_icon_id = icon.id;
+
+            let new_icon_id = x11_utils::display_icon(
+                &self.x11rb_connection,
+                &icon.path,
+                icon.x,
+                icon.y,
+                icon.size,
+                &self.monitor.name,
+            )?;
+            icon.id = new_icon_id;
+
+            let conn = &self.x11rb_connection;
+
+            // Destroy previous icon, because otherwise there will be 100500
+            // icons and it will slow down WM
+            conn.destroy_window(old_icon_id).ok(); // TODO: add logging
+            conn.flush()?;
+        }
+
+        Ok(())
+    }
+
     pub fn process_start(&mut self) {
-        todo!();
+        if let Some(window_id) = self.get_focused_window_id() {
+            self.process_focused_window(window_id);
+        } else {
+            self.process_empty_desktop();
+        }
     }
 
     pub fn process_focused_window(&mut self, window_id: u32) {
-        todo!();
+        let (sender, mut receiver) = mpsc::channel(100);
+
+        // TODO: getting real info
+        let raw_info = InfoRaw::WindowInfo(WindowInfo {
+            info: "Foo".to_string(),
+            ..Default::default()
+        });
+
+        let info = Info {
+            info: raw_info,
+            sender: Some(sender),
+        };
+
+        // TODO: getting real icon
+        // It's okay to put 0 for id here, because it will be changed when
+        // displaying the icon
+        let icon = Icon {
+            path: PathBuf::from("/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons/Alacritty.jpg"),
+            id: 0,
+            app_name: "Bar".to_string(),
+            x: 100,
+            y: 100,
+            size: 20,
+            visible: true,
+        };
+
+        let bar = &mut self.monitor.bar;
+
+        bar.info = info;
+        bar.icon = Some(icon);
+
+        self.display_icon();
+
+        self.watch_info(receiver);
     }
 
     pub fn process_fullscreen_window(&mut self) {
@@ -114,23 +253,28 @@ where
     }
 
     pub fn process_empty_desktop(&mut self) {
-        todo!();
+        self.drop_window();
+
+        let bar = &mut self.monitor.bar;
+        bar.set_empty_info();
+        bar.state.update_empty();
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
-        todo!();
+        self.wm_connection
+            .get_focused_desktop_id(&self.monitor.name)
     }
 
     pub fn get_focused_window_id(&mut self) -> Option<u32> {
-        todo!();
+        self.wm_connection.get_focused_window_id(&self.monitor.name)
     }
 
     pub fn get_fullscreen_window_id(&mut self, desktop_id: u32) -> Option<u32> {
-        todo!();
+        self.wm_connection.get_fullscreen_window_id(desktop_id)
     }
 
     pub fn is_desk_empty(&mut self, desktop_id: u32) -> bool {
-        todo!();
+        self.wm_connection.is_desk_empty(desktop_id)
     }
 }
 

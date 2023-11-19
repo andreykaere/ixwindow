@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::bail;
 use std::path::Path;
 use std::string::String;
 
@@ -35,7 +35,7 @@ struct ImageData {
     buf: Vec<u8>,
 }
 
-pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
+pub fn get_primary_monitor_name() -> anyhow::Result<String> {
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
 
@@ -51,7 +51,7 @@ pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
 fn get_monitor_crtc<Conn: Connection>(
     conn: &Conn,
     monitor_name: &str,
-) -> Result<GetCrtcInfoReply, Box<dyn Error>> {
+) -> anyhow::Result<GetCrtcInfoReply> {
     let screen = &conn.setup().roots[0];
     let resources = conn
         .randr_get_screen_resources_current(screen.root)?
@@ -70,18 +70,18 @@ fn get_monitor_crtc<Conn: Connection>(
         }
     }
 
-    Err("Couldn't get given monitor CRTC".into())
+    bail!("Couldn't get given monitor CRTC")
 }
 
 // Add icon-handler to MonitorState to be able to kill it later
 pub fn display_icon<Conn: Connection>(
     conn: &Conn,
-    image_path: &str,
+    image_path: &Path,
     x: i16,
     y: i16,
     size: u16,
     monitor_name: &str,
-) -> Result<Window, Box<dyn Error>> {
+) -> anyhow::Result<Window> {
     let image = ImageReader::open(image_path)?.decode()?;
     let image = image.resize(size as u32, size as u32, FilterType::CatmullRom);
     let (width, height) = image.dimensions();
@@ -160,7 +160,7 @@ pub fn display_icon<Conn: Connection>(
 }
 
 // https://stackoverflow.com/questions/758648/find-the-name-of-the-x-window-manager
-pub fn get_current_wm() -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_current_wm() -> anyhow::Result<String> {
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
     let atoms = AtomCollection::new(&conn)?.reply()?;
@@ -194,7 +194,7 @@ pub fn get_current_wm() -> Result<String, Box<dyn std::error::Error>> {
     Ok(wm_name)
 }
 
-pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
+pub fn get_wm_class(wid: u32) -> anyhow::Result<String> {
     let (conn, _) = x11rb::connect(None)?;
 
     let property = conn
@@ -252,7 +252,7 @@ pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
 pub fn get_window_info(
     window_id: u32,
     info_types: &[WindowInfoType],
-) -> Result<WindowInfo, Box<dyn Error>> {
+) -> anyhow::Result<WindowInfo> {
     let (conn, _) = x11rb::connect(None)?;
     let atoms = AtomCollection::new(&conn)?.reply()?;
 
@@ -362,7 +362,7 @@ pub fn get_window_info(
     })
 }
 
-pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
+pub fn is_window_fullscreen(window_id: u32) -> anyhow::Result<bool> {
     let (conn, _) = x11rb::connect(None)?;
     let atoms = AtomCollection::new(&conn)?.reply()?;
 
@@ -395,7 +395,7 @@ pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
 fn save_transparent_image(
     image_data: &ImageData,
     icon_path: &str,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     let img = RgbaImage::from_raw(
         image_data.width,
         image_data.height,
@@ -412,7 +412,7 @@ fn save_filled_image(
     image_data: &ImageData,
     icon_path: &str,
     color: &str,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     let bg_color = color[1..]
         .chars()
         .collect::<Vec<_>>()
@@ -463,7 +463,7 @@ pub fn generate_icon(
     cache_dir: &str,
     color: &str,
     window_id: u32,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     let (conn, _) = x11rb::connect(None)?;
     let atoms = AtomCollection::new(&conn)?.reply()?;
 
@@ -524,14 +524,14 @@ pub fn generate_icon(
 
     match max_icon {
         Some(icon) => save_filled_image(icon, &icon_path, color),
-        None => Err("No icon was found for this window".into()),
+        None => bail!("No icon was found for this window"),
     }
 }
 
 fn composite_manager_running(
     conn: &impl Connection,
     screen_num: usize,
-) -> Result<bool, Box<dyn Error>> {
+) -> anyhow::Result<bool> {
     let atom = format!("_NET_WM_CM_S{}", screen_num);
     let atom = conn.intern_atom(false, atom.as_bytes())?.reply()?.atom;
     let owner = conn.get_selection_owner(atom)?.reply()?;
