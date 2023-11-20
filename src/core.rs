@@ -1,11 +1,9 @@
-use anyhow::{anyhow, bail};
 use i3ipc::I3Connection;
 use std::sync::mpsc::{self, Receiver, Sender};
 
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str;
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -51,7 +49,7 @@ impl State {
 struct Icon {
     path: PathBuf,
     id: u32,
-    app_name: String,
+    // app_name: String,
     x: i16,
     y: i16,
     size: u16,
@@ -103,9 +101,8 @@ impl Default for Info {
 
 impl Info {
     fn print(&self, config: &impl Config) {
-        match self {
-            Info::EmptyInfo(empty_info) => empty_info.print(config),
-            Info::WindowInfo(window_info) => unimplemented!(),
+        if let Info::EmptyInfo(empty_info) = self {
+            empty_info.print(config);
         }
     }
 }
@@ -171,7 +168,7 @@ where
     C: Config + Clone + std::marker::Send + 'static,
     WmCore<W, C>: WmCoreFeatures<W, C>,
 {
-    fn watch_and_print_info(&self, mut signal_recv: Receiver<Signal>) {
+    fn watch_and_print_info(&self, signal_recv: Receiver<Signal>) {
         let window_id = self.monitor.bar.state.curr_window.clone().unwrap().id;
         let info_types = self.config.print_info_settings().info_types.clone();
         let config = self.config.clone();
@@ -180,10 +177,8 @@ where
 
 
         thread::spawn(move || loop {
-            if let Ok(signal) = signal_recv.try_recv() {
-                if let Signal::Stop = signal {
-                    break;
-                }
+            if signal_recv.try_recv().is_ok() {
+                break;
             }
 
             // TODO: add logging
@@ -203,60 +198,39 @@ where
         });
     }
 
-    fn destroy_icon(&mut self) -> anyhow::Result<()> {
+    fn destroy_icon(&mut self) {
         let conn = &self.x11rb_connection;
         let bar = &mut self.monitor.bar;
 
         if let Some(icon) = &bar.icon {
-            conn.destroy_window(icon.id).ok(); // TODO: add logging
-            conn.flush()?;
+            // TODO: add logging
+            conn.destroy_window(icon.id).ok(); // If couldn't destroy, don't do anything
+            conn.flush().unwrap();
 
             bar.icon = None;
         }
-
-        Ok(())
     }
 
-    fn stop_watch_and_print_info(&self) -> anyhow::Result<()> {
+    fn stop_watch_and_print_info(&self) {
         if let Some(controller) = &self.monitor.bar.info_controller {
-            controller.send(Signal::Stop)?;
+            controller.send(Signal::Stop).unwrap();
         }
-
-
-        Ok(())
     }
 
-    fn drop_window(&mut self) -> anyhow::Result<()> {
+    fn drop_window(&mut self) {
         self.destroy_icon();
-        self.stop_watch_and_print_info()?;
-
-        Ok(())
+        self.stop_watch_and_print_info();
     }
 
-    fn display_icon(&mut self) -> anyhow::Result<()> {
+    fn display_icon(&mut self) {
         let bar = &mut self.monitor.bar;
 
         if let Some(icon) = bar.icon.as_mut() {
             if !icon.visible {
-                return Ok(());
+                return;
             }
 
-
-            // let mut timeout = 1000;
-
-            // while timeout > 0 && !icon.path.is_file() {
-            //     if let Ok(signal) = signal_recv.try_recv() {
-            //         if let Signal::Stop = signal {
-            //             break;
-            //         }
-            //     }
-
-            //     thread::sleep(Duration::from_millis(100));
-            //     timeout -= 100;
-            // }
-
             if icon.path.is_file() {
-                let old_icon_id = icon.id;
                 let new_icon_id = x11_utils::display_icon(
                     &self.x11rb_connection,
                     &icon.path,
@@ -264,12 +238,11 @@ where
                     icon.y,
                     icon.size,
                     &self.monitor.name,
-                )?;
+                )
+                .unwrap();
                 icon.id = new_icon_id;
             }
         }
-
-        Ok(())
     }
 
     pub fn process_start(&mut self) {
@@ -318,7 +291,6 @@ where
             .wm_connection
             .get_window_name(window_id)
             .unwrap_or(String::new());
-        let app_name = icon_name.clone();
 
         let x = self.config.x();
         let y = self.config.y();
@@ -331,7 +303,6 @@ where
         Icon {
             path: PathBuf::from(&icon_path),
             id: 0,
-            app_name,
             x,
             y,
             size,
@@ -402,9 +373,7 @@ where
         let bar = &mut self.monitor.bar;
         bar.info = info;
         bar.info_controller = Some(info_sender);
-        bar.state.prev_window = bar.state.curr_window.take();
-        bar.state.curr_window = Some(window);
-
+        bar.state.update_window(&window);
 
         if bar.state.prev_window.is_none() {
             self.update_icon(window_id);

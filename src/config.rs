@@ -22,7 +22,7 @@ mod utils {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-struct CommonConfig {
+pub struct CommonConfig {
     gap: String,
     x: i16,
     y: i16,
@@ -138,7 +138,7 @@ impl PrintInfoSettings {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct I3Config {
     #[serde(flatten)]
-    pub common_config: CommonConfig,
+    common_config: CommonConfig,
 
     pub gap_per_desk: f32,
 }
@@ -146,7 +146,7 @@ pub struct I3Config {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BspwmConfig {
     #[serde(flatten)]
-    pub common_config: CommonConfig,
+    common_config: CommonConfig,
 }
 
 pub trait Config {
