@@ -24,7 +24,7 @@ use crate::x11_utils;
 struct Window {
     fullscreen: bool,
     id: u32,
-    name: String,
+    // name: String,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -64,15 +64,26 @@ pub struct WindowInfo {
 }
 
 impl WindowInfo {
-    // TODO: write a real life implementation
-    fn print(&self) {
-        println!("{}", self.info);
+    fn print(&self, config: &impl Config) {
+        println!(
+            "{}{}",
+            config.gap(),
+            config
+                .print_info_settings()
+                .format_info(&self.info, Some(self.info_type))
+        );
     }
 }
 
 #[derive(Clone, Default, Debug)]
 pub struct EmptyInfo {
     pub info: String,
+}
+
+impl EmptyInfo {
+    fn print(&self, config: &impl Config) {
+        println!("{}{}", config.gap(), &self.info);
+    }
 }
 
 
@@ -88,11 +99,14 @@ impl Default for Info {
     }
 }
 
-// impl Info {
-//     fn print(&self) {
-//         println!("{:?}", self);
-//     }
-// }
+impl Info {
+    fn print(&self, config: &impl Config) {
+        match self {
+            Info::EmptyInfo(empty_info) => empty_info.print(config),
+            Info::WindowInfo(window_info) => unimplemented!(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 enum Signal {
@@ -108,9 +122,10 @@ struct Bar {
 }
 
 impl Bar {
-    fn set_empty_info(&mut self) {
-        // self.info = Info::EmptyInfo(EmptyInfo::default());
-        todo!();
+    fn set_empty_info(&mut self, empty_info: &str) {
+        self.info = Info::EmptyInfo(EmptyInfo {
+            info: empty_info.to_string(),
+        });
     }
 }
 
@@ -151,14 +166,16 @@ where
 impl<W, C> WmCore<W, C>
 where
     W: WmConnection,
-    C: Config,
+    C: Config + Clone + std::marker::Send + 'static,
     WmCore<W, C>: WmCoreFeatures<W, C>,
 {
     fn watch_and_print_info(&self, mut signal_recv: Receiver<Signal>) {
         let window_id = self.monitor.bar.state.curr_window.clone().unwrap().id;
         let info_types = self.config.print_info_settings().info_types.clone();
+        let config = self.config.clone();
         let mut window_info = Default::default();
         let mut prev_window_info = Default::default();
+
 
         thread::spawn(move || loop {
             if let Ok(signal) = signal_recv.try_recv() {
@@ -167,6 +184,7 @@ where
                 }
             }
 
+            // TODO: add logging
             match x11_utils::get_window_info(window_id, &info_types) {
                 Ok(win_info) => {
                     prev_window_info = window_info;
@@ -176,7 +194,7 @@ where
             }
 
             if window_info != prev_window_info {
-                window_info.print();
+                window_info.print(&config);
             }
 
             thread::sleep(Duration::from_millis(100));
@@ -200,9 +218,7 @@ where
         Ok(())
     }
 
-    fn drop_window(&mut self) -> anyhow::Result<()> {
-        self.destroy_icon();
-
+    fn stop_watch_and_print_info(&self) -> anyhow::Result<()> {
         if let Some(sender) = &self.monitor.bar.sender {
             sender.send(Signal::Stop)?;
         }
@@ -210,10 +226,22 @@ where
         Ok(())
     }
 
+    fn drop_window(&mut self) -> anyhow::Result<()> {
+        self.destroy_icon();
+        self.stop_watch_and_print_info()?;
+
+        Ok(())
+    }
+
     fn display_icon(&mut self) -> anyhow::Result<()> {
+        println!("Display");
         let bar = &mut self.monitor.bar;
 
         if let Some(icon) = bar.icon.as_mut() {
+            if !icon.visible {
+                return Ok(());
+            }
+
             let old_icon_id = icon.id;
 
             let new_icon_id = x11_utils::display_icon(
@@ -245,45 +273,79 @@ where
         }
     }
 
+    fn new_window(&self, window_id: u32) -> Window {
+        Window {
+            id: window_id,
+            fullscreen: self.wm_connection.is_window_fullscreen(window_id),
+        }
+    }
+
+    fn curr_desk_contains_fullscreen(&mut self) -> bool {
+        let current_desktop = self
+            .wm_connection
+            .get_focused_desktop_id(&self.monitor.name);
+
+        if let Some(desktop) = current_desktop {
+            self.wm_connection
+                .get_fullscreen_window_id(desktop)
+                .is_some()
+        } else {
+            false
+        }
+    }
+
+
+    fn is_icon_visible(&mut self) -> bool {
+        !self.curr_desk_contains_fullscreen()
+    }
+
+    fn new_icon(&mut self, window_id: u32) -> Icon {
+        // TODO: add logging in case of no icon name
+        let icon_name = self
+            .wm_connection
+            .get_icon_name(window_id)
+            .unwrap_or(String::new());
+
+        let app_name = icon_name.clone();
+
+        let cache_dir = self.config.cache_dir().to_string_lossy().to_string();
+        let x = self.config.x();
+        let y = self.config.y();
+        let size = self.config.size();
+        let icon_path = format!("{}/{}.jpg", cache_dir, &icon_name);
+
+        // It's okay to put 0 for id here, because it will be changed when
+        // displaying the icon
+        Icon {
+            path: PathBuf::from(&icon_path),
+            id: 0,
+            app_name,
+            x,
+            y,
+            size,
+            visible: self.is_icon_visible(),
+        }
+    }
+
     pub fn process_focused_window(&mut self, window_id: u32) {
-        self.drop_window();
+        self.stop_watch_and_print_info();
 
         let (sender, receiver) = mpsc::channel();
 
-        // TODO: getting real info
-        let info = Info::WindowInfo(WindowInfo {
-            info: "Foo".to_string(),
-            ..Default::default()
-        });
+        // Real info will be set later
+        let info = Info::WindowInfo(WindowInfo::default());
 
-
-        // TODO: getting real icon
-        // It's okay to put 0 for id here, because it will be changed when
-        // displaying the icon
-        let icon = Icon {
-            path: PathBuf::from("/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons/Alacritty.jpg"),
-            id: 0,
-            app_name: "Bar".to_string(),
-            x: 100,
-            y: 100,
-            size: 20,
-            visible: true,
-        };
-
-
-        let window = Window {
-            id: window_id,
-            name: String::new(),
-            fullscreen: false,
-        };
-
+        let window = self.new_window(window_id);
         let bar = &mut self.monitor.bar;
-
         bar.info = info;
-        bar.icon = Some(icon);
         bar.sender = Some(sender);
         bar.state.prev_window = bar.state.curr_window.take();
         bar.state.curr_window = Some(window);
+
+        // Icon needs to be _after_ window, because it will use `fullscreen`
+        // field for determining visibility
+        let icon = self.new_icon(window_id);
+        self.monitor.bar.icon = Some(icon);
 
 
         self.display_icon();
@@ -291,15 +353,23 @@ where
         self.watch_and_print_info(receiver);
     }
 
+    // TODO: think through
     pub fn process_fullscreen_window(&mut self) {
-        todo!();
+        self.drop_window();
+    }
+
+    fn set_empty_info(&mut self) {
+        let empty_info =
+            self.config.print_info_settings().get_empty_desk_info();
+        self.monitor.bar.set_empty_info(empty_info);
     }
 
     pub fn process_empty_desktop(&mut self) {
         self.drop_window();
+        self.set_empty_info();
 
         let bar = &mut self.monitor.bar;
-        bar.set_empty_info();
+        bar.info.print(&self.config);
         bar.state.update_empty();
     }
 

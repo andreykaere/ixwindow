@@ -11,13 +11,13 @@ use crate::bspwm::BspwmConnection;
 use crate::{i3_utils, x11_utils};
 
 pub trait WmConnection {
-    fn is_window_fullscreen(&mut self, window_id: u32) -> bool {
+    fn is_window_fullscreen(&self, window_id: u32) -> bool {
         // We can't just use unwrap here, because some apps (at least Discord
         // and Zoom) that are changing its window_id as it is running
         x11_utils::is_window_fullscreen(window_id).unwrap_or(false)
     }
 
-    fn get_icon_name(&mut self, window_id: u32) -> Option<String> {
+    fn get_icon_name(&self, window_id: u32) -> Option<String> {
         Some(x11_utils::get_wm_class(window_id).ok()?.replace(' ', "-"))
     }
 
