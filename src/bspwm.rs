@@ -78,6 +78,7 @@ impl WmCore<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeState(node_info) => {
+                // println!("{:#?}", node_info);
                 self.process_focused_window(node_info.node_id);
             }
             _ => {

@@ -22,9 +22,9 @@ use crate::x11_utils;
 
 #[derive(Debug, Clone)]
 struct Window {
-    fullscreen: bool,
+    // fullscreen: bool,
     id: u32,
-    // name: String,
+    name: String,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -204,7 +204,21 @@ where
     // fn watch_info(&self, mut watcher: mpsc::Receiver<Package<Info>>) {
     // }
 
+    fn hide_icon(&mut self) -> anyhow::Result<()> {
+        println!("Destroy");
+        let conn = &self.x11rb_connection;
+        let bar = &mut self.monitor.bar;
+
+        if let Some(icon) = &bar.icon {
+            conn.destroy_window(icon.id).ok(); // TODO: add logging
+            conn.flush()?;
+        }
+
+        Ok(())
+    }
+
     fn destroy_icon(&mut self) -> anyhow::Result<()> {
+        println!("Destroy");
         let conn = &self.x11rb_connection;
         let bar = &mut self.monitor.bar;
 
@@ -254,12 +268,12 @@ where
             )?;
             icon.id = new_icon_id;
 
-            let conn = &self.x11rb_connection;
+            // let conn = &self.x11rb_connection;
 
             // Destroy previous icon, because otherwise there will be 100500
             // icons and it will slow down WM
-            conn.destroy_window(old_icon_id).ok(); // TODO: add logging
-            conn.flush()?;
+            // conn.destroy_window(old_icon_id).ok(); // TODO: add logging
+            // conn.flush()?;
         }
 
         Ok(())
@@ -274,10 +288,16 @@ where
     }
 
     fn new_window(&self, window_id: u32) -> Window {
+        let window_name = self
+            .wm_connection
+            .get_icon_name(window_id)
+            .unwrap_or(String::new());
+
         Window {
             id: window_id,
-            fullscreen: self.wm_connection.is_window_fullscreen(window_id),
+            name: window_name,
         }
+        // fullscreen: self.wm_connection.is_window_fullscreen(window_id),
     }
 
     fn curr_desk_contains_fullscreen(&mut self) -> bool {
@@ -336,26 +356,97 @@ where
         let info = Info::WindowInfo(WindowInfo::default());
 
         let window = self.new_window(window_id);
+
+
         let bar = &mut self.monitor.bar;
         bar.info = info;
         bar.sender = Some(sender);
         bar.state.prev_window = bar.state.curr_window.take();
         bar.state.curr_window = Some(window);
 
-        // Icon needs to be _after_ window, because it will use `fullscreen`
-        // field for determining visibility
-        let icon = self.new_icon(window_id);
-        self.monitor.bar.icon = Some(icon);
+        // println!(
+        //     "prev: {:?}, curr: {:?}",
+        //     bar.state.prev_window, bar.state.curr_window
+        // );
 
+        if bar.state.prev_window.is_none() {
+            let icon = self.new_icon(window_id);
+            self.monitor.bar.icon = Some(icon);
 
-        self.display_icon();
+            self.display_icon();
+        } else {
+            let prev_window = bar.state.prev_window.clone().unwrap();
+            let curr_window = bar.state.curr_window.clone().unwrap();
+
+            if prev_window.name == curr_window.name {
+                let bar_icon = self.monitor.bar.icon.clone();
+                // TODO: unwrap can fail if there is no icon for the window
+                // (cannot be derived)
+                if bar_icon.is_some() && !bar_icon.unwrap().visible {
+                    println!("foo");
+                    let icon = self.new_icon(window_id);
+                    self.monitor.bar.icon = Some(icon);
+                    self.display_icon();
+                } else {
+                    // let icon = self.new_icon(window_id);
+                    // self.monitor.bar.icon = Some(icon);
+                    self.destroy_icon();
+                }
+
+                // if self.is_icon_visible() {
+                //     let icon = self.new_icon(window_id);
+                //     self.monitor.bar.icon = Some(icon);
+
+                //     self.display_icon();
+                // } else {
+                //     self.destroy_icon();
+                // }
+            } else {
+                self.destroy_icon();
+
+                let icon = self.new_icon(window_id);
+                self.monitor.bar.icon = Some(icon);
+
+                self.display_icon();
+            }
+        }
+
+        println!("icon: {:#?}", self.monitor.bar.icon);
+
+        // match (&bar.state.prev_window, &bar.state.curr_window) {
+        //     // Only handle hiding/showing events if curr & prev windows belong
+        //     // to the same app (i.e. have the same icon)
+        //     (Some(prev_window), Some(curr_window))
+        //         if prev_window.name == curr_window.name =>
+        //     {
+        //         println!("match");
+        //         let icon = self.new_icon(window_id);
+        //         if !icon.visible {
+        //             self.destroy_icon();
+        //         } else {
+        //             self.monitor.bar.icon = Some(icon);
+        //             self.display_icon();
+        //         }
+        //     }
+
+        //     _ => {
+        //         println!("differ");
+        //         self.destroy_icon();
+
+        //         let icon = self.new_icon(window_id);
+        //         println!("{:?}", icon.visible);
+        //         self.monitor.bar.icon = Some(icon);
+
+        //         self.display_icon();
+        //     }
+        // }
 
         self.watch_and_print_info(receiver);
     }
 
     // TODO: think through
     pub fn process_fullscreen_window(&mut self) {
-        self.drop_window();
+        self.destroy_icon();
     }
 
     fn set_empty_info(&mut self) {
