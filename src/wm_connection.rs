@@ -17,7 +17,7 @@ pub trait WmConnection {
         x11_utils::is_window_fullscreen(window_id).unwrap_or(false)
     }
 
-    fn get_icon_name(&self, window_id: u32) -> Option<String> {
+    fn get_window_name(&self, window_id: u32) -> Option<String> {
         Some(x11_utils::get_wm_class(window_id).ok()?.replace(' ', "-"))
     }
 

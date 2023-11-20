@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use i3ipc::I3Connection;
 use std::sync::mpsc::{self, Receiver, Sender};
 
@@ -120,7 +120,7 @@ struct Bar {
     icon: Option<Icon>,
     info: Info,
     state: State,
-    sender: Option<Sender<Signal>>,
+    info_controller: Option<Sender<Signal>>,
 }
 
 impl Bar {
@@ -203,9 +203,6 @@ where
         });
     }
 
-    // fn watch_info(&self, mut watcher: mpsc::Receiver<Package<Info>>) {
-    // }
-
     fn destroy_icon(&mut self) -> anyhow::Result<()> {
         let conn = &self.x11rb_connection;
         let bar = &mut self.monitor.bar;
@@ -221,9 +218,10 @@ where
     }
 
     fn stop_watch_and_print_info(&self) -> anyhow::Result<()> {
-        if let Some(sender) = &self.monitor.bar.sender {
-            sender.send(Signal::Stop)?;
+        if let Some(controller) = &self.monitor.bar.info_controller {
+            controller.send(Signal::Stop)?;
         }
+
 
         Ok(())
     }
@@ -243,24 +241,32 @@ where
                 return Ok(());
             }
 
-            let old_icon_id = icon.id;
 
-            let new_icon_id = x11_utils::display_icon(
-                &self.x11rb_connection,
-                &icon.path,
-                icon.x,
-                icon.y,
-                icon.size,
-                &self.monitor.name,
-            )?;
-            icon.id = new_icon_id;
+            // let mut timeout = 1000;
 
-            // let conn = &self.x11rb_connection;
+            // while timeout > 0 && !icon.path.is_file() {
+            //     if let Ok(signal) = signal_recv.try_recv() {
+            //         if let Signal::Stop = signal {
+            //             break;
+            //         }
+            //     }
 
-            // Destroy previous icon, because otherwise there will be 100500
-            // icons and it will slow down WM
-            // conn.destroy_window(old_icon_id).ok(); // TODO: add logging
-            // conn.flush()?;
+            //     thread::sleep(Duration::from_millis(100));
+            //     timeout -= 100;
+            // }
+
+            if icon.path.is_file() {
+                let old_icon_id = icon.id;
+                let new_icon_id = x11_utils::display_icon(
+                    &self.x11rb_connection,
+                    &icon.path,
+                    icon.x,
+                    icon.y,
+                    icon.size,
+                    &self.monitor.name,
+                )?;
+                icon.id = new_icon_id;
+            }
         }
 
         Ok(())
@@ -277,7 +283,7 @@ where
     fn new_window(&self, window_id: u32) -> Window {
         let window_name = self
             .wm_connection
-            .get_icon_name(window_id)
+            .get_window_name(window_id)
             .unwrap_or(String::new());
 
         Window {
@@ -301,24 +307,23 @@ where
         }
     }
 
-
     fn is_icon_visible(&mut self) -> bool {
         !self.curr_desk_contains_fullscreen()
     }
 
+
     fn new_icon(&mut self, window_id: u32) -> Icon {
-        // TODO: add logging in case of no icon name
+        // TODO: add logging in case of no window name
         let icon_name = self
             .wm_connection
-            .get_icon_name(window_id)
+            .get_window_name(window_id)
             .unwrap_or(String::new());
-
         let app_name = icon_name.clone();
 
-        let cache_dir = self.config.cache_dir().to_string_lossy().to_string();
         let x = self.config.x();
         let y = self.config.y();
         let size = self.config.size();
+        let cache_dir = self.config.cache_dir().to_string_lossy().to_string();
         let icon_path = format!("{}/{}.jpg", cache_dir, &icon_name);
 
         // It's okay to put 0 for id here, because it will be changed when
@@ -334,47 +339,84 @@ where
         }
     }
 
+    fn update_icon(&mut self, window_id: u32) {
+        let icon = self.new_icon(window_id);
+
+        if !icon.path.is_file() {
+            self.try_generate_icon(window_id);
+            thread::sleep(Duration::from_millis(100)); // let icon be generated
+        }
+
+        self.monitor.bar.icon = Some(icon);
+        self.display_icon();
+    }
+
+    fn try_generate_icon(&self, window_id: u32) {
+        let icon_name = self
+            .wm_connection
+            .get_window_name(window_id)
+            .unwrap_or(String::new());
+
+        if !self.config.cache_dir().is_dir() {
+            fs::create_dir(self.config.cache_dir())
+                .expect("Failed to create nonexisting cache directory");
+        }
+
+        let config = self.config.clone();
+        let icon_path = PathBuf::from(format!(
+            "{}/{}.jpg",
+            self.config.cache_dir().to_string_lossy().to_string(),
+            &icon_name
+        ));
+
+        thread::spawn(move || {
+            let mut timeout = 3000;
+            let mut response;
+
+            while timeout > 0 && !icon_path.is_file() {
+                response = x11_utils::generate_icon(
+                    &icon_name,
+                    &config.cache_dir(),
+                    config.color(),
+                    window_id,
+                );
+
+                if response.is_ok() {
+                    break;
+                }
+
+                thread::sleep(Duration::from_millis(100));
+                timeout -= 100;
+            }
+        });
+    }
+
     pub fn process_focused_window(&mut self, window_id: u32) {
         self.stop_watch_and_print_info();
 
-        let (sender, receiver) = mpsc::channel();
 
-        // Real info will be set later
-        let info = Info::WindowInfo(WindowInfo::default());
-
+        let (info_sender, info_receiver) = mpsc::channel();
+        let info = Info::WindowInfo(WindowInfo::default()); // Real info will be set later
         let window = self.new_window(window_id);
-
 
         let bar = &mut self.monitor.bar;
         bar.info = info;
-        bar.sender = Some(sender);
+        bar.info_controller = Some(info_sender);
         bar.state.prev_window = bar.state.curr_window.take();
         bar.state.curr_window = Some(window);
 
-        // println!(
-        //     "prev: {:?}, curr: {:?}",
-        //     bar.state.prev_window, bar.state.curr_window
-        // );
 
         if bar.state.prev_window.is_none() {
-            let icon = self.new_icon(window_id);
-            self.monitor.bar.icon = Some(icon);
-
-            self.display_icon();
+            self.update_icon(window_id);
         } else {
             let prev_window = bar.state.prev_window.clone().unwrap();
             let curr_window = bar.state.curr_window.clone().unwrap();
-
 
             // TODO: think through HANDLE fullscreen toggle of the same app
             if prev_window.name == curr_window.name {
                 if prev_window.fullscreen && !curr_window.fullscreen {
                     self.destroy_icon();
-
-                    let icon = self.new_icon(window_id);
-                    self.monitor.bar.icon = Some(icon);
-
-                    self.display_icon();
+                    self.update_icon(window_id);
                 }
 
                 if !prev_window.fullscreen && curr_window.fullscreen {
@@ -382,17 +424,13 @@ where
                 }
             } else {
                 self.destroy_icon();
-
-                let icon = self.new_icon(window_id);
-                self.monitor.bar.icon = Some(icon);
-
-                self.display_icon();
+                self.update_icon(window_id);
             }
         }
 
         // println!("icon: {:#?}", self.monitor.bar.icon);
 
-        self.watch_and_print_info(receiver);
+        self.watch_and_print_info(info_receiver);
     }
 
     // TODO: think through

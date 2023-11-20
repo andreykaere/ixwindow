@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{bail, Context};
 use std::path::Path;
 use std::string::String;
 
@@ -460,7 +460,7 @@ fn save_filled_image(
 
 pub fn generate_icon(
     icon_name: &str,
-    cache_dir: &str,
+    cache_dir: &Path,
     color: &str,
     window_id: u32,
 ) -> anyhow::Result<()> {
@@ -510,7 +510,11 @@ pub fn generate_icon(
         }
     }
 
-    let icon_path = format!("{cache_dir}/{icon_name}.jpg");
+    let icon_path = format!(
+        "{}/{}.jpg",
+        cache_dir.to_string_lossy().to_string(),
+        icon_name,
+    );
 
     let mut max_size = 0;
     let mut max_icon = None;
