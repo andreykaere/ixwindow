@@ -56,7 +56,6 @@ struct Icon {
     visible: bool,
 }
 
-
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct WindowInfo {
     pub info: String,
@@ -132,7 +131,7 @@ impl Bar {
 #[derive(Debug, Clone, Default)]
 struct Monitor {
     name: String,
-    desktops_number: u32,
+    // desktops_number: u32,  // maybe will be useful for i3-desk changing
     bar: Bar,
 }
 
@@ -175,7 +174,6 @@ where
         let mut window_info = Default::default();
         let mut prev_window_info = Default::default();
 
-
         thread::spawn(move || loop {
             if signal_recv.try_recv().is_ok() {
                 break;
@@ -217,10 +215,10 @@ where
         }
     }
 
-    fn drop_window(&mut self) {
-        self.destroy_icon();
-        self.stop_watch_and_print_info();
-    }
+    // fn drop_window(&mut self) {
+    //     self.stop_watch_and_print_info();
+    //     self.destroy_icon();
+    // }
 
     fn display_icon(&mut self) {
         let bar = &mut self.monitor.bar;
@@ -231,16 +229,17 @@ where
             }
 
             if icon.path.is_file() {
-                let new_icon_id = x11_utils::display_icon(
+                // TODO: add logging if couldn't display icon
+                if let Ok(new_icon_id) = x11_utils::display_icon(
                     &self.x11rb_connection,
                     &icon.path,
                     icon.x,
                     icon.y,
                     icon.size,
                     &self.monitor.name,
-                )
-                .unwrap();
-                icon.id = new_icon_id;
+                ) {
+                    icon.id = new_icon_id;
+                }
             }
         }
     }
@@ -284,24 +283,31 @@ where
         !self.curr_desk_contains_fullscreen()
     }
 
+    fn gen_icon_name(&self, window_id: u32) -> String {
+        // TODO: add logging in case of no window name
+        self.wm_connection
+            .get_window_name(window_id)
+            .unwrap_or(String::new())
+    }
+
+    fn gen_icon_path(&self, window_id: u32) -> PathBuf {
+        PathBuf::from(format!(
+            "{}/{}.jpg",
+            self.config.cache_dir().to_string_lossy(),
+            self.gen_icon_name(window_id)
+        ))
+    }
 
     fn new_icon(&mut self, window_id: u32) -> Icon {
-        // TODO: add logging in case of no window name
-        let icon_name = self
-            .wm_connection
-            .get_window_name(window_id)
-            .unwrap_or(String::new());
-
         let x = self.config.x();
         let y = self.config.y();
         let size = self.config.size();
-        let cache_dir = self.config.cache_dir().to_string_lossy().to_string();
-        let icon_path = format!("{}/{}.jpg", cache_dir, &icon_name);
+        let icon_path = self.gen_icon_path(window_id);
 
         // It's okay to put 0 for id here, because it will be changed when
         // displaying the icon
         Icon {
-            path: PathBuf::from(&icon_path),
+            path: icon_path,
             id: 0,
             x,
             y,
@@ -319,26 +325,19 @@ where
         }
 
         self.monitor.bar.icon = Some(icon);
+        self.update_icon_position();
         self.display_icon();
     }
 
     fn try_generate_icon(&self, window_id: u32) {
-        let icon_name = self
-            .wm_connection
-            .get_window_name(window_id)
-            .unwrap_or(String::new());
-
         if !self.config.cache_dir().is_dir() {
             fs::create_dir(self.config.cache_dir())
                 .expect("Failed to create nonexisting cache directory");
         }
 
         let config = self.config.clone();
-        let icon_path = PathBuf::from(format!(
-            "{}/{}.jpg",
-            self.config.cache_dir().to_string_lossy().to_string(),
-            &icon_name
-        ));
+        let icon_name = self.gen_icon_name(window_id);
+        let icon_path = self.gen_icon_path(window_id);
 
         thread::spawn(move || {
             let mut timeout = 3000;
@@ -347,7 +346,7 @@ where
             while timeout > 0 && !icon_path.is_file() {
                 response = x11_utils::generate_icon(
                     &icon_name,
-                    &config.cache_dir(),
+                    config.cache_dir(),
                     config.color(),
                     window_id,
                 );
@@ -363,17 +362,19 @@ where
     }
 
     pub fn process_focused_window(&mut self, window_id: u32) {
-        self.stop_watch_and_print_info();
+        let window = self.new_window(window_id);
+        self.monitor.bar.state.update_window(&window);
 
+        if self.monitor.bar.state.prev_window.is_some() {
+            self.stop_watch_and_print_info();
+        }
 
         let (info_sender, info_receiver) = mpsc::channel();
         let info = Info::WindowInfo(WindowInfo::default()); // Real info will be set later
-        let window = self.new_window(window_id);
 
         let bar = &mut self.monitor.bar;
         bar.info = info;
         bar.info_controller = Some(info_sender);
-        bar.state.update_window(&window);
 
         if bar.state.prev_window.is_none() {
             self.update_icon(window_id);
@@ -414,12 +415,15 @@ where
     }
 
     pub fn process_empty_desktop(&mut self) {
-        self.drop_window();
-        self.set_empty_info();
+        self.monitor.bar.state.update_empty();
 
-        let bar = &mut self.monitor.bar;
-        bar.info.print(&self.config);
-        bar.state.update_empty();
+        if self.monitor.bar.state.prev_window.is_some() {
+            self.stop_watch_and_print_info();
+            self.destroy_icon();
+        }
+
+        self.set_empty_info();
+        self.monitor.bar.info.print(&self.config);
     }
 
     pub fn get_focused_desktop_id(&mut self) -> Option<u32> {
@@ -448,8 +452,7 @@ where
 {
     fn init(monitor_name: Option<&str>, config: Option<&Path>) -> WmCore<W, C>;
 
-    // TODO: remove default blank implementation
-    fn update_icon_position(&mut self) {}
+    fn update_icon_position(&mut self);
 }
 
 impl WmCoreFeatures<I3Connection, I3Config> for WmCore<I3Connection, I3Config> {
@@ -465,6 +468,20 @@ impl WmCoreFeatures<I3Connection, I3Config> for WmCore<I3Connection, I3Config> {
             wm_connection,
             monitor,
             x11rb_connection,
+        }
+    }
+
+    fn update_icon_position(&mut self) {
+        let config = &self.config;
+        let desks_num = i3_utils::get_desktops_number(
+            &mut self.wm_connection,
+            &self.monitor.name,
+        );
+
+        if let Some(icon) = self.monitor.bar.icon.as_mut() {
+            icon.x = ((config.x() as f32)
+                + config.gap_per_desk * (desks_num as f32))
+                as i16;
         }
     }
 }
@@ -485,4 +502,6 @@ impl WmCoreFeatures<BspwmConnection, BspwmConfig>
             x11rb_connection,
         }
     }
+
+    fn update_icon_position(&mut self) {}
 }

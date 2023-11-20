@@ -33,7 +33,7 @@ pub fn exec(monitor_name: Option<&str>, config: Option<&Path>) {
             }
 
             Err(e) => {
-                println!("While listening to events, encounter the following error: {e}");
+                eprintln!("While listening to events, encounter the following error: {e}");
             }
         }
     }

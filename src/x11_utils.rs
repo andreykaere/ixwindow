@@ -485,11 +485,8 @@ pub fn generate_icon(
         }
     }
 
-    let icon_path = format!(
-        "{}/{}.jpg",
-        cache_dir.to_string_lossy().to_string(),
-        icon_name,
-    );
+    let icon_path =
+        format!("{}/{}.jpg", cache_dir.to_string_lossy(), icon_name);
 
     let mut max_size = 0;
     let mut max_icon = None;
