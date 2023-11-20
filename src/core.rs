@@ -20,9 +20,11 @@ use crate::wm_connection::WmConnection;
 use crate::x11_utils;
 
 
+// TODO: add icon async deriver
+
 #[derive(Debug, Clone)]
 struct Window {
-    // fullscreen: bool,
+    fullscreen: bool,
     id: u32,
     name: String,
 }
@@ -204,21 +206,7 @@ where
     // fn watch_info(&self, mut watcher: mpsc::Receiver<Package<Info>>) {
     // }
 
-    fn hide_icon(&mut self) -> anyhow::Result<()> {
-        println!("Destroy");
-        let conn = &self.x11rb_connection;
-        let bar = &mut self.monitor.bar;
-
-        if let Some(icon) = &bar.icon {
-            conn.destroy_window(icon.id).ok(); // TODO: add logging
-            conn.flush()?;
-        }
-
-        Ok(())
-    }
-
     fn destroy_icon(&mut self) -> anyhow::Result<()> {
-        println!("Destroy");
         let conn = &self.x11rb_connection;
         let bar = &mut self.monitor.bar;
 
@@ -248,7 +236,6 @@ where
     }
 
     fn display_icon(&mut self) -> anyhow::Result<()> {
-        println!("Display");
         let bar = &mut self.monitor.bar;
 
         if let Some(icon) = bar.icon.as_mut() {
@@ -296,8 +283,8 @@ where
         Window {
             id: window_id,
             name: window_name,
+            fullscreen: self.wm_connection.is_window_fullscreen(window_id),
         }
-        // fullscreen: self.wm_connection.is_window_fullscreen(window_id),
     }
 
     fn curr_desk_contains_fullscreen(&mut self) -> bool {
@@ -378,29 +365,21 @@ where
             let prev_window = bar.state.prev_window.clone().unwrap();
             let curr_window = bar.state.curr_window.clone().unwrap();
 
+
+            // TODO: think through HANDLE fullscreen toggle of the same app
             if prev_window.name == curr_window.name {
-                let bar_icon = self.monitor.bar.icon.clone();
-                // TODO: unwrap can fail if there is no icon for the window
-                // (cannot be derived)
-                if bar_icon.is_some() && !bar_icon.unwrap().visible {
-                    println!("foo");
+                if prev_window.fullscreen && !curr_window.fullscreen {
+                    self.destroy_icon();
+
                     let icon = self.new_icon(window_id);
                     self.monitor.bar.icon = Some(icon);
+
                     self.display_icon();
-                } else {
-                    // let icon = self.new_icon(window_id);
-                    // self.monitor.bar.icon = Some(icon);
-                    self.destroy_icon();
                 }
 
-                // if self.is_icon_visible() {
-                //     let icon = self.new_icon(window_id);
-                //     self.monitor.bar.icon = Some(icon);
-
-                //     self.display_icon();
-                // } else {
-                //     self.destroy_icon();
-                // }
+                if !prev_window.fullscreen && curr_window.fullscreen {
+                    self.destroy_icon();
+                }
             } else {
                 self.destroy_icon();
 
@@ -411,35 +390,7 @@ where
             }
         }
 
-        println!("icon: {:#?}", self.monitor.bar.icon);
-
-        // match (&bar.state.prev_window, &bar.state.curr_window) {
-        //     // Only handle hiding/showing events if curr & prev windows belong
-        //     // to the same app (i.e. have the same icon)
-        //     (Some(prev_window), Some(curr_window))
-        //         if prev_window.name == curr_window.name =>
-        //     {
-        //         println!("match");
-        //         let icon = self.new_icon(window_id);
-        //         if !icon.visible {
-        //             self.destroy_icon();
-        //         } else {
-        //             self.monitor.bar.icon = Some(icon);
-        //             self.display_icon();
-        //         }
-        //     }
-
-        //     _ => {
-        //         println!("differ");
-        //         self.destroy_icon();
-
-        //         let icon = self.new_icon(window_id);
-        //         println!("{:?}", icon.visible);
-        //         self.monitor.bar.icon = Some(icon);
-
-        //         self.display_icon();
-        //     }
-        // }
+        // println!("icon: {:#?}", self.monitor.bar.icon);
 
         self.watch_and_print_info(receiver);
     }
