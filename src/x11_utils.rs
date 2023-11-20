@@ -6,8 +6,8 @@ use image::imageops::FilterType;
 use image::io::Reader as ImageReader;
 use image::{GenericImageView, RgbaImage};
 
-use crate::config::WindowInfo;
 use crate::config::WindowInfoType;
+use crate::core::WindowInfo;
 
 use x11rb::atom_manager;
 use x11rb::connection::Connection;

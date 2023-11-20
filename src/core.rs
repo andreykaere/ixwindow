@@ -1,6 +1,6 @@
 use anyhow::bail;
 use i3ipc::I3Connection;
-use tokio::sync::mpsc;
+use std::sync::mpsc::{self, Receiver, Sender};
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,9 +14,7 @@ use x11rb::protocol::xproto::ConnectionExt;
 use x11rb::rust_connection::RustConnection;
 
 use crate::bspwm::BspwmConnection;
-use crate::config::{
-    self, BspwmConfig, Config, EmptyInfo, I3Config, WindowInfo,
-};
+use crate::config::{self, BspwmConfig, Config, I3Config, WindowInfoType};
 use crate::i3_utils;
 use crate::wm_connection::WmConnection;
 use crate::x11_utils;
@@ -58,41 +56,60 @@ struct Icon {
     visible: bool,
 }
 
+
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct WindowInfo {
+    pub info: String,
+    pub info_type: WindowInfoType,
+}
+
+impl WindowInfo {
+    // TODO: write a real life implementation
+    fn print(&self) {
+        println!("{}", self.info);
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct EmptyInfo {
+    pub info: String,
+}
+
+
 #[derive(Debug, Clone)]
-enum InfoRaw {
+enum Info {
     WindowInfo(WindowInfo),
     EmptyInfo(EmptyInfo),
 }
 
-impl Default for InfoRaw {
+impl Default for Info {
     fn default() -> Self {
         Self::EmptyInfo(EmptyInfo::default())
     }
 }
 
-impl InfoRaw {
-    fn print(&self) {
-        println!("{:?}", self);
-    }
-}
+// impl Info {
+//     fn print(&self) {
+//         println!("{:?}", self);
+//     }
+// }
 
-#[derive(Debug, Clone, Default)]
-struct Info {
-    info: InfoRaw,
-    sender: Option<mpsc::Sender<Package<InfoRaw>>>,
+#[derive(Debug, Clone, Copy)]
+enum Signal {
+    Stop,
 }
-
 
 #[derive(Debug, Clone, Default)]
 struct Bar {
     icon: Option<Icon>,
     info: Info,
     state: State,
+    sender: Option<Sender<Signal>>,
 }
 
 impl Bar {
     fn set_empty_info(&mut self) {
-        // self.info = InfoRaw::EmptyInfo(EmptyInfo::default());
+        // self.info = Info::EmptyInfo(EmptyInfo::default());
         todo!();
     }
 }
@@ -120,11 +137,6 @@ impl Monitor {
     }
 }
 
-enum Package<T> {
-    Stop,
-    Message(T),
-}
-
 pub struct WmCore<W, C>
 where
     W: WmConnection,
@@ -142,13 +154,37 @@ where
     C: Config,
     WmCore<W, C>: WmCoreFeatures<W, C>,
 {
-    fn watch_info(&self, mut watcher: mpsc::Receiver<Package<InfoRaw>>) {
-        tokio::spawn(async move {
-            while let Some(Package::Message(info)) = watcher.recv().await {
-                info.print();
+    fn watch_and_print_info(&self, mut signal_recv: Receiver<Signal>) {
+        let window_id = self.monitor.bar.state.curr_window.clone().unwrap().id;
+        let info_types = self.config.print_info_settings().info_types.clone();
+        let mut window_info = Default::default();
+        let mut prev_window_info = Default::default();
+
+        thread::spawn(move || loop {
+            if let Ok(signal) = signal_recv.try_recv() {
+                if let Signal::Stop = signal {
+                    break;
+                }
             }
+
+            match x11_utils::get_window_info(window_id, &info_types) {
+                Ok(win_info) => {
+                    prev_window_info = window_info;
+                    window_info = win_info;
+                }
+                Err(_) => {}
+            }
+
+            if window_info != prev_window_info {
+                window_info.print();
+            }
+
+            thread::sleep(Duration::from_millis(100));
         });
     }
+
+    // fn watch_info(&self, mut watcher: mpsc::Receiver<Package<Info>>) {
+    // }
 
     fn destroy_icon(&mut self) -> anyhow::Result<()> {
         let conn = &self.x11rb_connection;
@@ -164,13 +200,11 @@ where
         Ok(())
     }
 
-    async fn drop_window(&mut self) -> anyhow::Result<()> {
+    fn drop_window(&mut self) -> anyhow::Result<()> {
         self.destroy_icon();
 
-        let info = &self.monitor.bar.info;
-
-        if let Some(sender) = &info.sender {
-            sender.send(Package::Stop).await?;
+        if let Some(sender) = &self.monitor.bar.sender {
+            sender.send(Signal::Stop)?;
         }
 
         Ok(())
@@ -212,18 +246,16 @@ where
     }
 
     pub fn process_focused_window(&mut self, window_id: u32) {
-        let (sender, mut receiver) = mpsc::channel(100);
+        self.drop_window();
+
+        let (sender, receiver) = mpsc::channel();
 
         // TODO: getting real info
-        let raw_info = InfoRaw::WindowInfo(WindowInfo {
+        let info = Info::WindowInfo(WindowInfo {
             info: "Foo".to_string(),
             ..Default::default()
         });
 
-        let info = Info {
-            info: raw_info,
-            sender: Some(sender),
-        };
 
         // TODO: getting real icon
         // It's okay to put 0 for id here, because it will be changed when
@@ -238,14 +270,25 @@ where
             visible: true,
         };
 
+
+        let window = Window {
+            id: window_id,
+            name: String::new(),
+            fullscreen: false,
+        };
+
         let bar = &mut self.monitor.bar;
 
         bar.info = info;
         bar.icon = Some(icon);
+        bar.sender = Some(sender);
+        bar.state.prev_window = bar.state.curr_window.take();
+        bar.state.curr_window = Some(window);
+
 
         self.display_icon();
 
-        self.watch_info(receiver);
+        self.watch_and_print_info(receiver);
     }
 
     pub fn process_fullscreen_window(&mut self) {

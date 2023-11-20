@@ -53,17 +53,6 @@ pub enum WindowInfoType {
     NetWmVisibleName,
 }
 
-#[derive(Clone, Default, Debug, PartialEq)]
-pub struct WindowInfo {
-    pub info: String,
-    pub info_type: WindowInfoType,
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct EmptyInfo {
-    pub info: String,
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct PrintInfoSettings {
     #[serde(rename = "types")]
