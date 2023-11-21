@@ -12,11 +12,40 @@ color = "#252737"
 x = 270
 y = 6
 
-# Amound of spaces in the title of the module, before title of the window
+# Amount of spaces in the title of the module, before title of the window
 # This is to be adjusted together with coordinates of the icon to achieve the
 # best result
 gap = "         "
 
+# This section configures the way information about the window gets printed.
+[bspwm.print_info]
+
+# Type of the info of the window, that will be printed on the bar. If more
+# than one is specified, then program will print the first not null of them
+# (in the given order)
+# Default: ["WM_INSTANCE"]
+types = ["_NET_WM_NAME", "WM_INSTANCE"]
+
+# When this setting is not present, the whole info will be printed
+# Default: None
+max_len = 30
+
+# Specify, for which window's info you want first letter to be capital. If you
+# don't want for any - set list empty.
+# Default: []
+capitalize_first = ["WM_INSTANCE"]
+
+# What gets printed, when empty desktop is focused
+# Default: "Empty"
+label_empty = "Empty"
+
+# Custom substitute rules
+[bspwm.print_info.substitute_rules.WM_INSTANCE]
+"TelegramDesktop" = "Telegram"
+"Brave-browser" = "Brave"
+
+[bspwm.print_info.substitute_rules._NET_WM_NAME]
+"nsxiv" = "Nsxiv"
 
 [i3]
 # Folder for cached icons
@@ -32,7 +61,7 @@ color = "#252737"
 x = 20
 y = 6
 
-# Amound of spaces in the title of the module, before title of the window
+# Amount of spaces in the title of the module, before title of the window
 # This is to be adjusted together with coordinates of the icon to achieve the
 # best result
 gap = "         "
@@ -40,3 +69,13 @@ gap = "         "
 # Gap per desk is needed for "shifting" the icon and is approximately equal to
 # size of the icon, because new desktop icon occupies around this space
 gap_per_desk = 24
+
+
+# This section configures the way information about the window gets printed.
+[i3.print_info]
+# Type of the info of the window, that will be printed on the bar. If more
+# than one is specified, then program will print the first not null of them
+# (in the given order)
+types = ["_NET_WM_NAME", "WM_INSTANCE"]
+# When this setting is not present, the whole info will be printed
+max_len = 30

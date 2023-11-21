@@ -1,7 +1,8 @@
-use bspc_rs::events::{self, DesktopEvent, Event, NodeEvent, Subscription};
+use std::path::Path;
 
 use crate::config::BspwmConfig;
-use crate::core::{Core, CoreFeatures as _};
+use crate::core::{WmCore, WmCoreFeatures as _};
+use bspc_rs::events::{self, DesktopEvent, Event, NodeEvent, Subscription};
 
 pub struct BspwmConnection;
 
@@ -11,8 +12,8 @@ impl BspwmConnection {
     }
 }
 
-pub fn exec(monitor_name: Option<String>, config_option: Option<&str>) {
-    let mut core = Core::init(monitor_name, config_option);
+pub fn exec(monitor_name: Option<&str>, config_file: Option<&Path>) {
+    let mut core = WmCore::init(monitor_name, config_file);
     core.process_start();
 
     let subscriptions = [
@@ -39,14 +40,12 @@ pub fn exec(monitor_name: Option<String>, config_option: Option<&str>) {
     }
 }
 
-impl Core<BspwmConnection, BspwmConfig> {
+impl WmCore<BspwmConnection, BspwmConfig> {
     fn handle_event(&mut self, event: Event) {
         match event {
             Event::NodeEvent(e) => self.handle_node_event(e),
             Event::DesktopEvent(e) => self.handle_desktop_event(e),
-            _ => {
-                unreachable!();
-            }
+            _ => unreachable!(),
         }
     }
 
@@ -76,6 +75,7 @@ impl Core<BspwmConnection, BspwmConfig> {
             }
 
             NodeEvent::NodeState(node_info) => {
+                // println!("{:#?}", node_info);
                 self.process_focused_window(node_info.node_id);
             }
             _ => {

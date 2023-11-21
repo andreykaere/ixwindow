@@ -1,11 +1,13 @@
-use std::error::Error;
+use anyhow::bail;
 use std::path::Path;
 use std::string::String;
 
 use image::imageops::FilterType;
 use image::io::Reader as ImageReader;
+use image::{GenericImageView, RgbaImage};
 
-use image::GenericImageView;
+use crate::config::WindowInfoType;
+use crate::core::WindowInfo;
 
 use x11rb::atom_manager;
 use x11rb::connection::Connection;
@@ -17,6 +19,8 @@ atom_manager! {
         WM_PROTOCOLS,
         WM_DELETE_WINDOW,
         _NET_WM_NAME,
+        _NET_WM_VISIBLE_NAME,
+        WM_NAME,
         _NET_WM_STATE,
         _NET_WM_STATE_FULLSCREEN,
         _NET_WM_ICON,
@@ -31,7 +35,7 @@ struct ImageData {
     buf: Vec<u8>,
 }
 
-pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
+pub fn get_primary_monitor_name() -> anyhow::Result<String> {
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
 
@@ -47,7 +51,7 @@ pub fn get_primary_monitor_name() -> Result<String, Box<dyn Error>> {
 fn get_monitor_crtc<Conn: Connection>(
     conn: &Conn,
     monitor_name: &str,
-) -> Result<GetCrtcInfoReply, Box<dyn Error>> {
+) -> anyhow::Result<GetCrtcInfoReply> {
     let screen = &conn.setup().roots[0];
     let resources = conn
         .randr_get_screen_resources_current(screen.root)?
@@ -66,18 +70,18 @@ fn get_monitor_crtc<Conn: Connection>(
         }
     }
 
-    Err("Couldn't get given monitor CRTC".into())
+    bail!("Couldn't get given monitor CRTC")
 }
 
 // Add icon-handler to MonitorState to be able to kill it later
 pub fn display_icon<Conn: Connection>(
     conn: &Conn,
-    image_path: &str,
+    image_path: &Path,
     x: i16,
     y: i16,
     size: u16,
     monitor_name: &str,
-) -> Result<Window, Box<dyn Error>> {
+) -> anyhow::Result<Window> {
     let image = ImageReader::open(image_path)?.decode()?;
     let image = image.resize(size as u32, size as u32, FilterType::CatmullRom);
     let (width, height) = image.dimensions();
@@ -156,10 +160,9 @@ pub fn display_icon<Conn: Connection>(
 }
 
 // https://stackoverflow.com/questions/758648/find-the-name-of-the-x-window-manager
-pub fn get_current_wm() -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_current_wm() -> anyhow::Result<String> {
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
-
     let atoms = AtomCollection::new(&conn)?.reply()?;
 
     let property = conn
@@ -191,7 +194,7 @@ pub fn get_current_wm() -> Result<String, Box<dyn std::error::Error>> {
     Ok(wm_name)
 }
 
-pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
+pub fn get_wm_class(wid: u32) -> anyhow::Result<String> {
     let (conn, _) = x11rb::connect(None)?;
 
     let property = conn
@@ -206,7 +209,6 @@ pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
         .reply()?;
 
     let mut iter = property.value.split(|x| *x == 0);
-
     let wm_class = iter.next();
     let wm_instance = iter.next();
 
@@ -221,11 +223,122 @@ pub fn get_wm_class(wid: u32) -> Result<String, Box<dyn Error>> {
     Ok(String::new())
 }
 
-pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
+pub fn get_window_info(
+    window_id: u32,
+    info_types: &[WindowInfoType],
+) -> anyhow::Result<WindowInfo> {
     let (conn, _) = x11rb::connect(None)?;
+    let atoms = AtomCollection::new(&conn)?.reply()?;
 
-    let atoms = AtomCollection::new(&conn)?;
-    let atoms = atoms.reply()?;
+    for info_type in info_types {
+        let info_bytes = match info_type {
+            WindowInfoType::WmClass => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        AtomEnum::WM_CLASS,
+                        AtomEnum::STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
+
+                let mut iter = property.value.split(|x| *x == 0);
+                let wm_class = iter.next();
+
+                wm_class.map(|x| x.to_vec())
+            }
+
+            WindowInfoType::WmInstance => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        AtomEnum::WM_CLASS,
+                        AtomEnum::STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
+
+                let mut iter = property.value.split(|x| *x == 0);
+                let wm_instance = iter.nth(1);
+
+                wm_instance.map(|x| x.to_vec())
+            }
+
+            WindowInfoType::NetWmName => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        atoms._NET_WM_NAME,
+                        atoms.UTF8_STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
+
+                let wm_name = property.value;
+
+                Some(wm_name)
+            }
+
+            WindowInfoType::NetWmVisibleName => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        atoms._NET_WM_VISIBLE_NAME,
+                        atoms.UTF8_STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
+
+                let wm_name = property.value;
+
+                Some(wm_name)
+            }
+
+            WindowInfoType::WmName => {
+                let property = conn
+                    .get_property(
+                        false,
+                        window_id,
+                        AtomEnum::WM_NAME,
+                        AtomEnum::STRING,
+                        0,
+                        1024,
+                    )?
+                    .reply()?;
+
+                let wm_name = property.value;
+
+                Some(wm_name)
+            }
+        };
+
+        if let Some(bytes) = info_bytes {
+            if !bytes.is_empty() {
+                return Ok(WindowInfo {
+                    info: String::from_utf8_lossy(&bytes).to_string(),
+                    info_type: info_type.to_owned(),
+                });
+            }
+        }
+    }
+
+    Ok(WindowInfo {
+        info: String::new(),
+        info_type: info_types.last().unwrap().to_owned(),
+    })
+}
+
+pub fn is_window_fullscreen(window_id: u32) -> anyhow::Result<bool> {
+    let (conn, _) = x11rb::connect(None)?;
+    let atoms = AtomCollection::new(&conn)?.reply()?;
 
     let property = conn
         .get_property(
@@ -253,11 +366,27 @@ pub fn is_window_fullscreen(window_id: u32) -> Result<bool, Box<dyn Error>> {
     }))
 }
 
+fn save_transparent_image(
+    image_data: &ImageData,
+    icon_path: &str,
+) -> anyhow::Result<()> {
+    let img = RgbaImage::from_raw(
+        image_data.width,
+        image_data.height,
+        image_data.buf.to_vec(),
+    )
+    .unwrap();
+
+    img.save(icon_path)?;
+
+    Ok(())
+}
+
 fn save_filled_image(
     image_data: &ImageData,
     icon_path: &str,
     color: &str,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     let bg_color = color[1..]
         .chars()
         .collect::<Vec<_>>()
@@ -305,14 +434,12 @@ fn save_filled_image(
 
 pub fn generate_icon(
     icon_name: &str,
-    cache_dir: &str,
+    cache_dir: &Path,
     color: &str,
     window_id: u32,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     let (conn, _) = x11rb::connect(None)?;
-
-    let atoms = AtomCollection::new(&conn)?;
-    let atoms = atoms.reply()?;
+    let atoms = AtomCollection::new(&conn)?.reply()?;
 
     let property = conn
         .get_property(
@@ -357,7 +484,8 @@ pub fn generate_icon(
         }
     }
 
-    let icon_path = format!("{cache_dir}/{icon_name}.jpg");
+    let icon_path =
+        format!("{}/{}.jpg", cache_dir.to_string_lossy(), icon_name);
 
     let mut max_size = 0;
     let mut max_icon = None;
@@ -371,8 +499,18 @@ pub fn generate_icon(
 
     match max_icon {
         Some(icon) => save_filled_image(icon, &icon_path, color),
-        None => Err("No icon was found for this window".into()),
+        None => bail!("No icon was found for this window"),
     }
+}
+
+fn composite_manager_running(
+    conn: &impl Connection,
+    screen_num: usize,
+) -> anyhow::Result<bool> {
+    let atom = format!("_NET_WM_CM_S{}", screen_num);
+    let atom = conn.intern_atom(false, atom.as_bytes())?.reply()?.atom;
+    let owner = conn.get_selection_owner(atom)?.reply()?;
+    Ok(owner.owner != x11rb::NONE)
 }
 
 #[cfg(test)]

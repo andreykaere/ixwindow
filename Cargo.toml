@@ -23,3 +23,5 @@ serde = { version = "1.0.152", features = ["derive"] }
 shellexpand = "3.0.0"
 toml = "0.7.2"
 x11rb = { version = "0.11.1", features = ["randr"] }
+clap = { version = "4.4.7", features = ["derive"] }
+anyhow = "1.0.75"
