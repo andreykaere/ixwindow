@@ -1,5 +1,6 @@
 use i3ipc::I3Connection;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::{Arc, Mutex};
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -113,7 +114,7 @@ enum Signal {
 
 #[derive(Debug, Clone, Default)]
 struct Bar {
-    icon: Option<Icon>,
+    icon: Option<Arc<Mutex<Icon>>>,
     info: Info,
     state: State,
     info_controller: Option<Sender<Signal>>,
@@ -228,19 +229,35 @@ where
                 return;
             }
 
-            if icon.path.is_file() {
-                // TODO: add logging if couldn't display icon
-                if let Ok(new_icon_id) = x11_utils::display_icon(
-                    &self.x11rb_connection,
-                    &icon.path,
-                    icon.x,
-                    icon.y,
-                    icon.size,
-                    &self.monitor.name,
-                ) {
-                    icon.id = new_icon_id;
+            let (x11rb_connection, _) = x11rb::connect(None).unwrap();
+            let icon_path = icon.path.clone();
+            let monitor_name = self.monitor.name.clone();
+            let x = icon.x;
+            let y = icon.y;
+            let size = icon.size;
+
+            thread::spawn(move || {
+                let mut timeout = 3000;
+                while timeout > 0 {
+                    if icon_path.is_file() {
+                        // TODO: add logging if couldn't display icon
+                        if let Ok(new_icon_id) = x11_utils::display_icon(
+                            &x11rb_connection,
+                            &icon_path,
+                            x,
+                            y,
+                            size,
+                            &monitor_name,
+                        ) {
+                            icon.id = new_icon_id;
+                            break;
+                        }
+                    }
+
+                    timeout -= 100;
+                    thread::sleep(Duration::from_millis(100));
                 }
-            }
+            });
         }
     }
 
@@ -321,7 +338,7 @@ where
 
         if !icon.path.is_file() {
             self.try_generate_icon(window_id);
-            thread::sleep(Duration::from_millis(100)); // let icon be generated
+            // thread::sleep(Duration::from_millis(100)); // let icon be generated
         }
 
         self.monitor.bar.icon = Some(icon);
