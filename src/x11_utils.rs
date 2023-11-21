@@ -554,7 +554,8 @@ mod tests {
             query::query_nodes(None, None, None, Some(NodeSelector("focused")))
                 .unwrap()[0];
 
-        generate_icon("foo.jpg", "/home/andrey", "#252737", id).unwrap();
+        generate_icon("foo.jpg", Path::new("/home/andrey"), "#252737", id)
+            .unwrap();
     }
 
     fn get_icon_path() -> String {
@@ -569,7 +570,14 @@ mod tests {
         let monitor_name = get_primary_monitor_name()
             .expect("Couldn't get name of primary monitor");
 
-        display_icon(&conn, &get_icon_path(), 270, 6, 24, &monitor_name)
-            .unwrap();
+        display_icon(
+            &conn,
+            Path::new(&get_icon_path()),
+            270,
+            6,
+            24,
+            &monitor_name,
+        )
+        .unwrap();
     }
 }

@@ -265,7 +265,7 @@ fn expand_filename(file: &Path) -> PathBuf {
 mod tests {
     use super::*;
 
-    const CONFIG_PATH: &str = "/home/andrey/Documents/Programming/my_github/ixwindow/examples/ixwindow.toml";
+    const CONFIG_PATH: &str = "./examples/ixwindow.toml";
 
     #[test]
     fn locate_config_file_works() {
@@ -281,7 +281,10 @@ mod tests {
         assert_eq!(
             config.cache_dir(),
             PathBuf::from(
-                "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+                shellexpand::tilde(
+                    "~/.config/polybar/scripts/ixwindow/polybar-icons"
+                )
+                .to_string()
             )
         );
     }
@@ -294,7 +297,10 @@ mod tests {
         assert_eq!(
             expand_filename(config.cache_dir()),
             PathBuf::from(
-                "/home/andrey/.config/polybar/scripts/ixwindow/polybar-icons"
+                shellexpand::tilde(
+                    "~/.config/polybar/scripts/ixwindow/polybar-icons"
+                )
+                .to_string()
             )
         );
     }
