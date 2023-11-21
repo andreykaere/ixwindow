@@ -197,9 +197,6 @@ solution to any of the issues, stated above.
   Rust implementation there is no much need in it. However I think it would be
   nice to have it anyway
 
-- Add options for `print_info` function, i.e. print different information.
-  Maybe add support for `xwindow` options (in polybar).
-
 ## Thanks
 
 ### Inspired by
