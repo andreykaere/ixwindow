@@ -23,7 +23,7 @@ mod utils {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CommonConfig {
-    gap: String,
+    gap: u16,
     x: i16,
     y: i16,
     size: u16,
@@ -158,8 +158,14 @@ pub struct BspwmConfig {
 pub trait Config {
     fn common_config(&self) -> &CommonConfig;
 
-    fn gap(&self) -> &str {
-        &self.common_config().gap
+    fn gap(&self) -> String {
+        let mut acc = String::new();
+        let gap = self.common_config().gap;
+
+        for _ in 1..=gap {
+            acc.push(' ');
+        }
+        acc
     }
 
     fn color(&self) -> &str {
