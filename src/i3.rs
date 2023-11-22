@@ -44,10 +44,23 @@ impl WmCore<I3Connection, I3Config> {
         match event {
             Event::WindowEvent(e) => self.handle_window_event(e),
             Event::WorkspaceEvent(e) => self.handle_workspace_event(e),
-            _ => {
-                unreachable!();
+
+            // Prevent panic when switching binding mode or hotplugging outputs
+            Event::ModeEvent(_) | Event::OutputEvent(_) => {
+                self.handle_general_event();
             }
+
+            err => unreachable!("{:?}", err),
         }
+    }
+
+    // In a general case, we want to just update the icon name and location
+    fn handle_general_event(&mut self) {
+        let window_id = self.get_focused_window_id();
+        match window_id {
+            Some(id) => self.process_focused_window(id),
+            None => self.process_empty_desktop(),
+        };
     }
 
     fn handle_window_event(&mut self, event_info: WindowEventInfo) {
