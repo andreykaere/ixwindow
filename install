@@ -24,16 +24,19 @@ OPTIONS:
 exit 1
 }
 
-
 init_config_file () {
+    local location;
     if [ -z "$XDG_CONFIG_HOME" ]; then
         mkdir --parents "$HOME/.config/ixwindow"
-        cp "examples/ixwindow.toml" "$HOME/.config/ixwindow/ixwindow.toml"
-        return
+        location="$HOME"
+    else
+        mkdir --parents "$XDG_CONFIG_HOME/ixwindow"
+        location="$XDG_CONFIG_HOME"
     fi
 
-    mkdir --parents "$XDG_CONFIG_HOME/ixwindow"
-    cp "examples/ixwindow.toml" "$XDG_CONFIG_HOME/ixwindow/ixwindow.toml"
+    if [ ! -f "$location/ixwindow/ixwindow.toml" ]; then 
+        cp "examples/ixwindow.toml" "$location/ixwindow/ixwindow.toml"
+    fi
 }
 
 install () {
@@ -74,7 +77,7 @@ do
 done
 
 
-install
+# install
 
 init_config_file 
 
