@@ -328,7 +328,7 @@ where
 
     fn try_generate_icon(&self, window_id: u32) {
         if !self.config.cache_dir().is_dir() {
-            fs::create_dir(self.config.cache_dir())
+            fs::create_dir_all(self.config.cache_dir())
                 .expect("Failed to create nonexisting cache directory");
         }
 
