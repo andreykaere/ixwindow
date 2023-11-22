@@ -52,9 +52,17 @@ pub enum WindowInfoType {
     NetWmVisibleName,
 }
 
+fn default_info_types() -> Vec<WindowInfoType> {
+    vec![WindowInfoType::WmInstance]
+}
+
+fn default_empty_info() -> Option<String> {
+    Some("Empty".to_string())
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct PrintInfoSettings {
-    #[serde(rename = "types")]
+    #[serde(rename = "types", default = "default_info_types")]
     pub info_types: Vec<WindowInfoType>,
 
     #[serde(default)]
@@ -66,8 +74,7 @@ pub struct PrintInfoSettings {
     #[serde(default)]
     pub substitute_rules: HashMap<WindowInfoType, HashMap<String, String>>,
 
-    #[serde(default)]
-    #[serde(rename = "label_empty")]
+    #[serde(rename = "label_empty", default = "default_empty_info")]
     pub empty_info: Option<String>,
 }
 
