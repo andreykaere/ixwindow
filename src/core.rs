@@ -115,6 +115,7 @@ struct Bar {
     info: Info,
     state: State,
     info_controller: Option<Sender<Signal>>,
+    icon_controller: Option<Sender<Signal>>,
 }
 
 impl Bar {
@@ -194,15 +195,19 @@ where
     }
 
     fn destroy_icon(&mut self) {
-        let conn = &self.x11rb_connection;
-        let bar = &mut self.monitor.bar;
-
-        if let Some(icon) = &bar.icon {
+        // println!("DESTROOOOOOOOOOOOOOOY");
+        if let Some(icon) = &self.monitor.bar.icon {
+            // println!("DESTROOOOOOOOOOOOOOOY");
+            if let Some(icon_sender) = &self.monitor.bar.icon_controller {
+                println!("DESTROOOOOOOOOOOOOOOY");
+                // icon_sender.send(Signal::Stop).unwrap();
+                icon_sender.send(Signal::Stop).unwrap();
+            }
             // TODO: add logging
-            conn.destroy_window(icon.id).ok(); // If couldn't destroy, don't do anything
-            conn.flush().unwrap();
+            // conn.destroy_window(icon.id).ok(); // If couldn't destroy, don't do anything
+            // conn.flush().unwrap();
 
-            bar.icon = None;
+            self.monitor.bar.icon = None;
         }
     }
 
@@ -212,12 +217,7 @@ where
         }
     }
 
-    // fn drop_window(&mut self) {
-    //     self.stop_watch_and_print_info();
-    //     self.destroy_icon();
-    // }
-
-    fn display_icon(&mut self) {
+    fn display_icon(&mut self, signal_recv: Receiver<Signal>) {
         let bar = &mut self.monitor.bar;
 
         if let Some(icon) = bar.icon.as_mut() {
@@ -225,19 +225,47 @@ where
                 return;
             }
 
-            if icon.path.is_file() {
-                // TODO: add logging if couldn't display icon
-                if let Ok(new_icon_id) = x11_utils::display_icon(
-                    &self.x11rb_connection,
-                    &icon.path,
-                    icon.x,
-                    icon.y,
-                    icon.size,
-                    &self.monitor.name,
-                ) {
-                    icon.id = new_icon_id;
+            let (x11rb_connection, _) = x11rb::connect(None).unwrap();
+            let icon_path = icon.path.clone();
+            let monitor_name = self.monitor.name.clone();
+            let x = icon.x;
+            let y = icon.y;
+            let size = icon.size;
+            let mut icon_id = None;
+
+            thread::spawn(move || {
+                loop {
+                    // println!("Foo, icon: {:?}", icon_id);
+                    // println!("icon_path: {:?}", icon_path);
+
+                    if icon_path.is_file() && icon_id.is_none() {
+                        println!("I AM DISPLAYING!");
+                        // TODO: add logging if couldn't display icon
+                        if let Ok(new_icon_id) = x11_utils::display_icon(
+                            &x11rb_connection,
+                            &icon_path,
+                            x,
+                            y,
+                            size,
+                            &monitor_name,
+                        ) {
+                            icon_id = Some(new_icon_id);
+                        }
+                    }
+
+                    if signal_recv.recv().is_ok() {
+                        if let Some(id) = icon_id {
+                            x11rb_connection.destroy_window(id).ok(); // If couldn't destroy, don't do anything
+                            x11rb_connection.flush().unwrap();
+                            println!("LEAVING ICON");
+                        }
+
+                        return;
+                    }
+
+                    // thread::sleep(Duration::from_millis(10));
                 }
-            }
+            });
         }
     }
 
@@ -313,7 +341,7 @@ where
         }
     }
 
-    fn update_icon(&mut self, window_id: u32) {
+    fn update_icon(&mut self, window_id: u32, icon_recv: Receiver<Signal>) {
         let icon = self.new_icon(window_id);
 
         if !icon.path.is_file() {
@@ -323,7 +351,7 @@ where
 
         self.monitor.bar.icon = Some(icon);
         self.update_icon_position();
-        self.display_icon();
+        self.display_icon(icon_recv);
     }
 
     fn try_generate_icon(&self, window_id: u32) {
@@ -338,17 +366,19 @@ where
 
         thread::spawn(move || {
             let mut timeout = 3000;
-            let mut response;
+            let mut generated_icon;
 
             while timeout > 0 && !icon_path.is_file() {
-                response = x11_utils::generate_icon(
+                generated_icon = x11_utils::generate_icon(
                     &icon_name,
                     config.cache_dir(),
                     config.color(),
                     window_id,
                 );
 
-                if response.is_ok() {
+                println!("{:?}", generated_icon);
+
+                if generated_icon.is_ok() {
                     break;
                 }
 
@@ -362,19 +392,28 @@ where
         let window = self.new_window(window_id);
         self.monitor.bar.state.update_window(&window);
 
+        // TODO: some programs like discord open with the same name multiple
+        // windows during their startup and some have icon while others don't
+        // and if I don't put it here, I have to know how to find a workaround
+        // for the case described above
+        self.try_generate_icon(window_id);
+
         if self.monitor.bar.state.prev_window.is_some() {
             self.stop_watch_and_print_info();
         }
 
         let (info_sender, info_receiver) = mpsc::channel();
+        let (icon_sender, icon_receiver) = mpsc::channel();
+
         let info = Info::WindowInfo(WindowInfo::default()); // Real info will be set later
+        let mut update_icon = false;
 
         let bar = &mut self.monitor.bar;
         bar.info = info;
         bar.info_controller = Some(info_sender);
 
         if bar.state.prev_window.is_none() {
-            self.update_icon(window_id);
+            update_icon = true;
         } else {
             let prev_window = bar.state.prev_window.clone().unwrap();
             let curr_window = bar.state.curr_window.clone().unwrap();
@@ -383,16 +422,20 @@ where
             if prev_window.name == curr_window.name {
                 if prev_window.fullscreen && !curr_window.fullscreen {
                     self.destroy_icon();
-                    self.update_icon(window_id);
-                }
-
-                if !prev_window.fullscreen && curr_window.fullscreen {
+                    update_icon = true;
+                } else if !prev_window.fullscreen && curr_window.fullscreen {
                     self.destroy_icon();
                 }
             } else {
                 self.destroy_icon();
-                self.update_icon(window_id);
+                update_icon = true;
             }
+        }
+
+        self.monitor.bar.icon_controller = Some(icon_sender);
+
+        if update_icon {
+            self.update_icon(window_id, icon_receiver);
         }
 
         // println!("icon: {:#?}", self.monitor.bar.icon);
