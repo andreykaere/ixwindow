@@ -15,7 +15,7 @@ y = 6
 # Amount of spaces in the title of the module, before title of the window
 # This is to be adjusted together with coordinates of the icon to achieve the
 # best result
-gap = "         "
+gap = 9
 
 # This section configures the way information about the window gets printed.
 [bspwm.print_info]
@@ -64,7 +64,7 @@ y = 6
 # Amount of spaces in the title of the module, before title of the window
 # This is to be adjusted together with coordinates of the icon to achieve the
 # best result
-gap = "         "
+gap = 9
 
 # Gap per desk is needed for "shifting" the icon and is approximately equal to
 # size of the icon, because new desktop icon occupies around this space
