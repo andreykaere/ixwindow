@@ -17,8 +17,6 @@ use crate::i3_utils;
 use crate::wm_connection::WmConnection;
 use crate::x11_utils;
 
-// TODO: add icon async deriver
-
 #[derive(Debug, Clone)]
 struct Window {
     fullscreen: bool,

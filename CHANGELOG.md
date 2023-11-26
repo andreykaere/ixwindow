@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Add CHANGELOG file for tracking relevant user-facing changes
-- Add `print_info` option along with `substitude_rules` in config file
+- Add `print_info` option along with `substitute_rules` in config file
 
 ### Changed
 
