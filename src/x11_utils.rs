@@ -13,6 +13,7 @@ use x11rb::atom_manager;
 use x11rb::connection::Connection;
 use x11rb::protocol::randr::{self, ConnectionExt as _, GetCrtcInfoReply};
 use x11rb::protocol::xproto::*;
+use x11rb::wrapper::ConnectionExt as _;
 
 atom_manager! {
     pub AtomCollection: AtomCollectionCookie {
@@ -26,6 +27,8 @@ atom_manager! {
         _NET_WM_ICON,
         UTF8_STRING,
         _NET_SUPPORTING_WM_CHECK,
+        _NET_WM_WINDOW_TYPE,
+        _NET_WM_WINDOW_TYPE_DOCK,
     }
 }
 
@@ -73,7 +76,71 @@ fn get_monitor_crtc<Conn: Connection>(
     bail!("Couldn't get given monitor CRTC")
 }
 
-// Add icon-handler to MonitorState to be able to kill it later
+fn get_polybar_ids<Conn: Connection>(
+    conn: &Conn,
+) -> anyhow::Result<Vec<Window>> {
+    let screen = &conn.setup().roots[0];
+    let all_windows = conn.query_tree(screen.root)?.reply()?.children;
+    let mut polybar_ids = Vec::new();
+
+    for window in all_windows {
+        let property = conn
+            .get_property(
+                false,
+                window,
+                AtomEnum::WM_CLASS,
+                AtomEnum::STRING,
+                0,
+                1024,
+            )?
+            .reply()?;
+
+        // let foo = String::from_utf8(property.value)?;
+
+        let mut iter = property.value.split(|x| *x == 0);
+
+        let wm_class_opt = iter.next();
+        let wm_instance_opt = iter.next();
+        let (wm_instance, wm_class);
+
+        if let Some(bytes) = wm_instance_opt {
+            wm_instance = String::from_utf8(bytes.to_vec())?;
+        } else {
+            continue;
+        }
+
+        if let Some(bytes) = wm_class_opt {
+            wm_class = String::from_utf8(bytes.to_vec())?;
+        } else {
+            continue;
+        }
+
+        if (wm_class.as_str(), wm_instance.as_str()) == ("polybar", "Polybar") {
+            polybar_ids.push(window);
+        }
+    }
+
+    Ok(polybar_ids)
+}
+
+fn put_icon_over_polybar<Conn: Connection>(
+    conn: &Conn,
+    window: Window,
+) -> anyhow::Result<()> {
+    let polybar_ids = get_polybar_ids(conn)?;
+    let mut window_conf;
+
+    for polybar_id in polybar_ids {
+        window_conf = ConfigureWindowAux::default()
+            .stack_mode(StackMode::ABOVE)
+            .sibling(polybar_id);
+
+        conn.configure_window(window, &window_conf)?;
+    }
+
+    Ok(())
+}
+
 pub fn display_icon<Conn: Connection>(
     conn: &Conn,
     image_path: &Path,
@@ -91,10 +158,14 @@ pub fn display_icon<Conn: Connection>(
 
     let screen = &conn.setup().roots[0];
     let monitor_crtc = get_monitor_crtc(conn, monitor_name)?;
-
     let wm_class = b"polybar-ixwindow-icon";
     let win = conn.generate_id()?;
-    let window_aux = CreateWindowAux::default()
+    let atoms = AtomCollection::new(conn)?.reply()?;
+
+    let window_conf =
+        ConfigureWindowAux::default().stack_mode(StackMode::BELOW);
+
+    let window_args = CreateWindowAux::default()
         .override_redirect(1)
         .event_mask(EventMask::EXPOSURE);
 
@@ -109,7 +180,18 @@ pub fn display_icon<Conn: Connection>(
         0,
         WindowClass::COPY_FROM_PARENT,
         screen.root_visual,
-        &window_aux,
+        &window_args,
+    )?;
+
+    conn.configure_window(win, &window_conf)?;
+    put_icon_over_polybar(conn, win)?;
+
+    conn.change_property32(
+        PropMode::REPLACE,
+        win,
+        atoms._NET_WM_WINDOW_TYPE,
+        AtomEnum::ATOM,
+        &[atoms._NET_WM_WINDOW_TYPE_DOCK],
     )?;
     conn.map_window(win)?;
     conn.flush()?;
