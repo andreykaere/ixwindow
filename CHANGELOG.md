@@ -21,4 +21,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Not updating icon and info when opening `mpv` with `youtube` video on empty desktop
 - Icon showing up when there is a fullscreen window open and some floating window pops up
 - Icon showing up when toggling one fullscreen window while another fullscreen is opened
-
+- Icon overlapping (floating) windows if they are placed over icon 
