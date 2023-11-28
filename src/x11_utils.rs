@@ -294,12 +294,12 @@ pub fn get_wm_class(wid: u32) -> anyhow::Result<String> {
     let wm_class = iter.next();
     let wm_instance = iter.next();
 
-    if let Some(name) = wm_instance {
-        return Ok(String::from_utf8(name.to_vec())?);
+    if let Some(bytes) = wm_instance {
+        return Ok(String::from_utf8(bytes.to_vec())?);
     }
 
-    if let Some(name) = wm_class {
-        return Ok(String::from_utf8(name.to_vec())?);
+    if let Some(bytes) = wm_class {
+        return Ok(String::from_utf8(bytes.to_vec())?);
     }
 
     Ok(String::new())
@@ -448,6 +448,7 @@ pub fn is_window_fullscreen(window_id: u32) -> anyhow::Result<bool> {
     }))
 }
 
+#[allow(unused)]
 fn save_transparent_image(
     image_data: &ImageData,
     icon_path: &str,
@@ -585,6 +586,7 @@ pub fn generate_icon(
     }
 }
 
+#[allow(unused)]
 fn composite_manager_running(
     conn: &impl Connection,
     screen_num: usize,
