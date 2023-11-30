@@ -197,6 +197,8 @@ solution to any of the issues, stated above.
   Rust implementation there is no much need in it. However I think it would be
   nice to have it anyway
 
+- Live config reload
+
 ## Thanks
 
 ### Inspired by
