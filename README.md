@@ -44,7 +44,7 @@ But in this case you will have to create config file yourself (see
 Another way to install `ixwindow` is from github repository. First you have to
 clone it:
 ```sh
-git clone git@github.com:andreykaere/ixwindow.git && cd ixwindow
+git clone https://github.com:andreykaere/ixwindow && cd ixwindow
 ```
 If you want the bleeding edge version, switch to `dev` branch.
 
