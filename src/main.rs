@@ -15,7 +15,7 @@ struct Opts {
     #[arg(long, short)]
     monitor_name: Option<String>,
 
-    #[arg(long, short)]
+    #[arg(long = "config", short)]
     config_path: Option<PathBuf>,
 }
 
