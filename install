@@ -77,7 +77,7 @@ do
 done
 
 
-# install
+install
 
 init_config_file 
 
