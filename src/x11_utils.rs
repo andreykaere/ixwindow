@@ -118,6 +118,8 @@ fn get_polybar_ids<Conn: Connection>(
         if (wm_class.as_str(), wm_instance.as_str()) == ("polybar", "Polybar") {
             polybar_ids.push(window);
         }
+
+        println!("wm_class: {wm_class}; wm_instance: {wm_instance}");
     }
 
     Ok(polybar_ids)
