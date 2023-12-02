@@ -249,18 +249,34 @@ pub fn load_bspwm(config_file: Option<&Path>) -> BspwmConfig {
 }
 
 fn locate_config_file() -> Option<PathBuf> {
-    if let Ok(default_dir) = env::var("XDG_CONFIG_HOME") {
-        let default_config = format!("{default_dir}/ixwindow/ixwindow.toml");
-
-        if Path::new(&default_config).exists() {
-            return Some(PathBuf::from(default_config));
-        }
-    }
-
     if let Ok(specified_config) = env::var("IXWINDOW_CONFIG_PATH") {
         if Path::new(&specified_config).exists() {
             return Some(PathBuf::from(specified_config));
         }
+    }
+
+    let default_dir = match env::var("XDG_CONFIG_HOME") {
+        Err(_) => format!(
+            "{}/.config",
+            env::var("HOME").expect(
+                "$HOME is not set, but is needed \
+                because $XDG_CONFIG_HOME is not set"
+            )
+        ),
+        Ok(path) if path.is_empty() => format!(
+            "{}/.config",
+            env::var("HOME").expect(
+                "$HOME is not set, but is needed \
+                 because $XDG_CONFIG_HOME is empty"
+            )
+        ),
+        Ok(path) => path,
+    };
+
+    let default_config = format!("{default_dir}/ixwindow/ixwindow.toml");
+
+    if Path::new(&default_config).exists() {
+        return Some(PathBuf::from(default_config));
     }
 
     None
