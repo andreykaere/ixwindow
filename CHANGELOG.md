@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed 
 
+- First checking into default config and not specified config through `--config`
 - Not updating icon and info when opening `mpv` with `youtube` video on empty desktop
 - Icon showing up when there is a fullscreen window open and some floating window pops up
 - Icon showing up when toggling one fullscreen window while another fullscreen is opened
