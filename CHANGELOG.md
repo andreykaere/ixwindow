@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Bump version of `bspc_rs` from `v0.1.0` to `v0.1.1`
+- Polybar's bar config requirements 
 
 ### Fixed 
 
