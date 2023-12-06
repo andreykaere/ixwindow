@@ -63,7 +63,10 @@ exec = /path/to/ixwindow
 tail = true
 ```
 Now you have to put it somewhere on bar: for example, you can add it right
-next to your window manager module like that: `modules-left = <wm> ixwindow`. 
+next to your window manager module like that: `modules-left = <wm> ixwindow`.
+Also, you will have to have `override-redirect = true` set in your bar config.
+This will, however make polybar appear even in fullscreen mode, overlapping
+the window. To restore normal behaviour also add `wm-restak = <your-wm>`.
 
 If you have multi monitors setup, then you need to have distinct bar for
 each of them and create modules like this:
