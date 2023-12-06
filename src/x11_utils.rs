@@ -119,7 +119,7 @@ fn get_polybar_ids<Conn: Connection>(
             polybar_ids.push(window);
         }
 
-        println!("wm_class: {wm_class}; wm_instance: {wm_instance}");
+        // println!("wm_class: {wm_class}; wm_instance: {wm_instance}");
     }
 
     Ok(polybar_ids)
