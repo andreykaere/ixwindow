@@ -44,7 +44,7 @@ But in this case you will have to create config file yourself (see
 Another way to install `ixwindow` is from github repository. First you have to
 clone it:
 ```sh
-git clone git@github.com:andreykaere/ixwindow.git && cd ixwindow
+git clone https://github.com:andreykaere/ixwindow && cd ixwindow
 ```
 If you want the bleeding edge version, switch to `dev` branch.
 
@@ -63,7 +63,10 @@ exec = /path/to/ixwindow
 tail = true
 ```
 Now you have to put it somewhere on bar: for example, you can add it right
-next to your window manager module like that: `modules-left = <wm> ixwindow`. 
+next to your window manager module like that: `modules-left = <wm> ixwindow`.
+Also, you will have to have `override-redirect = true` set in your bar config.
+This will, however make polybar appear even in fullscreen mode, overlapping
+the window. To restore normal behaviour also add `wm-restak = <your-wm>`.
 
 If you have multi monitors setup, then you need to have distinct bar for
 each of them and create modules like this:

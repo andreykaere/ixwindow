@@ -28,7 +28,7 @@ init_config_file () {
     local location;
     if [ -z "$XDG_CONFIG_HOME" ]; then
         mkdir --parents "$HOME/.config/ixwindow"
-        location="$HOME"
+        location="$HOME/.config"
     else
         mkdir --parents "$XDG_CONFIG_HOME/ixwindow"
         location="$XDG_CONFIG_HOME"
@@ -77,7 +77,7 @@ do
 done
 
 
-# install
+install
 
 init_config_file 
 
