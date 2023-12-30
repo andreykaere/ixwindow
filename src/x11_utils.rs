@@ -76,6 +76,40 @@ fn get_monitor_crtc<Conn: Connection>(
     bail!("Couldn't get given monitor CRTC")
 }
 
+fn get_wm_instance_class<Conn: Connection>(
+    conn: &Conn,
+    window: Window,
+) -> anyhow::Result<(String, String)> {
+    let property = conn
+        .get_property(
+            false,
+            window,
+            AtomEnum::WM_CLASS,
+            AtomEnum::STRING,
+            0,
+            1024,
+        )?
+        .reply()?;
+
+    let mut iter = property.value.split(|x| *x == 0);
+    let wm_instance_opt = iter.next();
+    let wm_class_opt = iter.next();
+
+    let wm_instance = if let Some(bytes) = wm_instance_opt {
+        String::from_utf8(bytes.to_vec())?
+    } else {
+        String::new()
+    };
+
+    let wm_class = if let Some(bytes) = wm_class_opt {
+        String::from_utf8(bytes.to_vec())?
+    } else {
+        String::new()
+    };
+
+    Ok((wm_instance, wm_class))
+}
+
 fn get_polybar_ids<Conn: Connection>(
     conn: &Conn,
 ) -> anyhow::Result<Vec<Window>> {
@@ -84,38 +118,9 @@ fn get_polybar_ids<Conn: Connection>(
     let mut polybar_ids = Vec::new();
 
     for window in all_windows {
-        let property = conn
-            .get_property(
-                false,
-                window,
-                AtomEnum::WM_CLASS,
-                AtomEnum::STRING,
-                0,
-                1024,
-            )?
-            .reply()?;
+        let (wm_instance, wm_class) = get_wm_instance_class(conn, window)?;
 
-        // let foo = String::from_utf8(property.value)?;
-
-        let mut iter = property.value.split(|x| *x == 0);
-
-        let wm_class_opt = iter.next();
-        let wm_instance_opt = iter.next();
-        let (wm_instance, wm_class);
-
-        if let Some(bytes) = wm_instance_opt {
-            wm_instance = String::from_utf8(bytes.to_vec())?;
-        } else {
-            continue;
-        }
-
-        if let Some(bytes) = wm_class_opt {
-            wm_class = String::from_utf8(bytes.to_vec())?;
-        } else {
-            continue;
-        }
-
-        if (wm_class.as_str(), wm_instance.as_str()) == ("polybar", "Polybar") {
+        if (wm_instance.as_str(), wm_class.as_str()) == ("polybar", "Polybar") {
             polybar_ids.push(window);
         }
 
