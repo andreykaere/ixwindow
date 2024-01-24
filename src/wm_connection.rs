@@ -127,7 +127,7 @@ impl WmConnection for BspwmConnection {
             None,
             None,
             Some(DesktopSelector(&desk_id)),
-            Some(NodeSelector(".fullscreen.window")),
+            Some(NodeSelector(".fullscreen.window.!hidden")),
         );
 
         from_query_result_to_id(query_result)
